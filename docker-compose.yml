@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  config-server:
+    container_name: config-server
+    #build: Configuration options that are applied at build time that we defined in the Dockerfile with relative path
+    build:
+      context: ./config-server
+    #image: Official Docker image from docker hub
+    #image: config-server:v1
+    ports:
+      - "8885:8885"
+    restart: always
+  order-service:
+    container_name: order-service
+    build:
+      context: ./order-service
+    restart: always
+    ports:
+      - "8086:8086"
+    depends_on:
+      - config-server
+#  product-service:
+#    container_name: product-service
+#    build:
+#      context: ./product-service
+#    ports:
+#      - "8002:8002"
+#    restart: always
+#    networks:
+#      - springCloud
+#    depends_on:
+#      - config-server

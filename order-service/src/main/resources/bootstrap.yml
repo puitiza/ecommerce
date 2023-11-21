@@ -1,5 +1,12 @@
+#The microservice needs to know the location of the Config Server. In the bootstrap.properties or bootstrap.yml file
+#(note that it's bootstrap, not application, because this configuration is required very early in the startup phase),
+#specify the URI of your Config Server:
 spring:
   application:
     name: order-service
   profiles:
-    active: dev
+    active: prod
+
+  cloud:
+    config:
+      uri: http://localhost:8885
