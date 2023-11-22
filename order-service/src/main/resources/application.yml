@@ -1,0 +1,8 @@
+eureka:
+  #instance:
+  #  instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+  client:
+    serviceUrl:
+      # This information must be given to which Eureka Server address the application will connect to.
+      #defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://service-registry:8761/eureka/

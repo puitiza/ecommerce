@@ -2,25 +2,23 @@ version: '3.8'
 services:
   config-server:
     container_name: config-server
-    #build: Configuration options that are applied at build time that we defined in the Dockerfile with relative path
-    build:
+    build: #Configuration options that are applied at build time that we defined in the Dockerfile with relative path
       context: ./config-server
     ports:
       - "8885:8885"
     restart: always
     networks:
       - springCloud
-  order-service:
-    container_name: order-service
+  order-service: #this service hasn't container_name because it has 3 replica
     build:
       context: ./order-service
     restart: always
-    ports:
-      - "8086:3005"
     networks:
       - springCloud
     depends_on:
       - config-server
+    deploy:
+      replicas: 3
   product-service:
     container_name: product-service
     build:
