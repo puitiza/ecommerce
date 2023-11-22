@@ -1,0 +1,19 @@
+#Application Name
+spring:
+  application:
+    name: service-registry
+
+server:
+  port: 8761
+
+eureka:
+  client:
+    # Tells the server not to register itself in the service registry
+    registerWithEureka: false
+    fetchRegistry: false
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+  server:
+    renewalPercentThreshold: 0.49
+    renewalThresholdUpdateIntervalMs: 5000
+    #waitTimeInMsWhenSyncEmpty: 0    #wait time for subsequent sync
