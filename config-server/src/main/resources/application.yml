@@ -1,7 +1,3 @@
-# HTTP Server
-server:
-  port: 8885
-
 # Spring Cloud Config Server Repository
 spring:
   application:
@@ -12,3 +8,7 @@ spring:
         git:
           uri: https://github.com/puitiza/ecommerce-configurations.git
         bootstrap: true
+
+# HTTP Server
+server:
+  port: 8885

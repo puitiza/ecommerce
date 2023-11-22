@@ -14,7 +14,7 @@ RUN gradle clean
 RUN gradle build -x test
 
 # Expose the port that the application will run on
-EXPOSE 8080
+EXPOSE 8888
 
 # Specify the command to run on container start
 CMD ["java", "-jar", "build/libs/config-server-0.0.1-SNAPSHOT.jar"]
