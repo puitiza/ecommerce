@@ -3,9 +3,9 @@
 #specify the URI of your Config Server:
 spring:
   application:
-    name: order-service
+    name: product-service
   profiles:
-    active: prod
+    active: dev
   cloud:
     config:
       # On local machine -> localhost but on container use the another way
