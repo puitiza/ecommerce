@@ -1,10 +1,6 @@
-spring:
-  application:
-    name: product-service
-  profiles:
-    active: dev
-  config:
-    import: "configserver:http://localhost:8885"
-  cloud:
-    config:
-      uri: http://localhost:8885
+eureka:
+  client:
+    serviceUrl:
+      # This information must be given to which Eureka Server address the application will connect to.
+      #defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://service-registry:8761/eureka/
