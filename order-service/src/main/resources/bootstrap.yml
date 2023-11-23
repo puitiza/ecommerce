@@ -7,15 +7,11 @@ spring:
   profiles:
     active: dev
   cloud:
-    config:
-      # On local machine -> localhost but on container use the another way
+    config: # On local machine -> localhost but on container use the another way
       #uri: http://localhost:8885
       uri: http://config-server:8885
-      # the label must correspond with the branch name in GitHub
-      label: main
+      label: main  # the label must correspond with the branch name in GitHub
       fail-fast: true
       retry:
-        # retry configuration retrieval up to 100 times
-        max-attempts: 30
-        # max backoff interval
-        max-interval: 8000
+        max-attempts: 30 # retry configuration retrieval up to 100 times
+        max-interval: 8000 # max backoff interval

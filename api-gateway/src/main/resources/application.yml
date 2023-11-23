@@ -1,0 +1,23 @@
+spring:
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/order/**
+        - id: product-service
+          uri: lb://product-service
+          predicates:
+            - Path=/product/**
+server:
+  port: 8090
+
+eureka:
+  client:
+    serviceUrl:
+      # This information must be given to which Eureka Server address the application will connect to.
+      #defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://service-registry:8761/eureka/

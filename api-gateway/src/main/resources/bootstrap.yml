@@ -3,7 +3,7 @@
 #specify the URI of your Config Server:
 spring:
   application:
-    name: product-service
+    name: api-gateway
   profiles:
     active: dev
   cloud:

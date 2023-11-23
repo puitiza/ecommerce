@@ -17,6 +17,7 @@ services:
       - springCloud
     depends_on:
       - config-server
+      - service-registry
     deploy:
       replicas: 3
   product-service:
@@ -30,6 +31,7 @@ services:
       - springCloud
     depends_on:
       - config-server
+      - service-registry
   service-registry:
     container_name: service-registry
     build:
@@ -39,6 +41,20 @@ services:
     restart: always
     networks:
       - springCloud
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./api-gateway
+    ports:
+      - "8090:8090"
+    restart: always
+    networks:
+      - springCloud
+    depends_on:
+      - config-server
+      - service-registry
+      - order-service
+      - product-service
 networks:
   springCloud:
     driver: bridge
