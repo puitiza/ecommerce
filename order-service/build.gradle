@@ -32,6 +32,8 @@ dependencies {
 	// includes the necessary components to support the legacy bootstrap mechanism,enabling the processing of bootstrap.yml
 	implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	//	<!-- Dependency for Spring Cloud OpenFeign -->
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

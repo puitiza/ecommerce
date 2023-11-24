@@ -1,13 +1,17 @@
 package com.ecommerce.orderservice.services;
 
+import com.ecommerce.orderservice.clients.ProductFeignClient;
 import com.ecommerce.orderservice.model.Order;
+import com.ecommerce.orderservice.model.OrderWithProducts;
+import com.ecommerce.orderservice.model.Product;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Service
-public record OrderServiceImpl() implements OrderService{
+public record OrderServiceImpl(ProductFeignClient productFeignClient)
+        implements OrderService {
     @Override
     public Order getOrderById(Long orderId) {
         return Order.builder()
@@ -22,5 +26,12 @@ public record OrderServiceImpl() implements OrderService{
                 new Order(2L, "Mario Pascal", 10.20),
                 new Order(3L, "Julio Perez", 5.00)
         );
+    }
+
+    @Override
+    public OrderWithProducts getOrderWithProducts(Long orderId) {
+        Order order = getOrderById(orderId);
+        List<Product> products = productFeignClient.getProductsByOrderId(orderId);
+        return new OrderWithProducts(order, products);
     }
 }

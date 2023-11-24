@@ -23,4 +23,12 @@ public record ProductServiceImpl() implements ProductService {
                 new Product(3L, "Spring Cloud Eureka Client", 0.5)
         );
     }
+
+    @Override
+    public List<Product> getProductsByOrderId(Long orderId) {
+        return List.of(
+                new Product(1L, "Product A", 19.99),
+                new Product(2L, "Product B", 29.99)
+        );
+    }
 }
