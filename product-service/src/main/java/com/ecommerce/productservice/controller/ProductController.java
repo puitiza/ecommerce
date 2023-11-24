@@ -1,8 +1,10 @@
 package com.ecommerce.productservice.controller;
 
 
-import com.ecommerce.productservice.model.ProductResponse;
+import com.ecommerce.productservice.model.Product;
+import com.ecommerce.productservice.service.ProductService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -10,14 +12,15 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
-public class ProductController {
-    @GetMapping("/product")
-    public List<ProductResponse> getOrders(){
+public record ProductController(ProductService productService) {
 
-        return Arrays.asList(
-                new ProductResponse(1, "Spring ", new BigDecimal(0)),
-                new ProductResponse(2, "Spring Cloud Eureka Service Discovery", new BigDecimal(0)),
-                new ProductResponse(3, "Spring Cloud Eureka Client", new BigDecimal(0))
-        );
+    @GetMapping("/products/{productId}")
+    public Product getProductById(@PathVariable Long productId) {
+        return productService.getProductById(productId);
+    }
+
+    @GetMapping("/products")
+    public List<Product> getAllProducts() {
+        return productService.getAllProducts();
     }
 }

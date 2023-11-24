@@ -5,16 +5,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
-public class ProductResponse {
+public class Product {
 
-    private Integer id;
+    private Long id;
     private String name;
-    private BigDecimal price;
+    private double price;
 
 }
