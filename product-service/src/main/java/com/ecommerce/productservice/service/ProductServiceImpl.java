@@ -3,7 +3,6 @@ package com.ecommerce.productservice.service;
 import com.ecommerce.productservice.model.Product;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
