@@ -7,9 +7,8 @@ spring:
   profiles:
     active: dev
   cloud:
-    config: # On local machine -> localhost but on container use the another way
-      #uri: http://localhost:8885
-      uri: http://config-server:8885
+    config: # On local machine -> localhost but on container use the another way "http://localhost:8885"
+      uri: http://localhost:8885
       label: main  # the label must correspond with the branch name in GitHub
       fail-fast: true
       retry:

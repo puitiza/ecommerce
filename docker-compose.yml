@@ -20,6 +20,10 @@ services:
       - service-registry
     deploy:
       replicas: 3
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8885
   product-service:
     container_name: product-service
     build:
@@ -32,6 +36,10 @@ services:
     depends_on:
       - config-server
       - service-registry
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8885
   service-registry:
     container_name: service-registry
     build:
@@ -55,6 +63,18 @@ services:
       - service-registry
       - order-service
       - product-service
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8885
+  zipkin-all-in-one:
+    container_name: zipkin-all-in-one
+    image: openzipkin/zipkin:latest
+    restart: always
+    ports:
+      - "9411:9411"
+    networks:
+      - springCloud
 networks:
   springCloud:
     driver: bridge
