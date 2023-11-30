@@ -28,17 +28,22 @@ ext {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	//	<!-- Dependency for Spring Cloud Config -->
 	implementation 'org.springframework.cloud:spring-cloud-starter-config'
-	// includes the necessary components to support the legacy bootstrap mechanism,enabling the processing of bootstrap.yml
 	implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
+
+	//	<!-- Dependency for Spring Cloud Netflix Eureka -->
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+
 	//	<!-- Dependency for Spring Cloud OpenFeign -->
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-	//	<!-- Dependency for Spring Cloud Distributed Tracing -->
+
+	//	<!-- Dependency for Spring Cloud Distributed Tracing for Zipkin -->
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-	implementation 'io.opentelemetry:opentelemetry-exporter-zipkin'
+	implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+	implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+	implementation 'io.github.openfeign:feign-micrometer'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'

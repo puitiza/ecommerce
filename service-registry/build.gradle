@@ -21,7 +21,7 @@ ext {
 }
 
 dependencies {
-    //    <!-- Dependency for spring-cloud Netflix Eureka Server -->
+    //    <!-- Dependency for Spring Cloud Netflix Eureka Server -->
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
