@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: comment-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-consumer-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
+server:
+  port: 8086
+
+custom:
+  consumer:
+    user:
+      topic-name: order-topic
