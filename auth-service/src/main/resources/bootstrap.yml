@@ -1,0 +1,15 @@
+#The microservice needs to know the location of the Config Server. In the bootstrap.properties or bootstrap.yml file
+#(note that it's bootstrap, not application, because this configuration is required very early in the startup phase),
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: dev
+  cloud:
+    config: # On local machine -> localhost but on container use the another way "http://config-server:8885"
+      uri: http://localhost:8885
+      label: main  # the label must correspond with the branch name in GitHub
+      fail-fast: true
+      retry:
+        max-attempts: 30 # retry configuration retrieval up to 100 times
+        max-interval: 8000 # max backoff interval

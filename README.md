@@ -8,7 +8,7 @@ and it split by section and commits.
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
 [![Javadoc](https://img.shields.io/badge/%20-javadoc-blue)](https://javiertuya.github.io/samples-test-spring/)
 
-<img src="https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png">     
+<img src="https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png?raw=true">     
 
 
 # About the project
