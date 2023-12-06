@@ -1,13 +1,17 @@
-package com.ecommerce.authservice.service;
+package com.ecommerce.authservice.configuration.security.service;
 
+import com.ecommerce.authservice.component.exception.errors.UserExceptionErrors;
+import com.ecommerce.authservice.component.exception.handler.ExistingElementFoundException;
 import com.ecommerce.authservice.model.entity.ERole;
 import com.ecommerce.authservice.model.entity.RefreshTokenEntity;
 import com.ecommerce.authservice.model.entity.UserEntity;
 import com.ecommerce.authservice.model.request.SignUpRequest;
 import com.ecommerce.authservice.model.response.JwtResponse;
 import com.ecommerce.authservice.model.response.MessageResponse;
-import com.ecommerce.authservice.model.security.UserDetailsImpl;
+import com.ecommerce.authservice.configuration.security.service.UserDetailsImpl;
 import com.ecommerce.authservice.repository.UserRepository;
+import com.ecommerce.authservice.service.RoleService;
+import com.ecommerce.authservice.util.message_source.MessageSourceHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +25,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 
+import static com.ecommerce.authservice.component.exception.errors.UserExceptionErrors.EMAIL_FOUND;
+import static com.ecommerce.authservice.component.exception.errors.UserExceptionErrors.USERNAME_FOUND;
+
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -28,7 +35,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final RoleService roleService;
 
     private final PasswordEncoder encoder;
-   // private final MessageSourceHandler messageSource;
+    private final MessageSourceHandler messageSource;
 
     @Override
     @Transactional
@@ -62,7 +69,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return userRepository.save(user);
     }
-/*
+
     public MessageResponse register(SignUpRequest signUpRequest) {
         var username = userRepository.existsByUsername(signUpRequest.getUsername());
         var email = userRepository.existsByEmail(signUpRequest.getEmail());
@@ -77,5 +84,5 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         throw new ExistingElementFoundException(
                 messageSource.getLocalMessage(errors.getKey()),
                 messageSource.getLocalMessage(errors.getCode()));
-    }*/
+    }
 }

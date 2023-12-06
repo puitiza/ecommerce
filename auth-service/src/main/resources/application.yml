@@ -20,5 +20,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
-    generate-ddl: true
+    #show-sql: true
+    #generate-ddl: true
+  messages:
+    basename: lang/messages
+    encoding: UTF-8

@@ -6,7 +6,7 @@ About this Project is essential to handle user authentication and authorization 
 
 ## Connection MySQL
 
-<img src="/Users/anthonypuitiza/Documents/SpringBootProjects/Microservices/ecommerce/images/mysql_auth.png">
+<img src="/Users/anthonypuitiza/Documents/SpringBootProjects/Microservices/ecommerce/auth-service/src/main/resources/images/mysql_auth.png">
 
 this is command that I use on the image
 
@@ -14,5 +14,16 @@ this is command that I use on the image
 mysql -u root -p
 SELECT user, host FROM mysql.user;
 ```
+## Curl
 
+```
+curl --location 'http://localhost:8040/api/auth/sign-in' \
+--header 'Content-Type: application/json' \
+--data '{
+    "username": "puiti",
+    "password": "12345678"
+}'
+```
+
+<img src="/Users/anthonypuitiza/Documents/SpringBootProjects/Microservices/ecommerce/auth-service/src/main/resources/images/curl_login.png">
 

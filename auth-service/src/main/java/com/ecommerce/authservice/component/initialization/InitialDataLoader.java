@@ -1,4 +1,4 @@
-package com.ecommerce.authservice.initialization;
+package com.ecommerce.authservice.component.initialization;
 
 
 import com.ecommerce.authservice.model.entity.ERole;
@@ -6,7 +6,7 @@ import com.ecommerce.authservice.model.entity.RoleEntity;
 import com.ecommerce.authservice.model.entity.UserEntity;
 import com.ecommerce.authservice.model.request.SignUpRequest;
 import com.ecommerce.authservice.service.RoleService;
-import com.ecommerce.authservice.service.UserDetailsServiceImpl;
+import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;
@@ -14,7 +14,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.ecommerce.authservice.initialization.InitialDataLoader.Constant.newLine;
+import static com.ecommerce.authservice.component.initialization.InitialDataLoader.Constant.newLine;
 
 
 @Slf4j
