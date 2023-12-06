@@ -8,7 +8,6 @@ import com.ecommerce.authservice.model.entity.UserEntity;
 import com.ecommerce.authservice.model.request.SignUpRequest;
 import com.ecommerce.authservice.model.response.JwtResponse;
 import com.ecommerce.authservice.model.response.MessageResponse;
-import com.ecommerce.authservice.configuration.security.service.UserDetailsImpl;
 import com.ecommerce.authservice.repository.UserRepository;
 import com.ecommerce.authservice.service.RoleService;
 import com.ecommerce.authservice.util.message_source.MessageSourceHandler;

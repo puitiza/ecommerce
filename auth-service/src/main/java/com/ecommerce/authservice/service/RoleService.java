@@ -5,7 +5,6 @@ import com.ecommerce.authservice.model.entity.RoleEntity;
 import com.ecommerce.authservice.repository.RoleRepository;
 import org.springframework.stereotype.Service;
 
-
 import java.util.Optional;
 
 @Service

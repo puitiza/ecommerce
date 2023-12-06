@@ -2,12 +2,12 @@ package com.ecommerce.authservice.controller;
 
 import com.ecommerce.authservice.configuration.security.jwt.JwtUtils;
 import com.ecommerce.authservice.configuration.security.service.UserDetailsImpl;
+import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import com.ecommerce.authservice.model.request.LoginRequest;
 import com.ecommerce.authservice.model.request.SignUpRequest;
 import com.ecommerce.authservice.model.request.TokenRefreshRequest;
 import com.ecommerce.authservice.model.response.JwtResponse;
 import com.ecommerce.authservice.model.response.MessageResponse;
-import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import com.ecommerce.authservice.model.response.TokenRefreshResponse;
 import com.ecommerce.authservice.service.RefreshTokenService;
 import jakarta.validation.Valid;

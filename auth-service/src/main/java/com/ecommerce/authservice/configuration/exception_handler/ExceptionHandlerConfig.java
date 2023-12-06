@@ -6,7 +6,6 @@ import com.ecommerce.authservice.component.exception.handler.HandledException;
 import com.ecommerce.authservice.component.exception.handler.NoSuchElementFoundException;
 import com.ecommerce.authservice.model.exception.GlobalErrorResponse;
 import com.ecommerce.authservice.util.message_source.MessageSourceHandler;
-
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.Optional;
 
 import static com.ecommerce.authservice.component.exception.errors.GlobalExceptionErrors.*;
-import static com.ecommerce.authservice.util.generic.GenericResponse.createErrorMessageDTO;
 
 //@Hidden
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")

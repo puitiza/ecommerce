@@ -1,12 +1,12 @@
 package com.ecommerce.authservice.component.initialization;
 
 
+import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import com.ecommerce.authservice.model.entity.ERole;
 import com.ecommerce.authservice.model.entity.RoleEntity;
 import com.ecommerce.authservice.model.entity.UserEntity;
 import com.ecommerce.authservice.model.request.SignUpRequest;
 import com.ecommerce.authservice.service.RoleService;
-import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationListener;

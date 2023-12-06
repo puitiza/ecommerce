@@ -3,7 +3,6 @@ package com.ecommerce.authservice.configuration.security;
 import com.ecommerce.authservice.configuration.security.jwt.AuthEntryPointJwt;
 import com.ecommerce.authservice.configuration.security.jwt.AuthTokenFilter;
 import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,7 +16,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Spring Security provides some annotations for pre- and post-invocation authorization checks,
