@@ -49,6 +49,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
 
             try {
                 jwtUtils.validateJwtToken(token);
+                log.info("Authentication is successful");
             } catch (ExpiredJwtException e) {
                 log.info("JwtAuthenticationFilter | filter | ExpiredJwtException | error : " + e.getMessage());
                 return this.onError(exchange, HttpStatus.UNAUTHORIZED, "Authentication token has expired");

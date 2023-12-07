@@ -26,4 +26,4 @@ replay_pid*
 ### IntelliJ IDEA ###
 .idea
 .idea/modules.xml
-/mysql/
+/mysql/*
