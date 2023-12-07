@@ -44,12 +44,17 @@ public class RefreshTokenService {
     }
 
     public RefreshTokenEntity createRefreshToken(Long userId) {
-        RefreshTokenEntity refreshToken = new RefreshTokenEntity();
-        refreshToken.setUsers(findByUserId(userId));
-        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-        refreshToken.setToken(UUID.randomUUID().toString());
-        refreshToken = refreshTokenRepository.save(refreshToken);
-        return refreshToken;
+        var user = findByUserId(userId);
+        var refreshToken = refreshTokenRepository.findByUsers(user);
+        if(refreshToken.isPresent()){
+            return refreshToken.get();
+        }else {
+            RefreshTokenEntity newRefreshToken = new RefreshTokenEntity();
+            newRefreshToken.setUsers(user);
+            newRefreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
+            newRefreshToken.setToken(UUID.randomUUID().toString());
+            return refreshTokenRepository.save(newRefreshToken);
+        }
     }
 
     public RefreshTokenEntity verifyExpiration(RefreshTokenEntity token) {

@@ -17,7 +17,7 @@ SELECT user, host FROM mysql.user;
 ## Curl
 
 ```
-curl --location 'http://localhost:8040/api/auth/sign-in' \
+curl --location 'http://localhost:8040/auth/sign-in' \
 --header 'Content-Type: application/json' \
 --data '{
     "username": "puiti",

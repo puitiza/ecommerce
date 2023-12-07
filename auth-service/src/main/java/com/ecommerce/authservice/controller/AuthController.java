@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public record AuthController(UserDetailsServiceImpl userDetailsService, RefreshTokenService refreshTokenService,
                              AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
 
