@@ -20,3 +20,18 @@ management:
 
 jwt:
   secret: SecretKey012345678901234567890123456789012345678901234567890123456789
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - url: /v3/api-docs
+        name: API Gateway Service
+      - url: /auth/v3/api-docs
+        name: Auth Service
+      - url: /order/v3/api-docs
+        name: Order Service

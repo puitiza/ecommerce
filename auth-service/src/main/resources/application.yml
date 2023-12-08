@@ -25,3 +25,10 @@ spring:
   messages:
     basename: lang/messages
     encoding: UTF-8
+
+springdoc:
+  api-docs:
+    path: /auth/v3/api-docs
+  swagger-ui:
+    path: /auth/swagger-ui.html
+  writer-with-order-by-keys: true
