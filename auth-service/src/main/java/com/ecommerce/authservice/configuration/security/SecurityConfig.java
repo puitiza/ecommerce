@@ -1,6 +1,5 @@
 package com.ecommerce.authservice.configuration.security;
 
-import com.ecommerce.authservice.configuration.security.jwt.AuthEntryPointJwt;
 import com.ecommerce.authservice.configuration.security.jwt.AuthTokenFilter;
 import com.ecommerce.authservice.configuration.security.service.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
@@ -14,21 +13,14 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
-/**
- * Spring Security provides some annotations for pre- and post-invocation authorization checks,
- * filtering of submitted collection arguments or return values: @PreAuthorize, @PreFilter, @PostAuthorize and @PostFilter.
- * To enable Method Security Expressions, we use @EnableGlobalMethodSecurity annotation:
- */
 @Configuration
 @EnableMethodSecurity
-//@RequiredArgsConstructor
 public class SecurityConfig {
-
-    //private final AuthEntryPointJwt unauthorizedHandler;
-    //private final UserDetailsServiceImpl userDetailsService;
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -55,30 +47,40 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configures the main aspects of Spring Security, including authorization rules,
+     * authentication providers, and exception handling.
+     *
+     * @param http HttpSecurity object used for configuring Spring Security.
+     * @param userDetailsService Provides user information for authentication.
+     * @param handlerExceptionResolver Handles uncaught exceptions and unauthorized access attempts (without a valid JWT token).
+     * @return The configured SecurityFilterChain object.
+     * @throws Exception May be thrown during configuration.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, UserDetailsServiceImpl userDetailsService,
-                                           AuthEntryPointJwt unauthorizedHandler) throws Exception {
+                                           HandlerExceptionResolver handlerExceptionResolver) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedEntryPoint(handlerExceptionResolver)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/test/ok").hasRole("USER")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 );
 
         http.authenticationProvider(authenticationProvider(userDetailsService));
-
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
- /*   @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, ex) ->
-                handlerExceptionResolver.resolveException(request, response, null, ex);
-    }*/
+    @Bean
+    public AuthenticationEntryPoint unauthorizedEntryPoint(HandlerExceptionResolver handlerExceptionResolver) {
+        return (request, response, authException) ->
+                handlerExceptionResolver.resolveException(request, response, null, authException);
+    }
 
 }
