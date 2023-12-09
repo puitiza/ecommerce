@@ -31,4 +31,4 @@ springdoc:
     path: /auth/v3/api-docs
   swagger-ui:
     path: /auth/swagger-ui.html
-  writer-with-order-by-keys: true
+  #writer-with-order-by-keys: true

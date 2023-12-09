@@ -6,6 +6,7 @@ import com.ecommerce.authservice.component.exception.handler.HandledException;
 import com.ecommerce.authservice.component.exception.handler.NoSuchElementFoundException;
 import com.ecommerce.authservice.model.exception.GlobalErrorResponse;
 import com.ecommerce.authservice.util.message_source.MessageSourceHandler;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,7 @@ import java.util.Optional;
 
 import static com.ecommerce.authservice.component.exception.errors.GlobalExceptionErrors.*;
 
-//@Hidden
+@Hidden
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice

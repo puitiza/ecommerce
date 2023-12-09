@@ -16,7 +16,6 @@ import java.util.List;
 
 @OpenAPIDefinition
 @Configuration
-//@Profile({"local", "dev"})
 public class OpenApiConfig {
 
     @Value("${server.port}")
@@ -44,8 +43,8 @@ public class OpenApiConfig {
         localServer.setUrl("http://localhost:" + serverPort);
 
         Server testServer = new Server();
-        testServer.setDescription("deploy-alpha");
-        testServer.setUrl("https://deploy-alpha.org");
+        testServer.setDescription("gateway");
+        testServer.setUrl("https://localhost:8090");
         return Arrays.asList(localServer, testServer);
     }
 }
