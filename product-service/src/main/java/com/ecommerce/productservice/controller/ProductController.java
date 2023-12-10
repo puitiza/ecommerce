@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequestMapping("/products")
+@RequestMapping("/product")
 @RestController
 public record ProductController(ProductService productService) {
 

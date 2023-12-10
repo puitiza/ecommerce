@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
@@ -62,10 +63,11 @@ public class SecurityConfig {
                                            HandlerExceptionResolver handlerExceptionResolver) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedEntryPoint(handlerExceptionResolver)))
+                .exceptionHandling(customizer -> customizer.accessDeniedHandler(accessDeniedHandler(handlerExceptionResolver)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/test/ok").hasRole("USER")
+                        .requestMatchers("/test/**").hasRole("USER")
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
@@ -81,6 +83,12 @@ public class SecurityConfig {
     public AuthenticationEntryPoint unauthorizedEntryPoint(HandlerExceptionResolver handlerExceptionResolver) {
         return (request, response, authException) ->
                 handlerExceptionResolver.resolveException(request, response, null, authException);
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler(HandlerExceptionResolver handlerExceptionResolver) {
+        return (request, response, ex) ->
+                handlerExceptionResolver.resolveException(request, response, null, ex);
     }
 
 }
