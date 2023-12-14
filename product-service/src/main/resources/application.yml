@@ -10,3 +10,13 @@ management:
   zipkin:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
+
+openapi:
+  oAuthFlow:
+    tokenUrl: http://localhost:9090/realms/ecommerce-realm/protocol/openid-connect/token
+
+springdoc:
+  api-docs:
+    path: /product/v3/api-docs
+  swagger-ui:
+    path: /product/swagger-ui.html

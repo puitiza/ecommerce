@@ -78,7 +78,41 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       SPRING_CLOUD_CONFIG_URI: http://config-server:8885
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - springCloud
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "9090:8080"
+    command:
+    - start-dev
+    - --transaction-xa-enabled=false
+    depends_on:
+      - postgres
+    networks:
+      - springCloud
 networks:
   springCloud:
     driver: bridge
     name: springCloud
+
+volumes:
+  postgres_data:
+    driver: local

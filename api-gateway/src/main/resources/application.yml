@@ -1,6 +1,11 @@
 spring:
   main:
     web-application-type: reactive
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9090/realms/ecommerce-realm
 
 server:
   port: 8090
@@ -18,8 +23,6 @@ management:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
 
-jwt:
-  secret: SecretKey012345678901234567890123456789012345678901234567890123456789
 
 springdoc:
   api-docs:
@@ -31,7 +34,7 @@ springdoc:
     urls:
       - url: /v3/api-docs
         name: API Gateway Service
-      - url: /auth/v3/api-docs
-        name: Auth Service
       - url: /order/v3/api-docs
         name: Order Service
+      - url: /product/v3/api-docs
+        name: Product Service
