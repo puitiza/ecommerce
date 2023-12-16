@@ -7,8 +7,6 @@ spring:
       server:
         git:
           uri: https://github.com/puitiza/ecommerce-configurations.git
-        bootstrap: true
 
-# HTTP Server
 server:
   port: 8885
