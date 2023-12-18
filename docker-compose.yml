@@ -9,6 +9,12 @@ services:
     restart: always
     networks:
       - springCloud
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8885/product-service/dev" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   service-registry:
     container_name: service-registry
     build:
@@ -18,6 +24,12 @@ services:
     restart: always
     networks:
       - springCloud
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api-gateway:
     container_name: api-gateway
     build:
@@ -31,10 +43,13 @@ services:
       - config-server
       - service-registry
       - auth-service
+      - order-service
+      - product-service
     environment:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8885
+      CONFIG_SERVER_URL: http://config-server:8885
+
   zipkin-all-in-one:
     container_name: zipkin-all-in-one
     image: openzipkin/zipkin:latest
@@ -43,6 +58,7 @@ services:
       - "9411:9411"
     networks:
       - springCloud
+
   mysql-db:
     container_name: mysql-db
     image: mysql:8.0
@@ -55,9 +71,14 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     networks:
       - springCloud
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 5
+
   auth-service:
     container_name: auth-service
     build:
@@ -68,16 +89,57 @@ services:
     networks:
       - springCloud
     depends_on:
-      - mysql-db
-      - config-server
-      - service-registry
+      mysql-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/users_db?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: test
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8885
+      CONFIG_SERVER_URL: http://config-server:8885
+
+  order-service: #this service hasn't container_name because it has 3 replica
+    build:
+      context: ./order-service
+    restart: always
+    networks:
+      - springCloud
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    deploy:
+      replicas: 3
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      CONFIG_SERVER_URL: http://config-server:8885
+
+  product-service:
+    container_name: product-service
+    build:
+      context: ./product-service
+    ports:
+      - "8002:4005"
+    restart: always
+    networks:
+      - springCloud
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      CONFIG_SERVER_URL: http://config-server:8885
+
   postgres:
     image: postgres:15
     ports:
@@ -90,6 +152,7 @@ services:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
+
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     environment:
@@ -102,12 +165,13 @@ services:
     ports:
       - "9090:8080"
     command:
-    - start-dev
-    - --transaction-xa-enabled=false
+      - start-dev
+      - --transaction-xa-enabled=false
     depends_on:
       - postgres
     networks:
       - springCloud
+
 networks:
   springCloud:
     driver: bridge
@@ -115,4 +179,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  mysql_data:
     driver: local
