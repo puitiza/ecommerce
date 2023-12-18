@@ -1,4 +1,0 @@
-# The value 0 indicates that the system should choose an available port.
-server:
-  port: ${PORT:0}
-  #port: 3005
