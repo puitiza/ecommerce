@@ -19,33 +19,37 @@ configurations {
 
 repositories {
 	mavenCentral()
-	maven { url 'https://repo.spring.io/milestone' }
 }
 
 ext {
-	set('springCloudVersion', "2023.0.0-RC1")
+	set('springCloudVersion', "2023.0.0")
 }
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	//	<!-- Dependency for Spring Cloud Config -->
+	//	<!------------------------- Dependency for Spring Cloud Config ------------------------->
 	implementation 'org.springframework.cloud:spring-cloud-starter-config'
-	implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
-	//	<!-- Dependency for Spring Cloud Netflix Eureka -->
+	//	<!--------------------- Dependency for Spring Cloud Netflix Eureka --------------------->
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-	//	<!-- Dependency for for Spring Security and JWT json web token -->
+	//	<!--------------- Dependency for Spring Security and (JWT) json web token --------------->
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
-	//	<!-- Dependency for OpenApi -->
+	//	<!------------- Dependency for Spring Cloud Distributed Tracing for Zipkin ------------->
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+	implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+	//	<!------------------------------ Dependency for OpenApi 3 ------------------------------>
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
-	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
@@ -53,8 +57,4 @@ dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
 	}
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
 }

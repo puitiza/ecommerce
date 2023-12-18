@@ -23,7 +23,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	//	<!------------------------- Dependency for Spring Cloud Config ------------------------->
 	implementation 'org.springframework.cloud:spring-cloud-starter-config'
-	implementation 'org.springframework.cloud:spring-cloud-starter-bootstrap'
 	//	<!--------------------- Dependency for Spring Cloud Netflix Eureka --------------------->
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 	//	<!------------------------ Dependency for spring-cloud Gateway ------------------------->
@@ -48,8 +47,4 @@ dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
 	}
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
 }

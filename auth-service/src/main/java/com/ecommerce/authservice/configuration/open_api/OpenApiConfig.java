@@ -44,7 +44,7 @@ public class OpenApiConfig {
 
         Server testServer = new Server();
         testServer.setDescription("gateway");
-        testServer.setUrl("https://localhost:8090");
+        testServer.setUrl("http://localhost:8090");
         return Arrays.asList(localServer, testServer);
     }
 }

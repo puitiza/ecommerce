@@ -1,16 +1,17 @@
-# api-gateway
+# Api-Gateway
 
 Spring Cloud Gateway provides a powerful way to handle HTTP traffic between microservices. It also provides several
 mechanisms for securing the gateway, including JWT.
 
-JSON Web Tokens (JWT) are a popular way of securely transmitting information between parties. A JWT is a string that
+**JSON Web Tokens (JWT)** are a popular way of securely transmitting information between parties. A JWT is a string that
 consists of three parts: a header, a payload, and a signature
 
-# Keycloak
-Keycloak will be the authorization server for our microservices
+Therefore, your approach is correct. You've utilized both mechanisms to enable CORS for different scenarios:
+- **Keycloak token:** Enables internal API gateway calls to other resources on behalf of the user.
+  "allowed-origins": ["http://localhost:8090"]
+- **CorsWebFilter:** Enables Swagger UI on localhost:9090 to access the API gateway directly.
 
-## Create Realm
-A Realm manages a set of users, credentials, roles, and groups. Realms are isolated from one another and can only manage and authenticate the users that they control.
+This approach provides flexibility and ensures both internal and external communication is handled correctly with respect to CORS.
 
 
 
