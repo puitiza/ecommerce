@@ -1,12 +1,17 @@
-eureka:
-  client:
-    serviceUrl: # This information must be given to which Eureka Server address the application will connect to.
-      defaultZone: http://localhost:8761/eureka/
+spring:
+  application:
+    name: product-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
 
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+openapi:
+  oAuthFlow:
+    tokenUrl: http://localhost:9090/realms/ecommerce-realm/protocol/openid-connect/token
+
+springdoc:
+  api-docs:
+    path: /product/v3/api-docs
+  swagger-ui:
+    path: /product/swagger-ui.html

@@ -8,7 +8,7 @@ and it split by section and commits.
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
 [![Javadoc](https://img.shields.io/badge/%20-javadoc-blue)](https://javiertuya.github.io/samples-test-spring/)
 
-<img src="https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png">     
+<img src="https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png?raw=true">     
 
 
 # About the project
@@ -35,6 +35,65 @@ The architecture uses several services and tools for different purposes:
 - Product Service
 - User Service as Producer
 - Comment Service as Consumer
+
+## Using docker-compose 
+These docker-compose commands can be used for various purposes, and here's a breakdown of how they're useful in different situations:
+
+1. **docker-compose up --build -d:**
+   - Use case: For development and quick testing where you need to constantly update the code and rebuild containers with the latest changes.
+   - Explanation:
+     - `up`: Starts all services defined in the docker-compose.yml file.
+     - `--build`: Forces a rebuild of all service images before starting them, even if the image already exists.
+     - `-d`: Starts the services in detached mode (background).
+
+2. **docker-compose down -v:**
+   - Use case: For cleaning up the environment completely after development or before applying significant changes.
+   - Explanation:
+     - `down`: Stops and removes all containers created by docker-compose.
+     - `-v`: Also removes all volumes associated with the services. 
+
+3. **docker-compose up -d:**
+   - Use case: For production or staging environments where the code is stable and changes are infrequent.
+ 
+### Additional notes:
+
+You can combine these commands for specific workflows. For example, `docker-compose down -v && docker-compose up --build -d` would first clean up the environment and then rebuild and start all services.
+
+Consider using environment variables with docker-compose for sensitive information such as passwords or database credentials.
+Use docker-compose volumes instead of bind mounts for persistent data that needs to survive container restarts.
+
+### Docker Compose Services at a Glance
+
+| Service           | Build Context                  | Port | Health Check                              | Depends On (Condition)                                                      | Notes                                     |
+|-------------------|--------------------------------|------|-------------------------------------------|-----------------------------------------------------------------------------|-------------------------------------------|
+| config-server     | ./config-server                | 8885 | http://localhost:8885/product-service/dev | -                                                                           | Provides configuration properties         |
+| service-registry  | ./service-registry             | 8761 | http://localhost:8761/actuator/health     | -                                                                           | Registers and discovers microservices     |
+| api-gateway       | ./api-gateway                  | 8090 | -                                         | config-server (healthy), service-registry (healthy), auth-service (healthy) | Routes requests to other services         |
+| zipkin-all-in-one | openzipkin/zipkin:latest       | 9411 | -                                         | -                                                                           | Zipkin tracing system                     |
+| mysql-db          | mysql:8.0                      | 3306 | mysqladmin ping -h localhost              | -                                                                           | MySQL database                            |
+| order-service     | ./order-service	               | -    | -                                         | config-server (healthy), service-registry (healthy)	                        | 3 replicas, no container_name             |
+| product-service   | ./product-service              | 8002 | -                                         | config-server (healthy), service-registry (healthy)                         | Product service                           |
+| auth-service      | ./auth-service                 | 8040 | -                                         | mysql-db (healthy), config-server (healthy), service-registry (healthy)     | Authentication service, connects to MySQL |
+| postgres          | postgres:15                    | 5432 | -                                         | -                                                                           | PostgreSQL database                       |
+| keycloak          | quay.io/keycloak/keycloak:23.0 | 9090 | -                                         | postgres                                                                    | Keycloak authentication server            |
+
+**Network:** All services share the `springCloud` network unless otherwise specified.
+
+**Volumes:**
+
+* `postgres_data`: Persistent volume for PostgreSQL database files.
+* `mysql_data`: Persistent volume for MySQL database files.
+
+
+## Resources for documentation
+For further reference, please consider the following sections:
+
+* **Learn the basics of Spring Cloud Config:**
+    * [Docker’s health check and Spring Boot apps - how to control containers startup order in docker-compose](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
+
+
+* **Examples projects**
+    * [Blog Application](https://github.com/cokutan/blogapplication/tree/develop) (Config Server + Eureka Server + Gateway + App + Mongodb)
 
 # CI/CD Pipeline Stages
 

@@ -1,29 +1,32 @@
 spring:
+  application:
+    name: api-gateway
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
   main:
     web-application-type: reactive
-  cloud:
-    gateway:
-      routes:
-        - id: order-service
-          uri: lb://order-service
-          predicates:
-            - Path=/order/**
-        - id: product-service
-          uri: lb://product-service
-          predicates:
-            - Path=/product/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9090/realms/ecommerce-realm
+
 server:
   port: 8090
 
-eureka:
-  client:
-    serviceUrl: # This information must be given to which Eureka Server address the application will connect to.
-      defaultZone: http://localhost:8761/eureka/
-
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - url: /v3/api-docs
+        name: API Gateway Service
+      - url: /order/v3/api-docs
+        name: Order Service
+      - url: /product/v3/api-docs
+        name: Product Service

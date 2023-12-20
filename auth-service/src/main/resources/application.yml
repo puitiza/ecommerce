@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  datasource:
+    url: jdbc:mysql://localhost:3306/users_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: user
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: update
+    #show-sql: true
+    #generate-ddl: true
+  messages:
+    basename: lang/messages
+    encoding: UTF-8
+
+server:
+  port: 8040
+
+jwt:
+  Secret: SecretKey012345678901234567890123456789012345678901234567890123456789
+  ExpirationMs: 3600000
+  refreshExpirationDateInMs: 86400000
+
+springdoc:
+  api-docs:
+    path: /auth/v3/api-docs
+  swagger-ui:
+    path: /auth/swagger-ui.html
+  #writer-with-order-by-keys: true
