@@ -1,44 +1,33 @@
 package com.ecommerce.userservice.controller;
 
-import com.ecommerce.userservice.model.Order;
-import com.ecommerce.userservice.model.OrderEventData;
-import io.cloudevents.CloudEvent;
-import io.cloudevents.core.builder.CloudEventBuilder;
-import org.springframework.http.HttpStatus;
+import com.ecommerce.userservice.model.request.LoginRequest;
+import com.ecommerce.userservice.model.request.SignUpRequest;
+import com.ecommerce.userservice.model.response.LoginResponse;
+import com.ecommerce.userservice.service.UserService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.util.UUID;
+import java.util.Arrays;
 
 @RestController
-@RequestMapping("/user")
-public record UserController(KafkaTemplate<String, CloudEvent> kafkaTemplate) {
-
-    @PostMapping("/sendOrder")
-    public ResponseEntity<String> createOrder(@RequestBody Order order) {
-        produceOrderEvent(order);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Order created successfully");
+@RequestMapping(path = "/users")
+public record UserController(UserService userService) {
+    @PostMapping(
+            path = "/signup",
+            consumes = {MediaType.APPLICATION_JSON_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    public SignUpRequest signUp(@RequestBody SignUpRequest signUpRequest) {
+        return userService.signUp(signUpRequest);
     }
 
+    @PostMapping(path = "/login", consumes = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginDto) {
+        return ResponseEntity.ok(userService.login(loginDto));
+    }
 
-    public void produceOrderEvent(Order order) {
-        OrderEventData orderEventData = new OrderEventData(order);
-        CloudEvent cloudEvent = CloudEventBuilder.v1()
-                .withId(UUID.randomUUID().toString())
-                .withType("OrderEventType")
-                .withSource(URI.create("/order-service"))
-                .withDataContentType("application/json")
-                .withData(orderEventData) // Assuming Order is serialized to JSON
-                .withSubject("com.ecommerce.event.report.order.created")
-                .build();
-
-        String kafkaRecordKey = UUID.randomUUID().toString();
-
-        kafkaTemplate.send("order-topic", kafkaRecordKey, cloudEvent);
+    @GetMapping(path = "/data")
+    public ResponseEntity<?> data() {
+        return ResponseEntity.ok(Arrays.asList("Hello world!"));
     }
 }

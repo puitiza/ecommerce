@@ -1,16 +1,25 @@
 spring:
   application:
     name: user-service
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.cloudevents.kafka.CloudEventSerializer
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
 
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+server:
+  port: 8082
+
+keycloak:
+  realm: ecommerce #Specifies the realm in Keycloak that the application will use for authentication and authorization.
+  auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
+  resource: api-gateway-client #Sets the client ID
+  client-key-password: fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6
+  use-resource-role-mappings: true # the application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
+  bearer-only: true #It will only accept bearer tokens for authentication and will not perform a redirect to the login page.
+  credentials:
+    provider: secret
