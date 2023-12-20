@@ -121,7 +121,7 @@ For further reference, please consider the following sections:
 
 ## Stage 5: CD Sync
 
-- Sync the Github Actions workflow with Argo CD for seamless CI/CD pipeline.
+- Sync the GitHub Actions workflow with Argo CD for seamless CI/CD pipeline.
 
 ## Stage 6: Metrics Monitoring
 

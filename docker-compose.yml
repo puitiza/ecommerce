@@ -45,10 +45,12 @@ services:
       - auth-service
       - order-service
       - product-service
+      - user-service
     environment:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
 
   zipkin-all-in-one:
     container_name: zipkin-all-in-one
@@ -139,8 +141,30 @@ services:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
 
-  postgres:
+  user-service:
+    container_name: user-service
+    build:
+      context: ./user-service
+    ports:
+      - "8082:8082"
+    restart: always
+    networks:
+      - springCloud
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      CONFIG_SERVER_URL: http://config-server:8885
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+
+  postgres-db:
+    container_name: postgres-db
     image: postgres:15
     ports:
       - "5432:5432"
@@ -153,24 +177,29 @@ services:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
 
-  keycloak:
+  keycloak-server:
+    container_name: keycloak-server
+    hostname: keycloak
     image: quay.io/keycloak/keycloak:23.0
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "9090:8080"
     command:
       - start-dev
       - --transaction-xa-enabled=false
+      - --import-realm
     depends_on:
-      - postgres
+      - postgres-db
     networks:
       - springCloud
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
 
 networks:
   springCloud:
