@@ -19,14 +19,12 @@ public class SignUpRequest {
     @Email(message = "email address must be valid")
     private String email;
 
+    private String username;
     private String firstname;
     private String lastname;
 
     @NotBlank(message = "'password' field not should be null or empty")
     @Size(min = 6, max = 40, message = "'password' field should be minimum size 6 and maximum 40")
     private String password;
-
-    private int statusCode;
-
 
 }

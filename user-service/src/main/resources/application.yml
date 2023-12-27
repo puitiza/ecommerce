@@ -12,7 +12,7 @@ spring:
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
 
 server:
-  port: 8082
+  port: 8083
 
 keycloak:
   realm: ecommerce #Specifies the realm in Keycloak that the application will use for authentication and authorization.

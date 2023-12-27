@@ -41,11 +41,11 @@ public class UserServiceImpl implements UserService{
     private String clientSecret;
     @Value("${keycloak.credentials.provider}")
     private String secret;
-    private String role = "ROLE_STUDENT";
 
     @Override
     public SignUpRequest signUp(SignUpRequest signUpRequest) {
-        log.info("signUp... {}", signUpRequest);
+        log.info("SIGNUP... {}", signUpRequest);
+
         Keycloak keycloak = KeycloakBuilder.builder()
                 .serverUrl(authServerUrl)
                 .grantType(OAuth2Constants.PASSWORD)
@@ -55,30 +55,23 @@ public class UserServiceImpl implements UserService{
                 .password("admin")
                 .resteasyClient(new ResteasyClientBuilderImpl().connectionPoolSize(10).build()).build();
 
-
-        //var token =keycloak.tokenManager().getAccessToken();
-
         UserRepresentation user = new UserRepresentation();
         user.setEnabled(true);
-        user.setUsername(signUpRequest.getEmail());
+        user.setUsername(signUpRequest.getUsername());
         user.setFirstName(signUpRequest.getFirstname());
         user.setLastName(signUpRequest.getLastname());
         user.setEmail(signUpRequest.getEmail());
 
-        // Get realm
-        RealmResource realmResource = keycloak.realm(realm);
+        RealmResource realmResource = keycloak.realm(realm); // Get realm : ecommerce
         UsersResource usersResource = realmResource.users();
 
         Response response = usersResource.create(user);
-
-        signUpRequest.setStatusCode(response.getStatus());
-        //signUpRequest.setStatusMessage(response.getStatusInfo().toString());
 
         if (response.getStatus() == 201) {
 
             String userId = CreatedResponseUtil.getCreatedId(response);
 
-            log.info("Created userId {}", userId);
+            log.info("CREATED USER_ID {}", userId);
 
             // create password credential
             CredentialRepresentation passwordCred = new CredentialRepresentation();
@@ -92,10 +85,11 @@ public class UserServiceImpl implements UserService{
             userResource.resetPassword(passwordCred);
 
             // Get realm role student
-            RoleRepresentation realmRoleUser = realmResource.roles().get(role).toRepresentation();
+            var clientResource = realmResource.clients().get(clientId);
+            RoleRepresentation clientRole = clientResource.roles().get("user").toRepresentation();
 
             // Assign realm role student to user
-            userResource.roles().realmLevel().add(Collections.singletonList(realmRoleUser));
+            userResource.roles().realmLevel().add(Collections.singletonList(clientRole));
 
         }
         return signUpRequest;
@@ -111,7 +105,7 @@ public class UserServiceImpl implements UserService{
         Configuration configuration = new Configuration(authServerUrl, realm, clientId, clientCredentials, null);
         AuthzClient authzClient = AuthzClient.create(configuration);
 
-        AccessTokenResponse response = authzClient.obtainAccessToken(loginRequest.getEmail(), loginRequest.getPassword());
+        AccessTokenResponse response = authzClient.obtainAccessToken(loginRequest.getUsername(), loginRequest.getPassword());
 
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setAccessToken(response.getToken());

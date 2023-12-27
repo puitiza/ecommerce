@@ -59,24 +59,25 @@ These docker-compose commands can be used for various purposes, and here's a bre
 
 You can combine these commands for specific workflows. For example, `docker-compose down -v && docker-compose up --build -d` would first clean up the environment and then rebuild and start all services.
 
-Consider using environment variables with docker-compose for sensitive information such as passwords or database credentials.
-Use docker-compose volumes instead of bind mounts for persistent data that needs to survive container restarts.
+- Consider using environment variables with docker-compose for sensitive information such as passwords or database credentials.
+
+- Use docker-compose volumes instead of bind mounts for persistent data that needs to survive container restarts.
 
 ### Docker Compose Services at a Glance
 
-| Service           | Build Context                  | Port | Health Check                              | Depends On (Condition)                                                      | Notes                                     |
-|-------------------|--------------------------------|------|-------------------------------------------|-----------------------------------------------------------------------------|-------------------------------------------|
-| config-server     | ./config-server                | 8885 | http://localhost:8885/product-service/dev | -                                                                           | Provides configuration properties         |
-| service-registry  | ./service-registry             | 8761 | http://localhost:8761/actuator/health     | -                                                                           | Registers and discovers microservices     |
-| api-gateway       | ./api-gateway                  | 8090 | -                                         | config-server (healthy), service-registry (healthy), auth-service (healthy) | Routes requests to other services         |
-| zipkin-all-in-one | openzipkin/zipkin:latest       | 9411 | -                                         | -                                                                           | Zipkin tracing system                     |
-| mysql-db          | mysql:8.0                      | 3306 | mysqladmin ping -h localhost              | -                                                                           | MySQL database                            |
-| order-service     | ./order-service	               | -    | -                                         | config-server (healthy), service-registry (healthy)	                        | 3 replicas, no container_name             |
-| product-service   | ./product-service              | 8002 | -                                         | config-server (healthy), service-registry (healthy)                         | Product service                           |
-| auth-service      | ./auth-service                 | 8040 | -                                         | mysql-db (healthy), config-server (healthy), service-registry (healthy)     | Authentication service, connects to MySQL |
-| postgres          | postgres:15                    | 5432 | -                                         | -                                                                           | PostgreSQL database                       |
-| keycloak          | quay.io/keycloak/keycloak:23.0 | 9090 | -                                         | postgres                                                                    | Keycloak authentication server            |
-
+| Service           | Build Context                  | Port | Health Check                              | Depends On (Condition)                                                      | Notes                                      |
+|-------------------|--------------------------------|------|-------------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------|
+| config-server     | ./config-server                | 8885 | http://localhost:8885/product-service/dev | -                                                                           | Provides configuration properties          |
+| service-registry  | ./service-registry             | 8761 | http://localhost:8761/actuator/health     | -                                                                           | Registers and discovers microservices      |
+| api-gateway       | ./api-gateway                  | 8090 | -                                         | config-server (healthy), service-registry (healthy), auth-service (healthy) | Routes requests to other services          |
+| zipkin-all-in-one | openzipkin/zipkin:latest       | 9411 | -                                         | -                                                                           | Zipkin tracing system                      |
+| mysql-db          | mysql:8.0                      | 3306 | mysqladmin ping -h localhost              | -                                                                           | MySQL database                             |
+| order-service     | ./order-service                | -    | -                                         | config-server (healthy), service-registry (healthy)                         | 3 replicas, no container_name              |
+| product-service   | ./product-service              | 8002 | -                                         | config-server (healthy), service-registry (healthy)                         | Product service                            |
+| auth-service      | ./auth-service                 | 8040 | -                                         | mysql-db (healthy), config-server (healthy), service-registry (healthy)     | Authentication service, connects to MySQL  |
+| postgres          | postgres:15                    | 5432 | -                                         | -                                                                           | PostgreSQL database                        |
+| keycloak          | quay.io/keycloak/keycloak:23.0 | 9090 | -                                         | postgres                                                                    | Keycloak authentication server             |
+| user-service	     | ./user-service                 | 8082 | -                                         | config-server (healthy), service-registry (healthy)                         | User Management + Keycloak Admin, Rest API |
 **Network:** All services share the `springCloud` network unless otherwise specified.
 
 **Volumes:**
@@ -91,6 +92,9 @@ For further reference, please consider the following sections:
 * **Learn the basics of Spring Cloud Config:**
     * [Docker’s health check and Spring Boot apps - how to control containers startup order in docker-compose](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
 
+* **Keycloak Realm Exports:**
+    * [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)  Edit the Administrative Interface’s Realm Export Json
+    * [Keycloak in Docker #5 – How to export a realm with users and secrets](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
 
 * **Examples projects**
     * [Blog Application](https://github.com/cokutan/blogapplication/tree/develop) (Config Server + Eureka Server + Gateway + App + Mongodb)
