@@ -3,15 +3,13 @@ package com.ecommerce.userservice.model.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "password")
 public class SignUpRequest {
 
     @NotBlank(message = "'email' field not should be null or empty")

@@ -17,12 +17,10 @@ import org.keycloak.authorization.client.AuthzClient;
 import org.keycloak.authorization.client.Configuration;
 import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,10 +40,31 @@ public class UserServiceImpl implements UserService{
     @Value("${keycloak.credentials.provider}")
     private String secret;
 
+    /**
+     * Creates a new user in Keycloak with the provided sign-up information using the Keycloak Admin Client.
+     * <p>
+     * If you want to assign client level role, you'll need this code
+     * <pre>
+     *   {@code
+     *     // Get client level role (requires view-clients role)
+     *     var clientRepresentation = realmResource.clients().findByClientId(clientId).stream().findFirst().orElseThrow();
+     *     var userClientRole = realmResource.clients().get(clientRepresentation.getId()).roles().list()
+     *             .stream()
+     *             .filter(x -> x.getName().equals("user"))
+     *             .findFirst().orElseT
+     *     // Assign client level role to user
+     *     userResource.roles().clientLevel(clientRepresentation.getId()).add(Collections.singletonList(userClientRole));}
+     * </pre>
+     *
+     * @param signUpRequest The sign-up request containing user details.
+     * @return The original signUpRequest object for convenience.
+     * @throws RuntimeException If there are errors during user creation or role assignment.
+     */
     @Override
     public SignUpRequest signUp(SignUpRequest signUpRequest) {
         log.info("SIGNUP... {}", signUpRequest);
 
+        // (Keycloak configuration and user creation)
         Keycloak keycloak = KeycloakBuilder.builder()
                 .serverUrl(authServerUrl)
                 .grantType(OAuth2Constants.PASSWORD)
@@ -70,7 +89,6 @@ public class UserServiceImpl implements UserService{
         if (response.getStatus() == 201) {
 
             String userId = CreatedResponseUtil.getCreatedId(response);
-
             log.info("CREATED USER_ID {}", userId);
 
             // create password credential
@@ -84,12 +102,14 @@ public class UserServiceImpl implements UserService{
             // Set password credential
             userResource.resetPassword(passwordCred);
 
-            // Get realm role student
-            var clientResource = realmResource.clients().get(clientId);
-            RoleRepresentation clientRole = clientResource.roles().get("user").toRepresentation();
+            // Get realm role "tester" (requires view-realm role)
+            var userRealmRole = realmResource.roles().list()
+                    .stream().filter(x -> x.getName().contains("app") && x.getName().equals("app_user"))
+                    .findFirst().orElseThrow();
 
-            // Assign realm role student to user
-            userResource.roles().realmLevel().add(Collections.singletonList(clientRole));
+            // Assign realm role 'app_user' to user
+            userResource.roles().realmLevel().add(Collections.singletonList(userRealmRole));
+            log.info("ASSIGN REALM_ROLE {}", userRealmRole);
 
         }
         return signUpRequest;

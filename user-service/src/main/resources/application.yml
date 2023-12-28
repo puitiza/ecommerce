@@ -12,14 +12,18 @@ spring:
           jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
 
 server:
-  port: 8083
+  port: 8082
 
 keycloak:
   realm: ecommerce #Specifies the realm in Keycloak that the application will use for authentication and authorization.
   auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
   resource: api-gateway-client #Sets the client ID
   client-key-password: fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6
-  use-resource-role-mappings: true # the application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
+  use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
   bearer-only: true #It will only accept bearer tokens for authentication and will not perform a redirect to the login page.
   credentials:
     provider: secret
+
+logging:
+  level:
+    org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR # Suppress warnings
