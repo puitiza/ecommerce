@@ -39,7 +39,7 @@ dependencies {
 	//	<!---------------------- Dependency for Spring Security and Oauth ---------------------->
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-	//	<!---------------------- Dependency for creating users in Keycloak ---------------------->
+	//	<!---------------------- Dependency for Keycloak client for creating users ---------------------->
 	implementation 'org.keycloak:keycloak-spring-boot-starter:23.0.3'
 	implementation 'org.keycloak:keycloak-admin-client:23.0.3'
 

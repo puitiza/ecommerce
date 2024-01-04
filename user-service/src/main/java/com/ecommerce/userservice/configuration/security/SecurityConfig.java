@@ -1,4 +1,4 @@
-package com.ecommerce.userservice.configuration;
+package com.ecommerce.userservice.configuration.security;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

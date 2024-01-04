@@ -1,4 +1,4 @@
-package com.ecommerce.userservice.configuration;
+package com.ecommerce.userservice.configuration.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.converter.Converter;
