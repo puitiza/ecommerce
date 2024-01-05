@@ -19,10 +19,13 @@ keycloak:
   auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
   resource: api-gateway-client #Sets the client ID
   client-key-password: fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6
-  use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
   bearer-only: true #It will only accept bearer tokens for authentication and will not perform a redirect to the login page.
   credentials:
     provider: secret
+  # Configures what principal.getName() will return
+  principal-attribute: preferred_username
+  use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
+
 
 logging:
   level:

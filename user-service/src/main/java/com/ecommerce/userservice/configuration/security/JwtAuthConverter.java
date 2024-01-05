@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,9 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     @Value("${keycloak.resource}")
     public String clientId;
 
+    @Value("${keycloak.principal-attribute}")
+    public String principalAttribute;
+
     public JwtAuthConverter() {
         this.jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
     }
@@ -29,30 +33,42 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     public AbstractAuthenticationToken convert(Jwt jwt) {
         final Set<GrantedAuthority> authorities = Stream.concat(
                 jwtGrantedAuthoritiesConverter.convert(jwt).stream(),
-                extractUserRoles(jwt).stream()
+                extractResourceRoles(jwt,clientId).stream()
         ).collect(Collectors.toSet());
         return new JwtAuthenticationToken(jwt, authorities, getPrincipalClaimName(jwt));
     }
 
     private String getPrincipalClaimName(Jwt jwt) {
-        return jwt.getClaim(clientId);
+        String claimName = JwtClaimNames.SUB;
+        if (principalAttribute != null) {
+            claimName = principalAttribute;
+        }
+        return jwt.getClaim(claimName);
     }
 
-    private Set<? extends GrantedAuthority> extractUserRoles(Jwt jwt) {
-        final Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        if (Objects.isNull(realmAccess)) {
-            return Collections.emptySet();
-        }
-        Object roles = realmAccess.get("roles");
-        if (Objects.isNull(roles) || !Collection.class.isAssignableFrom(roles.getClass())) {
+    private Set<? extends GrantedAuthority> extractResourceRoles(Jwt jwt, String clientId) {
+        Map<?, ?> resourceAccess = jwt.getClaim("resource_access"); // Use raw Map for initial access
+        if (resourceAccess == null) {
             return Collections.emptySet();
         }
 
-        Collection<?> rolesCollection = (Collection<?>) roles;
+        // Safely extract the resource object
+        Map<?, ?> resource = Optional.ofNullable(resourceAccess.get(clientId))
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .orElse(Collections.emptyMap());
 
-        return rolesCollection.stream()
+        // Safely extract the roles collection
+        Collection<?> resourceRoles = Optional.ofNullable(resource.get("roles"))
+                .filter(Collection.class::isInstance)
+                .map(Collection.class::cast)
+                .orElse(Collections.emptyList());
+
+        // Filter and map to GrantedAuthority, ensuring String elements
+        return resourceRoles.stream()
                 .filter(String.class::isInstance)
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + ((String) role).toUpperCase()))
+                .map(role -> (String) role)  // Explicit cast to String
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toSet());
     }
 

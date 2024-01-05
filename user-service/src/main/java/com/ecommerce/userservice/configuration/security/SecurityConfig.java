@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         (authz) -> authz
                                 .requestMatchers("/users/signup", "/users/login").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/users/data").hasRole("APP_USER")
+                                .requestMatchers(HttpMethod.GET, "/users/data").hasRole("user")
                                 .anyRequest().authenticated())
 
                 // Configure OAuth 2.0 resource server settings
