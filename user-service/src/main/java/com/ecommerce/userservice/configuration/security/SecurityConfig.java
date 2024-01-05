@@ -41,7 +41,7 @@ public class SecurityConfig {
                 // Define authorization rules for endpoints
                 .authorizeHttpRequests(
                         (authz) -> authz
-                                .requestMatchers("/users/signup", "/users/login").permitAll()
+                                .requestMatchers("/user/signup", "/user/login").permitAll()
                                 .requestMatchers("/user/v3/api-docs/**", "/user/swagger-ui/**", "/user/swagger-ui.html",
                                         "/favicon.ico").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/users/data").hasRole("user")

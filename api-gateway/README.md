@@ -24,6 +24,7 @@ This approach provides flexibility and ensures both internal and external commun
 * **Integrate OpenAPI for documentation:**
   * [Central Swagger in Spring Cloud Gateway](https://medium.com/@oguz.topal/central-swagger-in-spring-cloud-gateway-697a1c37b03d): Manage Swagger documentation centrally for your gateway.
   * [Swagger(OpenAPI Specification 3) Integration with Spring Cloud Gateway — Part 2](https://medium.com/@pubuduc.14/swagger-openapi-specification-3-integration-with-spring-cloud-gateway-part-2-1d670d4ab69a): Part 2 of a detailed guide on Swagger integration with the gateway.
+  * [Microservices with Spring Boot 3 and Spring Cloud](https://piotrminkowski.com/2023/03/13/microservices-with-spring-boot-3-and-spring-cloud/)
 * **Integrate Oauth2 for secure access:**
   * [Spring Cloud Gateway OAuth2 Security with Keycloak, JWT Tokens and securing it with HTTPS (SSL)](https://blog.devops.dev/spring-cloud-gateway-oauth2-security-with-keycloak-jwt-tokens-and-securing-it-with-https-ssl-2166d8009531): Secure your gateway using Keycloak, JWT, and HTTPS.
   * [Documenting OAuth2 secured Spring Boot Microservices with Swagger 3 (OpenAPI 3.0)](https://medium.com/@tobintom/documenting-oauth2-secured-spring-boot-microservices-with-swagger-3-openapi-3-0-166618ea1f5): Learn how to document Oauth2-secured microservices with Swagger.
