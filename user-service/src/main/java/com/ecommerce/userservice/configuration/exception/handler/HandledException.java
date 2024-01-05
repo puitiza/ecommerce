@@ -10,15 +10,11 @@ public abstract class HandledException extends RuntimeException {
         super(e);
     }
 
-    protected HandledException(String e) {
-        super(e);
-    }
-
-     public ZonedDateTime getZoneDateTime() {
-        return ZonedDateTime.now();
-    }
-
     */
+
+    protected HandledException(String message) {
+        super(message);
+    }
 
     public abstract String getErrorCode();
 

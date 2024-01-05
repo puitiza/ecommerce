@@ -1,6 +1,7 @@
 package com.ecommerce.userservice.configuration.exception;
 
 import com.ecommerce.userservice.configuration.exception.handler.BuildErrorResponse;
+import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
 import com.ecommerce.userservice.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +45,7 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
-    @ExceptionHandler({AuthenticationException.class})
+    @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
     public ResponseEntity<Object> handleAuthenticationException(Exception ex, WebRequest request) {
 
         log.error("Failed to authenticate the requested element", ex);

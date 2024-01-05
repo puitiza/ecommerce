@@ -1,5 +1,6 @@
 package com.ecommerce.userservice.service;
 
+import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
 import com.ecommerce.userservice.configuration.keycloak.KeycloakInitializerConfigProperties;
 import com.ecommerce.userservice.model.request.LoginRequest;
 import com.ecommerce.userservice.model.request.UserDto;
@@ -108,16 +109,20 @@ public class UserServiceImpl implements UserService {
     public LoginResponse login(LoginRequest loginRequest) {
         Configuration configuration = getConfiguration();
         AuthzClient authzClient = AuthzClient.create(configuration);
-
-        AccessTokenResponse response = authzClient.obtainAccessToken(loginRequest.getUsername(), loginRequest.getPassword());
-
-        LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setAccessToken(response.getToken());
-        loginResponse.setRefreshToken(response.getRefreshToken());
-        loginResponse.setScope(response.getScope());
-        loginResponse.setExpiresIn(response.getExpiresIn());
-        loginResponse.setError(response.getError());
-        return loginResponse;
+        AccessTokenResponse response;
+        try {
+            response = authzClient.obtainAccessToken(loginRequest.getUsername(), loginRequest.getPassword());
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setAccessToken(response.getToken());
+            loginResponse.setRefreshToken(response.getRefreshToken());
+            loginResponse.setScope(response.getScope());
+            loginResponse.setExpiresIn(response.getExpiresIn());
+            loginResponse.setError(response.getError());
+            return loginResponse;
+        } catch (Exception exception) {
+            log.error("ERROR WITH CREDENTIALS {}", exception.getMessage());
+            throw new InvalidUserException("Invalid user credentials");
+        }
     }
 
     private Configuration getConfiguration() {
