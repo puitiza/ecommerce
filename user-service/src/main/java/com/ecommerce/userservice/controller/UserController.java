@@ -1,5 +1,6 @@
 package com.ecommerce.userservice.controller;
 
+import com.ecommerce.userservice.controller.openApi.UserOpenApi;
 import com.ecommerce.userservice.model.request.LoginRequest;
 import com.ecommerce.userservice.model.request.UserDto;
 import com.ecommerce.userservice.model.response.LoginResponse;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping(path = "/users")
-public record UserController(UserService userService) {
+public record UserController(UserService userService) implements UserOpenApi {
     @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
     public UserDto signUp(@RequestBody UserDto userDto) {
         log.info("REGISTER USER: {}", userDto.getUsername());
@@ -21,9 +22,9 @@ public record UserController(UserService userService) {
     }
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginDto) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest loginDto) {
         log.info("LOGIN USER: {}", loginDto.getUsername());
-        return ResponseEntity.ok(userService.login(loginDto));
+        return userService.login(loginDto);
     }
 
     @GetMapping(value = "/data", produces = MediaType.APPLICATION_JSON_VALUE)

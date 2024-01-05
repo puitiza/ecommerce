@@ -42,6 +42,8 @@ dependencies {
     //	<!---------------------- Dependency for Keycloak client for creating users ---------------------->
     implementation 'org.keycloak:keycloak-spring-boot-starter:23.0.3'
     implementation 'org.keycloak:keycloak-admin-client:23.0.3'
+    //	<!------------------------------ Dependency for OpenApi 3 ------------------------------>
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

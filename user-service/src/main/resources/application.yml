@@ -33,3 +33,9 @@ logging:
 
 configuration:
   trace: true
+
+springdoc:
+  api-docs:
+    path: /user/v3/api-docs
+  swagger-ui:
+    path: /user/swagger-ui.html
