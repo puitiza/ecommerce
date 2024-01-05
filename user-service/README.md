@@ -1,9 +1,11 @@
 # User-Service API
+
 The following was discovered as part of building this project:
 
 ## Concepts
-KEYCLOAK implements almost all standard identity and access management (IAM) protocols like OAuth 2.0, OpenID, and SAML. So we can use one of these protocols to connect with Keycloak
 
+KEYCLOAK implements almost all standard identity and access management (IAM) protocols like OAuth 2.0, OpenID, and SAML.
+So we can use one of these protocols to connect with Keycloak
 
 | Name              | Description                                                                                                                                                                                                                              |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -16,8 +18,8 @@ KEYCLOAK implements almost all standard identity and access management (IAM) pro
 | Client role       | Clients can define roles that are specific to them. This is basically a role namespace dedicated to the client. More information [link](https://www.keycloak.org/docs/latest/server_admin/#assigning-permissions-using-roles-and-groups) |
 | Client scopes     | When a client is registered, you must define protocol mappers and role scope mappings for that client. It is often useful to store a client scope, to make creating new clients easier by sharing some common settings                   |
 
-
 ### Reference Documentation
+
 For further reference, please consider the following sections:
 
 * [Secure Spring Boot REST API using Keycloak](https://www.tutorialsbuddy.com/keycloak-secure-spring-boot-rest-api#gsc.tab=0)

@@ -10,8 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-
 @Slf4j
 @RestController
 @RequestMapping(path = "/users")
@@ -31,6 +29,6 @@ public record UserController(UserService userService) {
     @GetMapping(value = "/data", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> data() {
         log.info("GETTING DATA ENDPOINT TEST");
-        return ResponseEntity.ok(Arrays.asList("Hello world!"));
+        return ResponseEntity.ok("Hello world!");
     }
 }

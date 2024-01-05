@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
-public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken>{
+public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter;
 
     @Value("${keycloak.resource}")
@@ -24,13 +24,14 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     public JwtAuthConverter() {
         this.jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
     }
+
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         final Set<GrantedAuthority> authorities = Stream.concat(
                 jwtGrantedAuthoritiesConverter.convert(jwt).stream(),
                 extractUserRoles(jwt).stream()
         ).collect(Collectors.toSet());
-        return new JwtAuthenticationToken(jwt, authorities,getPrincipalClaimName(jwt));
+        return new JwtAuthenticationToken(jwt, authorities, getPrincipalClaimName(jwt));
     }
 
     private String getPrincipalClaimName(Jwt jwt) {

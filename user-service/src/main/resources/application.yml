@@ -27,3 +27,6 @@ keycloak:
 logging:
   level:
     org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR # Suppress warnings
+
+configuration:
+  trace: true
