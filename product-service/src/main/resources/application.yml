@@ -5,6 +5,21 @@ spring:
     active: dev
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_ON_EXIT=TRUE
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console.enabled: true
+    console.path: /h2-console
+    console.settings.trace: false
+    console.settings.web-allow-others: false
 
 openapi:
   oAuthFlow:

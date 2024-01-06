@@ -17,46 +17,47 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-        @Value("${openapi.oAuthFlow.tokenUrl}")
-        private String tokenUrl;
-        @Bean
-        public OpenAPI openApi() {
-                final String securitySchemeName = "security_auth";
+    @Value("${openapi.oAuthFlow.tokenUrl}")
+    private String tokenUrl;
 
-                return new OpenAPI()
-                        .info(new Info()
-                                .title("Product Service APIs")
-                                .description("This lists all the Product Service API Calls. The Calls are OAuth2 secured, "
-                                        + "so please use your client ID and Secret to test them out.")
-                                .version("v1.0"))
-                        .components(
-                                new Components()
-                                        .addSecuritySchemes(securitySchemeName,
-                                                new SecurityScheme()
-                                                        .name(securitySchemeName)
-                                                        .type(SecurityScheme.Type.OAUTH2)
-                                                        .flows(new OAuthFlows()
-                                                                .clientCredentials(new OAuthFlow()
-                                                                        .tokenUrl(tokenUrl)
-                                                                        .scopes(new Scopes()
-                                                                                .addString("openid", "openid scope"))
-                                                                )
+    @Bean
+    public OpenAPI openApi() {
+        final String securitySchemeName = "security_auth";
+
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Product Service APIs")
+                        .description("This lists all the Product Service API Calls. The Calls are OAuth2 secured, "
+                                + "so please use your client ID and Secret to test them out.")
+                        .version("v1.0"))
+                .components(
+                        new Components()
+                                .addSecuritySchemes(securitySchemeName,
+                                        new SecurityScheme()
+                                                .name(securitySchemeName)
+                                                .type(SecurityScheme.Type.OAUTH2)
+                                                .flows(new OAuthFlows()
+                                                        .clientCredentials(new OAuthFlow()
+                                                                .tokenUrl(tokenUrl)
+                                                                .scopes(new Scopes()
+                                                                        .addString("openid", "openid scope"))
                                                         )
-                                        )
-                        )
-                        .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
-                        .servers(serverList());
-        }
+                                                )
+                                )
+                )
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .servers(serverList());
+    }
 
-        private List<Server> serverList() {
-                Server localServer = new Server();
-                localServer.setDescription("gateway");
-                localServer.setUrl("http://localhost:8090");
+    private List<Server> serverList() {
+        Server localServer = new Server();
+        localServer.setDescription("gateway");
+        localServer.setUrl("http://localhost:8090");
 
-                // Add other servers if needed
-                Server localServer_2 = new Server();
-                localServer_2.setDescription("local");
-                localServer_2.setUrl("http://localhost:4005");
-                return Arrays.asList(localServer,localServer_2);
-        }
+        // Add other servers if needed
+        Server localServer_2 = new Server();
+        localServer_2.setDescription("local");
+        localServer_2.setUrl("http://localhost:4005");
+        return Arrays.asList(localServer, localServer_2);
+    }
 }

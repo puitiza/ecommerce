@@ -5,13 +5,13 @@ info:
 servers:
   - url: http://localhost:8082
 security:
-  - Auth-JWT: []
+  - Auth-JWT: [ ]
 paths:
   /products:
     post:
       summary: Creates a new product.
       security:
-        - Auth-JWT: [ADMIN]
+        - Auth-JWT: [ ADMIN ]
       requestBody:
         required: true
         content:
@@ -42,7 +42,7 @@ paths:
     get:
       summary: Gets all products.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       responses:
         200:
           description: Products retrieved successfully.
@@ -76,7 +76,7 @@ paths:
     put:
       summary: Updates an existing product.
       security:
-        - Auth-JWT: [ADMIN]
+        - Auth-JWT: [ ADMIN ]
       parameters:
         - name: id
           in: path
@@ -114,7 +114,7 @@ paths:
     delete:
       summary: Deletes a product.
       security:
-        - Auth-JWT: [ADMIN]
+        - Auth-JWT: [ ADMIN ]
       parameters:
         - name: id
           in: path
@@ -165,11 +165,11 @@ components:
         categories:
           type: array
           description: List of categories the product belongs to.
-          example: ["Clothing", "T-Shirts"]
+          example: [ "Clothing", "T-Shirts" ]
         additional_data:
           type: object
           description: Additional data specific to the product.
-          example: {"color": "Red", "size": "M"}
+          example: { "color": "Red", "size": "M" }
   securitySchemes:
     Auth-JWT:
       type: http
