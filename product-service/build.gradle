@@ -45,6 +45,9 @@ dependencies {
     //  <!-- Database embedded -->
     runtimeOnly 'com.h2database:h2'
 
+    implementation 'org.mapstruct:mapstruct:1.6.0.Beta1'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.0.Beta1'
+    testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.6.0.Beta1'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

@@ -2,6 +2,7 @@ package com.ecommerce.productservice.controller;
 
 
 import com.ecommerce.productservice.controller.openApi.ProductOpenApi;
+import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.service.ProductService;
 import jakarta.validation.Valid;
@@ -19,25 +20,25 @@ public record ProductController(ProductService productService) implements Produc
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductEntity createProduct(@Valid @RequestBody ProductEntity product) {
+    public ProductDto createProduct(@Valid @RequestBody ProductDto product) {
         log.info("CREATING PRODUCT: {}", product);
         return productService.createProduct(product);
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ProductEntity> getProducts() {
+    public List<ProductDto> getProducts() {
         log.info("GETTING ALL PRODUCTS");
         return productService.getAllProducts();
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ProductEntity getProductById(@PathVariable Long id) {
+    public ProductDto getProductById(@PathVariable Long id) {
         log.info("GETTING PRODUCT WITH ID {}", id);
         return productService.getProductById(id);
     }
 
     @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ProductEntity updateProduct(@PathVariable Long id, @Valid @RequestBody ProductEntity product) {
+    public ProductDto updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDto product) {
         log.info("UPDATING PRODUCT WITH ID {}: {}", id, product);
         return productService.updateProduct(id, product);
     }

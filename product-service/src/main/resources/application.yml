@@ -27,6 +27,6 @@ openapi:
 
 springdoc:
   api-docs:
-    path: /product/v3/api-docs
+    path: /products/v3/api-docs
   swagger-ui:
-    path: /product/swagger-ui.html
+    path: /products/swagger-ui.html

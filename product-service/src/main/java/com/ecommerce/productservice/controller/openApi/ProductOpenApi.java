@@ -1,5 +1,6 @@
 package com.ecommerce.productservice.controller.openApi;
 
+import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,14 +21,14 @@ public interface ProductOpenApi {
             @ApiResponse(responseCode = "400", description = "Invalid product data"),
             @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    ProductEntity createProduct(ProductEntity product);
+    ProductDto createProduct(ProductDto product);
 
     @Operation(summary = "Retrieve all Products", description = "Retrieve all products",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
     })
-    List<ProductEntity> getProducts();
+    List<ProductDto> getProducts();
 
     @Operation(summary = "Product Details", description = "Retrieves the details of a Product by ProductId",
             security = @SecurityRequirement(name = "security_auth"))
@@ -36,7 +37,7 @@ public interface ProductOpenApi {
             @ApiResponse(responseCode = "404", description = "Product not found"),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-    ProductEntity getProductById(Long id);
+    ProductDto getProductById(Long id);
 
 
     @Operation(summary = "Update Product", description = "Updates an existing product",
@@ -47,7 +48,7 @@ public interface ProductOpenApi {
             @ApiResponse(responseCode = "403", description = "Access denied"),
             @ApiResponse(responseCode = "404", description = "Product not found")
     })
-    ProductEntity updateProduct(Long id, ProductEntity product);
+    ProductDto updateProduct(Long id, ProductDto product);
 
     @Operation(summary = "Delete Product", description = "Deletes a product",
             security = @SecurityRequirement(name = "security_auth"))

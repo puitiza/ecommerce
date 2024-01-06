@@ -1,17 +1,18 @@
 package com.ecommerce.productservice.service;
 
+import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 
 import java.util.List;
 
 public interface ProductService {
-    ProductEntity createProduct(ProductEntity product);
+    ProductDto createProduct(ProductDto product);
 
-    List<ProductEntity> getAllProducts();
+    List<ProductDto> getAllProducts();
 
-    ProductEntity getProductById(Long id);
+    ProductDto getProductById(Long id);
 
-    ProductEntity updateProduct(Long id, ProductEntity product);
+    ProductDto updateProduct(Long id, ProductDto product);
 
     void deleteProduct(Long id);
 
