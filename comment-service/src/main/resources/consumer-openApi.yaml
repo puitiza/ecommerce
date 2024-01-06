@@ -1,0 +1,71 @@
+openapi: 3.0.1
+info:
+  title: Consumer Service API
+  version: 1.0.0
+  description: This API defines the interface for managing Kafka topic subscriptions.
+servers:
+  - url: http://localhost:8086
+paths:
+  /subscriptions:
+    get:
+      summary: Gets a list of subscribed Kafka topics.
+      security:
+        - BearerAuth: [ROLE_CONSUMER]
+      responses:
+        200:
+          description: List of subscribed topics retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    post:
+      summary: Subscribes to a Kafka topic.
+      security:
+        - BearerAuth: [ROLE_CONSUMER]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                topic:
+                  type: string
+                  description: The Kafka topic to subscribe to.
+                  example: "comment_added"
+      responses:
+        200:
+          description: Subscription created successfully.
+        400:
+          description: Invalid topic name or already subscribed.
+        401:
+          description: Unauthorized access. Invalid or expired JWT token.
+        403:
+          description: Forbidden access. User does not have the required permissions.
+        429:
+          description: Rate limit exceeded. Try again later.
+        500:
+          description: Internal server error.
+    delete:
+      summary: Unsubscribes from a Kafka topic.
+      security:
+        - BearerAuth: [ROLE_CONSUMER]
+      responses:
+        204:
+          description: Unsubscribed from the topic successfully.
+        400:
+          description: Invalid topic name or not subscribed.
+        401:
+          description: Unauthorized access. Invalid or expired JWT token.
+        403:
+          description: Forbidden access. User does not have the required permissions.
+        500:
+          description: Internal server error.
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
