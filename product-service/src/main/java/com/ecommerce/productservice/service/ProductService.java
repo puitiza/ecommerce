@@ -1,7 +1,6 @@
 package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.model.dto.ProductDto;
-import com.ecommerce.productservice.model.entity.ProductEntity;
 
 import java.util.List;
 

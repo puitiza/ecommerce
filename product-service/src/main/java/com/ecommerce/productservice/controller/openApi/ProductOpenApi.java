@@ -1,7 +1,6 @@
 package com.ecommerce.productservice.controller.openApi;
 
 import com.ecommerce.productservice.model.dto.ProductDto;
-import com.ecommerce.productservice.model.entity.ProductEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

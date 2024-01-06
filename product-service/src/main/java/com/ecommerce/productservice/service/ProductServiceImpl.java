@@ -3,26 +3,34 @@ package com.ecommerce.productservice.service;
 import com.ecommerce.productservice.configuration.exception.handler.NoSuchElementFoundException;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
-import com.ecommerce.productservice.model.mapper.ProductMapper;
 import com.ecommerce.productservice.repository.ProductRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
-public record ProductServiceImpl(ProductRepository repository, ProductMapper productMapper) implements ProductService {
+public record ProductServiceImpl(ProductRepository repository, ModelMapper modelMapper) implements ProductService {
 
     @Override
     public ProductDto createProduct(ProductDto productDto) {
-        var productEntity = productMapper.toProductEntity(productDto);
-        return productMapper.toProductDto(repository.save(productEntity));
+        // Convert ProductDto into Product JPA Entity
+        var productEntity = modelMapper.map(productDto,ProductEntity.class);
+        var savedProduct = repository.save(productEntity);
+
+        // Convert Product JPA entity to ProductDto
+        return modelMapper.map(savedProduct, ProductDto.class);
     }
 
     @Override
     public List<ProductDto> getAllProducts() {
-        var list = repository.findAll();
-        return productMapper.mapProductDtoList(list);
+        var products = repository.findAll();
+
+        return products.stream()
+                .map((product) -> modelMapper.map(product, ProductDto.class))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -30,14 +38,14 @@ public record ProductServiceImpl(ProductRepository repository, ProductMapper pro
         Optional<ProductEntity> productOptional = repository.findById(productId);
         var productEntity = productOptional
                 .orElseThrow(() -> new NoSuchElementFoundException("Product not found with ID: " + productId, "P01"));
-        return productMapper.toProductDto(productEntity);
+        return modelMapper.map(productEntity, ProductDto.class);
     }
 
     @Override
     public ProductDto updateProduct(Long id, ProductDto ProductEntity) {
 
         var existingProductDto = getProductById(id);
-        var existingProduct = productMapper.toProductEntity(existingProductDto);
+        var existingProduct = modelMapper.map(existingProductDto,ProductEntity.class);
 
         existingProduct.setName(ProductEntity.getName());
         existingProduct.setDescription(ProductEntity.getDescription());
@@ -46,7 +54,10 @@ public record ProductServiceImpl(ProductRepository repository, ProductMapper pro
         existingProduct.setImage(ProductEntity.getImage());
         existingProduct.setCategories(ProductEntity.getCategories());
         //existingProduct.setAdditionalData(ProductEntity.getAdditionalData());
-        return productMapper.toProductDto(repository.save(existingProduct));
+
+        var updatedProduct = repository.save(existingProduct);
+
+        return modelMapper.map(updatedProduct,ProductDto.class);
 
     }
 

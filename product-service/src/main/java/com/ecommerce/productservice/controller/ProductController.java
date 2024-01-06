@@ -3,7 +3,6 @@ package com.ecommerce.productservice.controller;
 
 import com.ecommerce.productservice.controller.openApi.ProductOpenApi;
 import com.ecommerce.productservice.model.dto.ProductDto;
-import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

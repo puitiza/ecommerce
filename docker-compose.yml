@@ -66,7 +66,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: users_db
+      MYSQL_DATABASE: product_db
       MYSQL_USER: user
       MYSQL_PASSWORD: test
     ports:
@@ -116,11 +116,17 @@ services:
         condition: service_healthy
       zipkin-all-in-one:
         condition: service_healthy
+      mysql-db:
+        condition: service_healthy
     environment:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: test
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
   user-service:
     container_name: user-service
