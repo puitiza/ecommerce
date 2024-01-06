@@ -1,5 +1,6 @@
 package com.ecommerce.apigateway.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,14 +20,13 @@ import java.util.Collections;
 public class SecurityConfig {
 
     @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http){
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
+                                                            @Value("${permit-all:[]}") String[] permitUrlList){
+
         return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers(HttpMethod.GET,"/webjars/**").permitAll()
-                        .pathMatchers(HttpMethod.GET,"/swagger-ui.html").permitAll()
-                        .pathMatchers(HttpMethod.GET,"/v3/api-docs/**").permitAll()
-                        .pathMatchers(HttpMethod.GET,"/product/v3/api-docs/**").permitAll()
-                        .pathMatchers(HttpMethod.GET,"/order/v3/api-docs/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, permitUrlList).permitAll()
+                        .pathMatchers("/user/signup", "/user/login").permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();

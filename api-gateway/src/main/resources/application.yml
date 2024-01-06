@@ -11,7 +11,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:9090/realms/ecommerce-realm
+          issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+
+permit-all:
+  /webjars/**,
+  /swagger-ui.html,
+  /v3/api-docs/**,
+  /product/v3/api-docs/**,
+  /order/v3/api-docs/**,
+  /user/v3/api-docs/**
 
 server:
   port: 8090
@@ -30,3 +38,5 @@ springdoc:
         name: Order Service
       - url: /product/v3/api-docs
         name: Product Service
+      - url: /user/v3/api-docs
+        name: User Service

@@ -16,6 +16,8 @@ public class GatewayConfig {
         return builder.routes().route("AUTH-SERVICE", r -> r.path("/auth/**").uri("lb://AUTH-SERVICE"))
                 .route("PRODUCT-SERVICE", r -> r.path("/product/**").uri("lb://PRODUCT-SERVICE"))
                 .route("PAYMENT-SERVICE", r -> r.path("/payment/**").uri("lb://PAYMENT-SERVICE"))
-                .route("ORDER-SERVICE", r -> r.path("/order/**").uri("lb://ORDER-SERVICE")).build();
+                .route("USER-SERVICE", r -> r.path("/user/**").uri("lb://USER-SERVICE"))
+                .route("ORDER-SERVICE", r -> r.path("/order/**").uri("lb://ORDER-SERVICE"))
+                .build();
     }
 }
