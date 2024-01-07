@@ -32,6 +32,12 @@ logging:
 configuration:
   trace: true
 
+permit-all:
+  /users/v3/api-docs/**,
+  /users/swagger-ui/**,
+  /users/swagger-ui.html,
+  /favicon.ico
+
 springdoc:
   api-docs:
     path: /users/v3/api-docs

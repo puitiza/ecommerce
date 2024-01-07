@@ -56,15 +56,5 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler({AccessDeniedException.class})
-    public ResponseEntity<Object> handleAccessDeniedException(Exception ex, WebRequest request) {
-        log.error("Denied to access the requested element", ex);
-
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.FORBIDDEN.value(), ex.getMessage());
-        errorResponse.setErrorCode("P03");
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(request));
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
-    }
-
 
 }

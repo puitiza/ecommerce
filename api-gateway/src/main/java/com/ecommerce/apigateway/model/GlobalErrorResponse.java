@@ -27,10 +27,4 @@ public class GlobalErrorResponse {
     private record ValidationError(String field, String message) {
     }
 
-    public void addValidationError(String field, String message) {
-        if (Objects.isNull(errors)) {
-            errors = new ArrayList<>();
-        }
-        errors.add(new ValidationError(field, message));
-    }
 }
