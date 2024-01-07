@@ -9,20 +9,46 @@ spring:
     web-application-type: reactive
   security:
     oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: api-gateway-client
+            client-secret: keycloak-secret
+        provider:
+          keycloak:
+            user-name-attribute: preferred_username
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+  cloud:
+    gateway:
+      routes:
+        - id: PRODUCT-SERVICE
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/products/**
+        - id: ORDER-SERVICE
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/order/**
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
 
 permit-all:
   /webjars/**,
   /swagger-ui.html,
   /v3/api-docs/**,
-  /product/v3/api-docs/**,
+  /products/v3/api-docs/**,
   /order/v3/api-docs/**,
-  /user/v3/api-docs/**
+  /users/v3/api-docs/**
 
 server:
   port: 8090
+
+configuration:
+  trace: true
 
 springdoc:
   api-docs:
@@ -36,7 +62,7 @@ springdoc:
         name: API Gateway Service
       - url: /order/v3/api-docs
         name: Order Service
-      - url: /product/v3/api-docs
+      - url: /products/v3/api-docs
         name: Product Service
-      - url: /user/v3/api-docs
+      - url: /users/v3/api-docs
         name: User Service
