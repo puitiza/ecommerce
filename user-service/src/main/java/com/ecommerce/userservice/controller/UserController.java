@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping(path = "/user")
+@RequestMapping(path = "/users")
 public record UserController(UserService userService) implements UserOpenApi {
     @PostMapping(value = "/signup", produces = MediaType.APPLICATION_JSON_VALUE)
     public UserDto signUp(@RequestBody UserDto userDto) {
