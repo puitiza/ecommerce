@@ -1,7 +1,7 @@
 package com.ecommerce.apigateway.configuration.exception;
 
 import com.ecommerce.apigateway.configuration.exception.handler.BuildErrorResponse;
-import com.ecommerce.apigateway.model.GlobalErrorResponse;
+import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;

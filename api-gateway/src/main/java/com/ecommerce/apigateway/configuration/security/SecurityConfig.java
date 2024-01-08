@@ -1,10 +1,10 @@
 package com.ecommerce.apigateway.configuration.security;
 
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
+import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -34,18 +34,16 @@ public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
 
-    @Value("${permit-all:[]}")
-    private String[] permitUrlList;
-
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
-                                                            ExceptionHandlerConfig exceptionHandlerConfig) {
+                                                            ExceptionHandlerConfig exceptionHandlerConfig,
+                                                            PermitUrlsProperties permitUrls) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(
                         (authz) -> authz
-                                .pathMatchers(HttpMethod.GET, permitUrlList).permitAll()
-                                .pathMatchers("/users/signup", "/users/login").permitAll()
+                                .pathMatchers(HttpMethod.GET, permitUrls.getSwagger()).permitAll()
+                                .pathMatchers(permitUrls.getUsers()).permitAll()
                                 .pathMatchers(HttpMethod.GET, "/users/data").hasRole("user")
                                 .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

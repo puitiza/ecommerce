@@ -1,4 +1,4 @@
-package com.ecommerce.apigateway.model;
+package com.ecommerce.apigateway.model.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;

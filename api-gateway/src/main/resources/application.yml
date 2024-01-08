@@ -36,13 +36,16 @@ spring:
           predicates:
             - Path=/users/**
 
-permit-all:
-  /webjars/**,
-  /swagger-ui.html,
-  /v3/api-docs/**,
-  /products/v3/api-docs/**,
-  /order/v3/api-docs/**,
-  /users/v3/api-docs/**
+permit-urls:
+  swagger:
+    /webjars/**,
+    /v3/api-docs/**,
+    /swagger-ui.html,
+    /products/v3/api-docs/**,
+    /users/v3/api-docs/**
+  users:
+    /users/signup,
+    /users/login
 
 server:
   port: 8090

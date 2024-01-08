@@ -1,6 +1,6 @@
 package com.ecommerce.apigateway.configuration.exception.handler;
 
-import com.ecommerce.apigateway.model.GlobalErrorResponse;
+import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
