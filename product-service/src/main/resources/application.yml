@@ -23,14 +23,18 @@ openapi:
   oAuthFlow:
     tokenUrl: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/token
 
-permit-all:
-  /products/v3/api-docs/**,
-  /products/swagger-ui/**,
-  /products/swagger-ui.html,
-  /favicon.ico
+permit-urls:
+  swagger:
+    /products/v3/api-docs/**,
+    /products/swagger-ui/**,
+    /products/swagger-ui.html,
+    /favicon.ico
 
 springdoc:
+  base-path: /products
   api-docs:
-    path: /products/v3/api-docs
+    enabled: true
+    path: ${springdoc.base-path}/v3/api-docs
   swagger-ui:
-    path: /products/swagger-ui.html
+    enabled: true
+    path: ${springdoc.base-path}/swagger-ui.html

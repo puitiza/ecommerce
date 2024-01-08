@@ -15,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${permit-all:[]}")
+    @Value("${permit-urls.swagger:[]}")
     private  String[] permitUrlList;
 
     @Bean
