@@ -1,5 +1,6 @@
 package com.ecommerce.userservice.configuration.security;
 
+import com.ecommerce.userservice.model.properties.PermitUrlsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,11 +18,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${permit-all:[]}")
-    private  String[] permitUrlList;
-
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, PermitUrlsProperties permitUrls) throws Exception {
         return http
                 // Disable CORS and CSRF for stateless session management
                 .cors(AbstractHttpConfigurer::disable)
@@ -30,7 +28,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Define authorization rules for endpoints
                 .authorizeHttpRequests((authz) -> authz
-                        .requestMatchers(HttpMethod.GET, permitUrlList).permitAll()
+                        .requestMatchers(HttpMethod.GET, permitUrls.getSwagger()).permitAll()
+                        .requestMatchers(permitUrls.getUsers()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))

@@ -1,15 +1,15 @@
-package com.ecommerce.userservice.configuration.keycloak;
+package com.ecommerce.userservice.model.properties;
 
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
-@Configuration
+@Component
 @ConfigurationProperties(prefix = "keycloak")
-public class KeycloakInitializerConfigProperties {
+public class KeycloakProperties {
 
     private String authServerUrl;
     private String realm;
@@ -17,10 +17,10 @@ public class KeycloakInitializerConfigProperties {
     private String clientKeyPassword;
     private Credentials credentials = new Credentials();
 
-    protected static String masterRealm = "master";
-    protected static String clientId = "admin-cli";
-    protected static String username = "admin";
-    protected static String password = "admin";
+    public static String masterRealm = "master";
+    public static String clientId = "admin-cli";
+    public static String username = "admin";
+    public static String password = "admin";
 
     @Getter
     @Setter
