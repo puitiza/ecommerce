@@ -26,6 +26,7 @@ dependencies {
 	//	<!--------------------- Dependency for Spring Cloud Netflix Eureka --------------------->
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 	//	<!------------------------ Dependency for spring-cloud Gateway ------------------------->
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
 	implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
 	//	<!------------- Dependency for Spring Cloud Distributed Tracing for Zipkin ------------->
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'

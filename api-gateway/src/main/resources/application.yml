@@ -20,6 +20,10 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+  data:
+    redis:
+      host: localhost
+      port: 6379
   cloud:
     gateway:
       routes:
@@ -35,15 +39,21 @@ spring:
           uri: lb://USER-SERVICE
           predicates:
             - Path=/users/**
+          filters:
+            - name: RequestRateLimitFilter
+              args:
+                key-resolver: "#{@hostAddressKeyResolver}"
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 10
 
 permit-urls:
-  swagger:
+  swagger: >
     /webjars/**,
     /v3/api-docs/**,
     /swagger-ui.html,
     /products/v3/api-docs/**,
     /users/v3/api-docs/**
-  users:
+  users: >
     /users/signup,
     /users/login
 
