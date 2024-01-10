@@ -1,5 +1,6 @@
 package com.ecommerce.apigateway.filter.rateLimit;
 
+import lombok.Getter;
 import lombok.Setter;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -26,33 +27,43 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
-            ServerHttpResponse response = exchange.getResponse();
-            KeyResolver resolver = config.keyResolver;
+            ServerHttpResponse responseEntity = exchange.getResponse();
+            KeyResolver resolver = config.getKeyResolver();
             String routeId = config.getRouteId();
 
             return resolver.resolve(exchange)
                     .flatMap(key -> rateLimiter.isAllowed(routeId, key))
                     .flatMap(rateLimitResponse -> {
                         if (rateLimitResponse.isAllowed()) {
-                            return chain.filter(exchange);
+                            return chain.filter(exchange)
+                                    .doOnSuccess(aVoid -> addHeadersToResponse(responseEntity, rateLimitResponse)); // Add headers for 200 responses;
                         } else {
-                            return responseTooManyRequests(response);
+                            return handleTooManyRequests(responseEntity, rateLimitResponse);
                         }
                     });
         };
     }
 
-    private Mono<Void> responseTooManyRequests(ServerHttpResponse response) {
-        response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        return response.writeWith(Mono.just(response.bufferFactory().wrap(
+    private void addHeadersToResponse(ServerHttpResponse responseEntity, RateLimiter.Response response) {
+        response.getHeaders().forEach((headerName, headerValue) -> responseEntity.getHeaders().add(headerName, headerValue));
+    }
+
+    private Mono<Void> handleTooManyRequests(ServerHttpResponse responseEntity, RateLimiter.Response response) {
+        responseEntity.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+        responseEntity.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        // Add rate-limiting headers from RateLimiter.Response
+        addHeadersToResponse(responseEntity, response);
+
+        return responseEntity.writeWith(Mono.just(responseEntity.bufferFactory().wrap(
                 ("""
-                        {"success": false, "message": "You have exceeded the rate limit. Please try again in"}
+                        {"success": false, "message": "You have exceeded the rate limit. Please try again later."}
                         """).getBytes())));
     }
 
     public static class Config implements HasRouteId {
 
+        @Getter
         private final KeyResolver keyResolver;
 
         @Setter
