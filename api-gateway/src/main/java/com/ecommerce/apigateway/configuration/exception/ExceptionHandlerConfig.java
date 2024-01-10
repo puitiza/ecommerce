@@ -27,8 +27,8 @@ public class ExceptionHandlerConfig {
         // Check if response is not already committed
         if (!exchange.getResponse().isCommitted()) {
             log.error("Failed to authenticate the requested element {}", ex.getMessage());
-            GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
-            errorResponse.setErrorCode("P02");
+            GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNAUTHORIZED.value(),
+                    ex.getMessage(),"EC-001");
             buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
             return Mono.just(errorResponse);
         } else { // Avoid further processing if response is already committed
@@ -39,8 +39,8 @@ public class ExceptionHandlerConfig {
     @ExceptionHandler({AccessDeniedException.class})
     public Mono<GlobalErrorResponse> handleAccessDeniedException(Exception ex, ServerWebExchange exchange) {
         log.error("Denied to access the requested element {}", ex.getMessage());
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.FORBIDDEN.value(), ex.getMessage());
-        errorResponse.setErrorCode("P03");
+        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),"EC-003");
         buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange)); // Use ServerWebExchange
         return Mono.just(errorResponse);
     }

@@ -1,7 +1,12 @@
 package com.ecommerce.apigateway.filter.rateLimit;
 
+import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
+import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
@@ -14,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<RequestRateLimitFilter.Config> {
 
@@ -43,18 +49,33 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
     }
 
     private Mono<Void> handleTooManyRequests(ServerWebExchange exchange, RateLimiter.Response response) {
-        return exchange.getResponse().writeWith(
-                Mono.just(exchange.getResponse().bufferFactory().wrap(
-                                """
-                                {"success": false, "message": "You have exceeded the rate limit. Please try later."}
-                                """.getBytes()))
-                        .map(dataBuffer -> {
-                            exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-                            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                            addHeadersToResponse(exchange, response); // Call reusable method
-                            return dataBuffer;
-                        })
+        GlobalErrorResponse errorResponse = new GlobalErrorResponse(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "You have exceeded the rate limit. Please try later.",
+                "EC-002"
         );
+        ObjectMapper mapper = new ObjectMapper(); // Assuming Jackson is available
+        String jsonResponse = null;
+        try {
+            jsonResponse = mapper.writeValueAsString(errorResponse);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize GlobalErrorResponse to JSON: {}", e.getMessage());
+        }
+        // Return the JSON response with appropriate headers
+        if (jsonResponse != null) {
+            return exchange.getResponse().writeWith(
+                    Mono.just(exchange.getResponse().bufferFactory().wrap(jsonResponse.getBytes()))
+                            .map(dataBuffer -> {
+                                exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+                                exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                                addHeadersToResponse(exchange, response); // Call reusable method
+                                return dataBuffer;
+                            })
+            );
+        } else {
+            // Handle the case where JSON serialization failed
+            return Mono.error(new IllegalStateException("Failed to create 429 error response"));
+        }
     }
 
 

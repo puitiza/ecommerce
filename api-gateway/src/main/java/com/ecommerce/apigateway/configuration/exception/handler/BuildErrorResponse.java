@@ -42,10 +42,6 @@ public class BuildErrorResponse {
         stackTrace2.add(0, exception.getClass().getCanonicalName() + " " + exception.getMessage());
         errorResponse.setStackTrace(stackTrace2);
 
-        var timestamp = ZonedDateTime.now();
-        DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm:ss z");
-        errorResponse.setTimestamp(timestamp.format(formatter2));
-
         if (exception instanceof HandledException handledException) {
             errorResponse.setErrorCode(
                     Optional.ofNullable(handledException.getErrorCode())
