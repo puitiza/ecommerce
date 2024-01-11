@@ -4,8 +4,6 @@ import com.ecommerce.apigateway.configuration.exception.handler.BuildErrorRespon
 import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -15,7 +13,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
-@Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class ExceptionHandlerConfig {
