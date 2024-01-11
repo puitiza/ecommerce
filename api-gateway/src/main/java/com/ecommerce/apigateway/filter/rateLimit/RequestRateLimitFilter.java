@@ -1,6 +1,5 @@
 package com.ecommerce.apigateway.filter.rateLimit;
 
-import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
 import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
