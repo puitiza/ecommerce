@@ -2,16 +2,10 @@ package com.ecommerce.apigateway.configuration.security;
 
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
 import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -20,7 +14,6 @@ import org.springframework.security.web.server.authorization.ServerAccessDeniedH
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,8 +24,6 @@ import java.util.Collections;
 public class SecurityConfig {
 
     private final JwtAuthConverter jwtAuthConverter;
-
-    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
@@ -76,37 +67,12 @@ public class SecurityConfig {
 
     @Bean
     public ServerAuthenticationEntryPoint unauthorizedEntryPoint(ExceptionHandlerConfig exceptionHandlerConfig) {
-        return (exchange, exception) -> exceptionHandlerConfig.handleAuthenticationException(exception, exchange)
-                .flatMap(errorResponse -> {
-                    byte[] bytes;
-                    try {
-                        bytes = objectMapper.writeValueAsBytes(errorResponse);
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException(e));
-                    }
-                    ServerHttpResponse response = exchange.getResponse();
-                    response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                    return response.writeWith(Mono.just(new DefaultDataBufferFactory().wrap(bytes)));
-                });
+        return (exchange, exception) -> exceptionHandlerConfig.handleAuthenticationException(exception, exchange);
     }
 
     @Bean
     public ServerAccessDeniedHandler accessDeniedHandler(ExceptionHandlerConfig exceptionHandlerConfig) {
-        return (exchange, exception) -> exceptionHandlerConfig.handleAccessDeniedException(exception, exchange)
-                .flatMap(errorResponse -> {
-                    byte[] bytes;
-                    try {
-                        bytes = objectMapper.writeValueAsBytes(errorResponse);
-                    } catch (JsonProcessingException e) {
-                        return Mono.error(new RuntimeException(e));
-                    }
-                    ServerHttpResponse response = exchange.getResponse();
-                    response.setStatusCode(HttpStatus.FORBIDDEN);
-                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                    return response.writeWith(Mono.just(new DefaultDataBufferFactory().wrap(bytes)));
-                });
+        return (exchange, exception) -> exceptionHandlerConfig.handleAccessDeniedException(exception, exchange);
     }
-
 
 }
