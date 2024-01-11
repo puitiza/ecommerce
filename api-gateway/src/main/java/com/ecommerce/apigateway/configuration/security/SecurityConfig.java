@@ -67,12 +67,12 @@ public class SecurityConfig {
 
     @Bean
     public ServerAuthenticationEntryPoint unauthorizedEntryPoint(ExceptionHandlerConfig exceptionHandlerConfig) {
-        return (exchange, exception) -> exceptionHandlerConfig.handleAuthenticationException(exception, exchange);
+        return (exchange, exception) -> exceptionHandlerConfig.handleGlobalException(exception, exchange);
     }
 
     @Bean
     public ServerAccessDeniedHandler accessDeniedHandler(ExceptionHandlerConfig exceptionHandlerConfig) {
-        return (exchange, exception) -> exceptionHandlerConfig.handleAccessDeniedException(exception, exchange);
+        return (exchange, exception) -> exceptionHandlerConfig.handleGlobalException(exception, exchange);
     }
 
 }

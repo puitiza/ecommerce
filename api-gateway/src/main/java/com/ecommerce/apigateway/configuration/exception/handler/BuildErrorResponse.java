@@ -8,7 +8,6 @@ import org.springframework.web.server.ServerWebExchange;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,15 +36,8 @@ public class BuildErrorResponse {
         var stackTrace2 = Arrays.stream(exception.getStackTrace()).limit(4)
                 .map(String::valueOf)
                 .collect(Collectors.toCollection(ArrayList::new));
-        stackTrace2.add(0, exception.getClass().getCanonicalName() + " " + exception.getMessage());
+        stackTrace2.addFirst(exception.getClass().getCanonicalName() + " " + exception.getMessage());
         errorResponse.setStackTrace(stackTrace2);
-
-        if (exception instanceof HandledException handledException) {
-            errorResponse.setErrorCode(
-                    Optional.ofNullable(handledException.getErrorCode())
-                            .orElse("EC001")
-            );
-        }
     }
 
     public boolean stackTrace(ServerWebExchange request) {

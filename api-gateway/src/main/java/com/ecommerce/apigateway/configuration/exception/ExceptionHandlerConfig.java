@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -24,34 +23,44 @@ public class ExceptionHandlerConfig {
 
     private final BuildErrorResponse buildErrorResponse;
 
-    @ExceptionHandler({AuthenticationException.class})
-    public Mono<Void> handleAuthenticationException(Exception ex, ServerWebExchange exchange) {
+    @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
+    public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
+        return switch (ex) {
+            case AuthenticationException authenticationException ->
+                    handleAuthenticationException(authenticationException, exchange);
+            case AccessDeniedException accessDeniedException ->
+                    handleAccessDeniedException(accessDeniedException, exchange);
+            case RateLimitExceededException rateLimitExceededException ->
+                    handleTooManyRequestException(rateLimitExceededException, exchange);
+            default -> handleUnexpectedException(ex, exchange); // Handle any unexpected exceptions
+        };
+    }
+
+    private Mono<Void> handleAuthenticationException(AuthenticationException ex, ServerWebExchange exchange) {
         log.error("Failed to authenticate the requested element {}", ex.getMessage());
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNAUTHORIZED.value(),
-                ex.getMessage(), "EC-001");
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
-        return writeResponse(exchange, errorResponse, HttpStatus.UNAUTHORIZED);
+        return writeErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "EC-001", ex);
     }
 
-    @ExceptionHandler({AccessDeniedException.class})
-    public Mono<Void> handleAccessDeniedException(Exception ex, ServerWebExchange exchange) {
+    private Mono<Void> handleAccessDeniedException(AccessDeniedException ex, ServerWebExchange exchange) {
         log.error("Denied to access the requested element {}", ex.getMessage());
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(), "EC-003");
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
-        return writeResponse(exchange, errorResponse, HttpStatus.FORBIDDEN);
+        return writeErrorResponse(exchange, HttpStatus.FORBIDDEN, "EC-003", ex);
     }
 
-    @ExceptionHandler({RateLimitExceededException.class})
-    public Mono<Void> handleTooManyRequestException(Exception ex, ServerWebExchange exchange) {
+    private Mono<Void> handleTooManyRequestException(RateLimitExceededException ex, ServerWebExchange exchange) {
         log.error("Number of Requests has exceeded the limit: {}", ex.getMessage());
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(),
-                "You have exceeded the rate limit. Please try later.", "EC-004");
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
-        return writeResponse(exchange, errorResponse, HttpStatus.TOO_MANY_REQUESTS);
+        return writeErrorResponse(exchange, HttpStatus.TOO_MANY_REQUESTS, "EC-004", ex);
     }
 
-    private Mono<Void> writeResponse(ServerWebExchange exchange, GlobalErrorResponse errorResponse, HttpStatusCode statusCode) {
+    private Mono<Void> handleUnexpectedException(Exception ex, ServerWebExchange exchange) {
+        log.error("Unexpected exception occurred: {}", ex.getMessage());
+        return writeErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, "EC-005", ex);
+    }
+
+    private Mono<Void> writeErrorResponse(ServerWebExchange exchange, HttpStatus statusCode, String errorCode, Exception ex) {
+
+        GlobalErrorResponse errorResponse = new GlobalErrorResponse(statusCode.value(), ex.getMessage(), errorCode);
+        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
+
         byte[] bytes;
         var objectMapper = new ObjectMapper();
         try {
