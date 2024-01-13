@@ -41,7 +41,7 @@ public class OpenApiConfig {
                                 )
                 )
                 .info(new Info()
-                        .title("AUTH-SERVICE")
+                        .title("ORDER-SERVICE")
                         .description("This is a sample Spring Boot RESTFul service using springdoc-openapi and OpenAPI 3.")
                         .version("v1.0")
                         .contact(new Contact()

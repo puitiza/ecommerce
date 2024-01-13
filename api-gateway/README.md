@@ -8,12 +8,17 @@ consists of three parts: a header, a payload, and a signature
 
 Therefore, your approach is correct. You've utilized both mechanisms to enable CORS for different scenarios:
 - **Keycloak token:** Enables internal API gateway calls to other resources on behalf of the user.
-  "allowed-origins": ["http://localhost:8090"]
-- **CorsWebFilter:** Enables Swagger UI on localhost:9090 to access the API gateway directly.
+  `"allowed-origins": ["http://localhost:8090"]`
+- **CorsWebFilter:** Enables Swagger UI on `localhost:9090` to access the API gateway directly.
 
 This approach provides flexibility and ensures both internal and external communication is handled correctly with respect to CORS.
 
-
+The rate limiter defines the following properties:
+- redis-rate-limiter.replenishRate: Defines how many requests per second to allow (without any dropped requests). This is the rate at which the token bucket is filled.
+- redis-rate-limiter.burstCapacity: The maximum number of requests a user is allowed in a single second (without any dropped requests). This is the number of tokens the token bucket can hold. Setting this value to zero blocks all requests.
+- redis-rate-limiter.requestedTokens: Defines how many tokens a request costs. This is the number of tokens taken from the bucket for each request and defaults to 1.
+- rate-limiter: You can also define your own (optional) implementation of the rate limiter as spring bean.
+- key-resolver: An (optional) key resolver defines the key for limiting requests.
 
 
 ## Resources for documentation
@@ -32,3 +37,12 @@ This approach provides flexibility and ensures both internal and external commun
   * [Connecting Keycloak with Postgres database](https://stackoverflow.com/questions/75410699/connecting-keycloak-with-postgres-database): list complete of set env for docker-compose.yml
   * [Configure Keycloak to use a Postgres database](https://www.youtube.com/watch?v=7404ir5oq4Q&t=335s): This video you could help
   * [All Configuration](https://www.keycloak.org/server/all-config?options-filter=all): all configuration according official website
+* **Logging Spring Cloud Gateway**
+  * [Log All response and request spring webflux](https://stackoverflow.com/questions/76045158/log-all-response-and-request-spring-webflux)
+* **Rate Limit**
+  * [Resilience Retry, Circuit Breaking and Rate Limiting](https://andifalk.gitbook.io/spring-cloud-gateway-workshop/hands-on-labs/lab2)
+  * [Implement Rate Limiting in Spring Cloud Gateway with Redis](https://medium.com/@htyesilyurt/implement-rate-limiting-in-spring-cloud-gateway-with-redis-7b71c8dd53a3) Rate limiting is a technique used to control the rate at which requests are made to a network
+  * [Rate Limiter using Spring Cloud Gateway and Redis](https://www.youtube.com/watch?v=0LoqPg6h6wc&ab_channel=TechPrimers) Example from YouTube
+* **Examples projects:**
+  * [Spring Cloud Gateway with OpenID Connect and Token Relay](https://github.com/timtebeek/spring-security-samples/blob/main/spring-cloud-gateway-oidc-tokenrelay/README.adoc): When combined with Spring Security 5.2+ and an OpenID Provider such as Keycloak, one can rapidly set up a secure gateway for OAuth2 resource servers.
+  * [Spring-cloud-gateway-request-rate-limiting](https://github.com/ivvve/code-examples/tree/master/spring-cloud-gateway-request-rate-limiting) Api Server + Gateway Server

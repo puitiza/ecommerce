@@ -22,10 +22,8 @@ keycloak:
   bearer-only: true #It will only accept bearer tokens for authentication and will not perform a redirect to the login page.
   credentials:
     provider: secret
-  # Configures what principal.getName() will return
-  principal-attribute: preferred_username
+  principal-attribute: preferred_username # Configures what principal.getName() will return
   use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
-
 
 logging:
   level:
@@ -34,8 +32,21 @@ logging:
 configuration:
   trace: true
 
+permit-urls:
+  swagger:
+    /users/v3/api-docs/**,
+    /users/swagger-ui/**,
+    /users/swagger-ui.html,
+    /favicon.ico
+  users:
+    /users/signup,
+    /users/login
+
 springdoc:
+  base-path: /users
   api-docs:
-    path: /user/v3/api-docs
+    enabled: true
+    path: ${springdoc.base-path}/v3/api-docs
   swagger-ui:
-    path: /user/swagger-ui.html
+    enabled: true
+    path: ${springdoc.base-path}/swagger-ui.html

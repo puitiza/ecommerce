@@ -1,7 +1,7 @@
 package com.ecommerce.userservice.service;
 
 import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
-import com.ecommerce.userservice.configuration.keycloak.KeycloakInitializerConfigProperties;
+import com.ecommerce.userservice.model.properties.KeycloakProperties;
 import com.ecommerce.userservice.model.request.LoginRequest;
 import com.ecommerce.userservice.model.request.UserDto;
 import com.ecommerce.userservice.model.response.LoginResponse;
@@ -32,7 +32,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final Keycloak keycloak;
-    private final KeycloakInitializerConfigProperties configurationProperties;
+    private final KeycloakProperties configurationProperties;
 
     /**
      * Creates a new user in Keycloak with the provided sign-up information using the Keycloak Admin Client.

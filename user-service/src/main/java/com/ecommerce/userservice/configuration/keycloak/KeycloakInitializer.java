@@ -35,7 +35,7 @@ public class KeycloakInitializer implements InitializingBean {
         try {
             Resource resource = new ClassPathResource(INIT_KEYCLOAK_USERS_PATH);
             users = mapper.readValue(
-                    resource.getFile(),
+                    resource.getInputStream(),
                     mapper.getTypeFactory().constructCollectionType(ArrayList.class, UserDto.class));
         } catch (IOException e) {
             String errorMessage = String.format("Failed to read keycloak users : %s", e.getMessage());
