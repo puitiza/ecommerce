@@ -2,11 +2,11 @@ version: '3.8'
 services:
   config-server:
     container_name: config-server
-    build: #Configuration options that are applied at build time that we defined in the Dockerfile with relative path
+    build: #Configuration options that are applied at build time that we defined in the Dockerfile with a relative path
       context: ./config-server
     ports:
       - "8885:8885"
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     healthcheck:
@@ -21,7 +21,7 @@ services:
       context: ./service-registry
     ports:
       - "8761:8761"
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     healthcheck:
@@ -36,7 +36,7 @@ services:
       context: ./api-gateway
     ports:
       - "8090:8090"
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     depends_on:
@@ -54,14 +54,14 @@ services:
   zipkin-all-in-one:
     container_name: zipkin-all-in-one
     image: openzipkin/zipkin:latest
-    restart: always
+    restart: unless-stopped
     ports:
       - "9411:9411"
     networks:
       - springCloud
 
-  mysql-db:
-    container_name: mysql-db
+  mysql-product-db:
+    container_name: mysql-product-db
     image: mysql:8.0
     restart: unless-stopped
     environment:
@@ -80,10 +80,30 @@ services:
       timeout: 10s
       retries: 5
 
-  order-service: #this service hasn't container_name because it has 3 replica
+  mysql-order-db:
+    container_name: mysql-order-db
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_db  # Use a different root password
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: order_user
+      MYSQL_PASSWORD: order_password
+    ports:
+      - "3307:3306"  # Map to a different port to avoid conflict
+    volumes:
+      - order_db_data:/var/lib/mysql
+    networks:
+      - springCloud
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 10s
+      retries: 5
+
+  order-service: #This service hasn't container_name because it has 3 replicas
     build:
       context: ./order-service
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     depends_on:
@@ -93,12 +113,19 @@ services:
         condition: service_healthy
       zipkin-all-in-one:
         condition: service_healthy
+      mysql-order-db:
+        condition: service_healthy
     deploy:
-      replicas: 3
+      replicas: 2
     environment:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-order-db:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: order_user
+      SPRING_DATASOURCE_PASSWORD: order_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
   product-service:
     container_name: product-service
@@ -106,7 +133,7 @@ services:
       context: ./product-service
     ports:
       - "8002:4005"
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     depends_on:
@@ -116,14 +143,14 @@ services:
         condition: service_healthy
       zipkin-all-in-one:
         condition: service_healthy
-      mysql-db:
+      mysql-product-db:
         condition: service_healthy
     environment:
       MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-product-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: test
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -134,7 +161,7 @@ services:
       context: ./user-service
     ports:
       - "8082:8082"
-    restart: always
+    restart: unless-stopped
     networks:
       - springCloud
     depends_on:
@@ -205,4 +232,6 @@ volumes:
   postgres_data:
     driver: local
   mysql_data:
+    driver: local
+  order_db_data:
     driver: local

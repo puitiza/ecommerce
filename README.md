@@ -19,12 +19,12 @@ and deploying the services on a Kubernetes cluster.
 
 The architecture uses several services and tools for different purposes:
 
-  <li>This project is based Spring Boot 3.0 Microservices with the usage of Docker and Kubernetes</li>
+  <li>This project is based on Spring Boot 3.0 Microservices with the usage of Docker and Kubernetes</li>
   <li>User can register and login through USER-SERVICE by user role (ADMIN or USER) through api gateway</li>
-  <li>User can send any request to relevant service through api gateway with its bearer token</li>
+  <li>User can send any request to the relevant service through api gateway with its bearer token</li>
 </ul>
 
-7 services whose name are shown below have been devised within the scope of this project.
+7 services whose name is shown below have been devised within the scope of this project.
 
 | Service Type               | Service Name    | Description                                                                           |
 |----------------------------|-----------------|---------------------------------------------------------------------------------------|
@@ -41,7 +41,7 @@ The architecture uses several services and tools for different purposes:
 These docker-compose commands can be used for various purposes, and here's a breakdown of how they're useful in different situations:
 
 1. **docker-compose up --build -d:**
-   - Use case: For development and quick testing where you need to constantly update the code and rebuild containers with the latest changes.
+   - Use a case: For development and quick testing where you need to constantly update the code and rebuild containers with the latest changes.
    - Explanation:
      - `up`: Starts all services defined in the docker-compose.yml file.
      - `--build`: Forces a rebuild of all service images before starting them, even if the image already exists.
@@ -247,13 +247,6 @@ Here's the updated business logic for order processing with the state machine, e
 4. Inventory service updates product availability and releases any reserved items.
 5. Notifications are sent to the user and administrator regarding the cancellation.
 
-
-Based on the limited number of users (less than 100) and the dynamic role change triggered by order status updates, a system-based evaluation approach might be a suitable option for implementing role conversion. Here's how it could work:
-
-1. **Define Order Status Threshold:** Identify a specific order status that serves as the threshold for role change. For example, "In Process Payment" could be the chosen trigger point.
-2. **Monitor User Order Status:** Continuously monitor the order status changes for users with the "USER" role.
-3. **Automatic Role Change:** When a user's order status reaches the defined threshold (e.g., "In Process Payment"), automatically assign the "ORDER" role to that user.
-4. **Payment Completion Reversion:** Once the payment for the relevant order is marked as successful, automatically revert the user's role back to "USER."
 
 Here are some additional suggestions for improvement:
 

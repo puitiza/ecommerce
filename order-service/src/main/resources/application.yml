@@ -2,12 +2,34 @@ spring:
   application:
     name: order-service
   profiles:
-    active: dev
+    active: prod
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  datasource:
+    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: order_user
+    password: order_password
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+
+openapi:
+  oAuthFlow:
+    tokenUrl: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/token
+
+permit-urls:
+  swagger:
+    /orders/v3/api-docs/**,
+    /orders/swagger-ui/**,
+    /orders/swagger-ui.html,
+    /favicon.ico
 
 springdoc:
+  base-path: /orders
   api-docs:
-    path: /order/v3/api-docs
+    enabled: true
+    path: ${springdoc.base-path}/v3/api-docs
   swagger-ui:
-    path: /order/swagger-ui.html
+    enabled: true
+    path: ${springdoc.base-path}/swagger-ui.html

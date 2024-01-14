@@ -1,38 +1,52 @@
 package com.ecommerce.orderservice.controller;
 
-import com.ecommerce.orderservice.model.Order;
-import com.ecommerce.orderservice.model.OrderWithProducts;
+import com.ecommerce.orderservice.controller.openApi.OrderOpenApi;
+import com.ecommerce.orderservice.model.dto.OrderDto;
+import com.ecommerce.orderservice.model.request.CreateOrderRequest;
+import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
 import com.ecommerce.orderservice.services.OrderService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequestMapping("/order")
+@Slf4j
 @RestController
-public record OrderController(OrderService orderService) {
+@RequestMapping("/orders")
+public record OrderController(OrderService orderService) implements OrderOpenApi {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-
-    @GetMapping("/{orderId}")
-    public Order getOrderById(@PathVariable Long orderId) {
-        logger.info("GETTING ORDER WITH ID {}", orderId);
-        return orderService.getOrderById(orderId);
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrderDto createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        log.info("CREATING ORDER: {}", request);
+        return orderService.createOrder(request);
     }
 
-    @GetMapping("/all")
-    public List<Order> getAllOrders() {
-        logger.info("GETTING ALL ORDERS");
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<OrderDto> getOrders() {
+        log.info("GETTING ALL ORDERS");
         return orderService.getAllOrders();
     }
 
-    @GetMapping("/withProducts/{orderId}")
-    public OrderWithProducts getOrderWithProducts(@PathVariable Long orderId) {
-        logger.info("COLLECTING ORDER AND PRODUCT WITH ID {} FROM UPSTREAM SERVICE", orderId);
-        return orderService.getOrderWithProducts(orderId);
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public OrderDto getOrderById(@PathVariable Long id) {
+        log.info("GETTING ORDER WITH ID {}", id);
+        return orderService.getOrderById(id);
+    }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public OrderDto updateOrder(@PathVariable Long id, @Valid @RequestBody UpdateOrderRequest request) {
+        log.info("UPDATING ORDER WITH ID {}: {}", id, request);
+        return orderService.updateOrder(id, request);
+    }
+
+    @DeleteMapping(value = "/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable Long id) {
+        log.info("DELETING ORDER WITH ID {}", id);
+        orderService.cancelOrder(id);
     }
 }

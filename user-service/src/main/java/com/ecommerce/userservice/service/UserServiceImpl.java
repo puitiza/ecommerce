@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
     /**
      * Creates a new user in Keycloak with the provided sign-up information using the Keycloak Admin Client.
      * <p>
-     * If you want to assign client level role, you'll need this code
+     * If you want to assign a client level role, you'll need this code
      * <pre>
      *   {@code
      *     // Get client level role (requires view-clients role)
