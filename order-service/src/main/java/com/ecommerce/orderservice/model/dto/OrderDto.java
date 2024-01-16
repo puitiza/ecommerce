@@ -30,17 +30,5 @@ public class OrderDto {
 
 }
 
-@Getter
-@Setter
-class OrderItemDto {
 
-    private Long productId;
-
-    private String productName; // Assuming you want to include product name in the response
-
-    private Integer quantity;
-
-    private BigDecimal unitPrice;
-
-}
 

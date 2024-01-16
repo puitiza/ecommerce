@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.configuration;
+package com.ecommerce.orderservice.configuration.openApi;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;

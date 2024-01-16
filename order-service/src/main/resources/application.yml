@@ -5,6 +5,11 @@ spring:
     active: prod
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
   datasource:
     url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
     username: order_user
