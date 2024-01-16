@@ -27,7 +27,6 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
     @Override
     public List<ProductDto> getAllProducts() {
         var products = repository.findAll();
-
         return products.stream()
                 .map((product) -> modelMapper.map(product, ProductDto.class))
                 .collect(Collectors.toList());

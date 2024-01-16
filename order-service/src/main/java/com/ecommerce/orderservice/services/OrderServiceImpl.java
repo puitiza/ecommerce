@@ -1,11 +1,14 @@
 package com.ecommerce.orderservice.services;
 
+import com.ecommerce.orderservice.configuration.exception.handler.NoSuchElementFoundException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
 import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
 import com.ecommerce.orderservice.feign.ProductFeignClient;
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.dto.OrderItemDto;
+import com.ecommerce.orderservice.model.dto.ProductDto;
 import com.ecommerce.orderservice.model.entity.OrderEntity;
+import com.ecommerce.orderservice.model.entity.OrderItemEntity;
 import com.ecommerce.orderservice.model.entity.OrderStatus;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.OrderItemRequest;
@@ -14,13 +17,17 @@ import com.ecommerce.orderservice.repository.OrderRepository;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -40,11 +47,9 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         log.info("Validating order details and product availability for order creation...");
         validateOrderDetails(request);
 
-        final String[] accessToken = getRequestHeaderToken();
-
         // Fetch product details concurrently
         log.info("Fetching product details concurrently...");
-        List<OrderItemDto> result = getOrderItemDtos(request.getItems(), accessToken);
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(request.getItems());
 
         var orderEntity = modelMapper.map(request, OrderEntity.class);
 
@@ -77,10 +82,23 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         // Convert OrderEntity to OrderDto
         var savedOrderDto = modelMapper.map(savedOrder, OrderDto.class);
         savedOrderDto.setItems(result);
-
         log.info("Order successfully created");
-
         return savedOrderDto;
+    }
+
+    private List<OrderItemDto> createOrderItemDtosWithProductDetails(List<OrderItemRequest> orderItemRequests) {
+        Map<Long, ProductDto> productMap = getProductDtosConcurrently(
+                orderItemRequests.stream()
+                        .map(OrderItemRequest::getProductId)
+                        .collect(Collectors.toSet()), getRequestHeaderToken());
+
+        // Create OrderItemDtos with product details
+        return orderItemRequests.stream()
+                .map(item -> {
+                    var product = productMap.get(item.getProductId());
+                    return new OrderItemDto(product.getId(), product.getName(), item.getQuantity(), product.getPrice());
+                })
+                .toList();
     }
 
     private String[] getRequestHeaderToken() {
@@ -92,24 +110,6 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
             accessToken[0] = "Bearer " + jwtAuthenticationToken.getToken().getTokenValue();
         }
         return accessToken;
-    }
-
-    private List<OrderItemDto> getOrderItemDtos(List<OrderItemRequest> itemRequests, String[] accessToken) {
-        var itemFutures = itemRequests.stream()
-                .map(itemRequest -> CompletableFuture.supplyAsync(() -> {
-                    try {
-                        var product = productFeignClient.getProductById(itemRequest.getProductId(), accessToken[0]);
-                        return new OrderItemDto(product.getId(), product.getName(), itemRequest.getQuantity(), product.getPrice());
-                    } catch (FeignException e) {
-                        log.error("Failed to retrieve product with ID {}: {}", itemRequest.getProductId(), e.getMessage());
-                        throw new ProductRetrievalException("Failed to retrieve product with ID " + itemRequest.getProductId());
-                    }
-                }))
-                .toList();
-
-        return  CompletableFuture.allOf(itemFutures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> itemFutures.stream().map(CompletableFuture::join).collect(Collectors.toList()))
-                .join();
     }
 
     private void validateOrderDetails(CreateOrderRequest request) {
@@ -170,7 +170,22 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
 
     @Override
     public OrderDto getOrderById(Long orderId) {
-        return null;
+        log.info("Retrieving order with ID: {}", orderId);
+
+        var orderFound = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NoSuchElementFoundException("Order not found with ID: " + orderId, "P01"));
+
+        // Fetch product details concurrently
+        var savedOrderDto = modelMapper.map(orderFound, OrderDto.class);
+
+        List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderFound.getItems(),
+                new TypeToken<List<OrderItemRequest>>() {
+                }.getType());
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList);
+
+        savedOrderDto.setItems(result);
+        log.info("Order retrieved successfully");
+        return savedOrderDto;
     }
 
     @Override
@@ -185,10 +200,54 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
 
     @Override
     public List<OrderDto> getAllOrders() {
+        log.info("Retrieving all orders");
+
         var orders = orderRepository.findAll();
 
+        // Collect unique product IDs from all orders
+        Set<Long> uniqueProductIds = orders.stream()
+                .flatMap(order -> order.getItems().stream())
+                .map(OrderItemEntity::getProductId)
+                .collect(Collectors.toSet());
+
+        // Retrieve product details for unique product IDs concurrently
+        var accessToken = getRequestHeaderToken();
+        Map<Long, ProductDto> productMap = getProductDtosConcurrently(uniqueProductIds, accessToken);
+
+        log.info("Retrieved {} orders", orders.size());
+
+        // Map orders to OrderDto, filling in product details from the map
         return orders.stream()
-                .map((order) -> modelMapper.map(order, OrderDto.class))
+                .map(order -> {
+                    List<OrderItemDto> itemDtos = order.getItems().stream()
+                            .map(item -> {
+                                ProductDto productDto = productMap.get(item.getProductId());
+                                return new OrderItemDto(productDto.getId(), productDto.getName(), item.getQuantity(), productDto.getPrice());
+                            })
+                            .collect(Collectors.toList());
+                    OrderDto orderDto = modelMapper.map(order, OrderDto.class);
+                    orderDto.setItems(itemDtos);
+                    return orderDto;
+                })
                 .collect(Collectors.toList());
+    }
+
+    private Map<Long, ProductDto> getProductDtosConcurrently(Set<Long> productIds, String[] accessToken) {
+        var productFutures = productIds.stream()
+                .map(productId -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return productFeignClient.getProductById(productId, accessToken[0]);
+                    } catch (FeignException e) {
+                        log.error("Failed to retrieve product with ID {}: {}", productId, e.getMessage());
+                        throw new ProductRetrievalException("Failed to retrieve product with ID " + productId);
+                    }
+                }))
+                .toList();
+
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(productFutures.toArray(new CompletableFuture[0]));
+        return allFutures.thenApply(v -> productFutures.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toMap(ProductDto::getId, productDto -> productDto)))
+                .join();
     }
 }
