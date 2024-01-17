@@ -2,7 +2,9 @@ package com.ecommerce.productservice.controller;
 
 
 import com.ecommerce.productservice.controller.openApi.ProductOpenApi;
+import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
+import com.ecommerce.productservice.model.request.OrderItemRequest;
 import com.ecommerce.productservice.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -47,5 +49,11 @@ public record ProductController(ProductService productService) implements Produc
     public void deleteProduct(@PathVariable Long id) {
         log.info("DELETING PRODUCT WITH ID {}", id);
         productService.deleteProduct(id);
+    }
+
+    @PostMapping("/verify-availability")
+    public ProductAvailabilityDto verifyProductAvailability(@Valid @RequestBody OrderItemRequest orderItemRequest) {
+        log.info("VERIFYING AVAILABILITY FOR PRODUCT: {}", orderItemRequest.getProductId());
+        return productService.verifyProductAvailability(orderItemRequest.getProductId(), orderItemRequest.getQuantity());
     }
 }

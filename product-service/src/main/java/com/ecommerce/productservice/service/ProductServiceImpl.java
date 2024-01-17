@@ -1,9 +1,11 @@
 package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.repository.ProductRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -11,13 +13,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public record ProductServiceImpl(ProductRepository repository, ModelMapper modelMapper) implements ProductService {
 
     @Override
     public ProductDto createProduct(ProductDto productDto) {
         // Convert ProductDto into Product JPA Entity
-        var productEntity = modelMapper.map(productDto,ProductEntity.class);
+        var productEntity = modelMapper.map(productDto, ProductEntity.class);
         var savedProduct = repository.save(productEntity);
 
         // Convert Product JPA entity to ProductDto
@@ -42,9 +45,8 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
 
     @Override
     public ProductDto updateProduct(Long id, ProductDto ProductEntity) {
-
         var existingProductDto = getProductById(id);
-        var existingProduct = modelMapper.map(existingProductDto,ProductEntity.class);
+        var existingProduct = modelMapper.map(existingProductDto, ProductEntity.class);
 
         existingProduct.setName(ProductEntity.getName());
         existingProduct.setDescription(ProductEntity.getDescription());
@@ -56,13 +58,21 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
 
         var updatedProduct = repository.save(existingProduct);
 
-        return modelMapper.map(updatedProduct,ProductDto.class);
-
+        return modelMapper.map(updatedProduct, ProductDto.class);
     }
 
     @Override
     public void deleteProduct(Long id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity) {
+        var productEntity = repository.findById(productId)
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Product not found with ID %d", productId), "P01"));
+
+        Integer availableQuantity = productEntity.getInventory();
+        return new ProductAvailabilityDto((availableQuantity >= quantity), availableQuantity);
     }
 
 }
