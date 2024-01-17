@@ -220,6 +220,8 @@ services:
     image: bitnami/redis:latest
     ports:
       - "6379:6379"
+    networks:
+      - springCloud
     environment:
       ALLOW_EMPTY_PASSWORD: yes
 

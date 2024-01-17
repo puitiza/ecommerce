@@ -42,7 +42,6 @@ public class LoggingFilter implements WebFilter {
         return !"prod".equalsIgnoreCase(activeProfile); // Mask only if not dev profile
     }
 
-
     private HttpHeaders maskAuthorizationHeader(HttpHeaders headers) {
         HttpHeaders maskedHeaders = new HttpHeaders();
         headers.forEach((key, value) -> {

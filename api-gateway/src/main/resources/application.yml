@@ -9,23 +9,29 @@ spring:
     web-application-type: reactive
   security:
     oauth2:
-      client:
-        registration:
-          keycloak:
-            client-id: api-gateway-client
-            client-secret: keycloak-secret
-        provider:
-          keycloak:
-            user-name-attribute: preferred_username
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+            user-name-attribute: preferred_username
+        registration:
+          ecommerce:
+            provider: keycloak
+            client-id: api-gateway-client
+            client-secret: fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
   data:
     redis:
       host: localhost
       port: 6379
   cloud:
     gateway:
+      default-filters:
+        - TokenRelay=
       routes:
         - id: PRODUCT-SERVICE
           uri: lb://PRODUCT-SERVICE
@@ -34,7 +40,7 @@ spring:
         - id: ORDER-SERVICE
           uri: lb://ORDER-SERVICE
           predicates:
-            - Path=/order/**
+            - Path=/orders/**
         - id: USER-SERVICE
           uri: lb://USER-SERVICE
           predicates:
@@ -52,7 +58,8 @@ permit-urls:
     /v3/api-docs/**,
     /swagger-ui.html,
     /products/v3/api-docs/**,
-    /users/v3/api-docs/**
+    /users/v3/api-docs/**,
+    /orders/v3/api-docs/**
   users: >
     /users/signup,
     /users/login
@@ -71,11 +78,11 @@ springdoc:
     path: /swagger-ui.html
     config-url: /v3/api-docs/swagger-config
     urls:
-      - url: /v3/api-docs
-        name: API Gateway Service
-      - url: /order/v3/api-docs
-        name: Order Service
-      - url: /products/v3/api-docs
-        name: Product Service
-      - url: /users/v3/api-docs
-        name: User Service
+      - name: API Gateway Service
+        url: /v3/api-docs
+      - name: Order Service
+        url: /orders/v3/api-docs
+      - name: Product Service
+        url: /products/v3/api-docs
+      - name: User Service
+        url: /users/v3/api-docs

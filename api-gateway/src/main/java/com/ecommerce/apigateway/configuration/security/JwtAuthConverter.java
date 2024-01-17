@@ -21,7 +21,7 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
 
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter;
 
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
+    @Value("${spring.security.oauth2.client.registration.ecommerce.client-id}")
     public String clientId;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.user-name-attribute}")
@@ -64,7 +64,7 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
                 .map(Map.class::cast)
                 .orElse(Collections.emptyMap());
 
-        // Safely extract the roles collection
+        // Safely extract the role collection
         Collection<?> resourceRoles = Optional.ofNullable(resource.get("roles"))
                 .filter(Collection.class::isInstance)
                 .map(Collection.class::cast)
