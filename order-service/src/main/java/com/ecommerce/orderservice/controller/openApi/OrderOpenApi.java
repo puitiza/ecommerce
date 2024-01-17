@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -29,7 +31,7 @@ public interface OrderOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Orders retrieved successfully", content = {@Content(mediaType = "application/json")})
     })
-    List<OrderDto> getOrders();
+    Page<OrderDto> getOrders(int page, int size);
 
     @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID",
             security = @SecurityRequirement(name = "security_auth"))

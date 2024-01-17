@@ -2,6 +2,7 @@ package com.ecommerce.orderservice.configuration.exception;
 
 import com.ecommerce.orderservice.configuration.exception.handler.BuildErrorResponse;
 import com.ecommerce.orderservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
 import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
 import com.ecommerce.orderservice.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,12 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleNoSuchElementFoundException(Exception ex, WebRequest request) {
         log.error("Failed to find the requested element", ex);
         return buildErrorResponse.structure(ex, HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(OrderValidationException.class)
+    public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
+        log.error("Order validation failed: " + ex.getMessage() + "{}", ex);
+        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request);
     }
 
 

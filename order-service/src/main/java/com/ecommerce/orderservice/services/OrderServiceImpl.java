@@ -13,11 +13,16 @@ import com.ecommerce.orderservice.model.entity.OrderStatus;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.OrderItemRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.model.response.ProductAvailabilityResponse;
 import com.ecommerce.orderservice.repository.OrderRepository;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -117,24 +122,30 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         Set<Long> uniqueProductIds = new HashSet<>();
         for (OrderItemRequest item : request.getItems()) {
             if (!uniqueProductIds.add(item.getProductId())) {
-                throw new OrderValidationException("Duplicate product found with id in the order.");
+                throw new OrderValidationException(
+                        String.format("Duplicate product found with id: %d in the order", item.getProductId()));
             }
         }
-        // Verify product availability with inventory service
+        // Verify product availability
         verifyProductAvailability(request.getItems());
 
         // Apply order limits based on user or product rules
         applyOrderLimits(request.getUserId(), request.getItems());
-
     }
 
     private void verifyProductAvailability(List<OrderItemRequest> items) {
+        var token = getRequestHeaderToken();
         for (OrderItemRequest item : items) {
             try {
-                //  productFeignClient.verifyProductAvailability(item.getProductId(), item.getQuantity());
-                log.info("this code soon");
+                var availabilityResponse = productFeignClient.verifyProductAvailability(item, token[0]);
+                if (!availabilityResponse.isAvailable()) {
+                    throw new OrderValidationException(
+                            String.format("Insufficient inventory for productId %d. Only %d units available.",
+                                    item.getProductId(), availabilityResponse.getAvailableUnits()));
+                }
             } catch (FeignException e) {
-                throw new OrderValidationException("Product not available: " + e.getMessage());
+                throw new OrderValidationException(
+                        String.format("Failed to check product availability for product %d due to communication error: %s", item.getProductId(), e.getMessage()));
             }
         }
     }
@@ -173,7 +184,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         log.info("Retrieving order with ID: {}", orderId);
 
         var orderFound = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementFoundException("Order not found with ID: " + orderId, "P01"));
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", orderId), "P01"));
 
         // Fetch product details concurrently
         var savedOrderDto = modelMapper.map(orderFound, OrderDto.class);
@@ -199,10 +210,11 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
     }
 
     @Override
-    public List<OrderDto> getAllOrders() {
+    public Page<OrderDto> getAllOrders(int page, int size) {
         log.info("Retrieving all orders");
 
-        var orders = orderRepository.findAll();
+        Pageable pageable = PageRequest.of(page, size);
+        var orders = orderRepository.findAll(pageable);
 
         // Collect unique product IDs from all orders
         Set<Long> uniqueProductIds = orders.stream()
@@ -214,10 +226,10 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         var accessToken = getRequestHeaderToken();
         Map<Long, ProductDto> productMap = getProductDtosConcurrently(uniqueProductIds, accessToken);
 
-        log.info("Retrieved {} orders", orders.size());
+        log.info("Retrieved {} orders", orders.getNumberOfElements());
 
         // Map orders to OrderDto, filling in product details from the map
-        return orders.stream()
+        List<OrderDto> orderDtos = orders.stream()
                 .map(order -> {
                     List<OrderItemDto> itemDtos = order.getItems().stream()
                             .map(item -> {
@@ -229,7 +241,9 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
                     orderDto.setItems(itemDtos);
                     return orderDto;
                 })
-                .collect(Collectors.toList());
+                .toList();
+        return new PageImpl<>(orderDtos, pageable, orders.getTotalElements());
+
     }
 
     private Map<Long, ProductDto> getProductDtosConcurrently(Set<Long> productIds, String[] accessToken) {
@@ -239,7 +253,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
                         return productFeignClient.getProductById(productId, accessToken[0]);
                     } catch (FeignException e) {
                         log.error("Failed to retrieve product with ID {}: {}", productId, e.getMessage());
-                        throw new ProductRetrievalException("Failed to retrieve product with ID " + productId);
+                        throw new ProductRetrievalException(String.format("Failed to retrieve product with ID %d from the Product Service", productId));
                     }
                 }))
                 .toList();

@@ -7,6 +7,7 @@ import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
 import com.ecommerce.orderservice.services.OrderService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +27,10 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<OrderDto> getOrders() {
-        log.info("GETTING ALL ORDERS");
-        return orderService.getAllOrders();
+    public Page<OrderDto> getOrders(@RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "10") int size) {
+        log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
+        return orderService.getAllOrders(page, size);
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
