@@ -9,9 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
 
 @SuppressWarnings("ALL")
 public interface OrderOpenApi {

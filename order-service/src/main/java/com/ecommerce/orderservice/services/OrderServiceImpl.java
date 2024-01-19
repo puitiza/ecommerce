@@ -13,7 +13,7 @@ import com.ecommerce.orderservice.model.entity.OrderStatus;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.OrderItemRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
-import com.ecommerce.orderservice.model.response.ProductAvailabilityResponse;
+import com.ecommerce.orderservice.publisher.OrderEventPublisher;
 import com.ecommerce.orderservice.repository.OrderRepository;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public record OrderServiceImpl(ProductFeignClient productFeignClient,
+public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEventPublisher orderEventPublisher,
                                OrderRepository orderRepository, ModelMapper modelMapper) implements OrderService {
 
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
@@ -79,7 +79,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         var savedOrder = orderRepository.save(order);
 
         // Send order_created event to Kafka
-        // kafkaTemplate.send("order_created", savedOrder.getId().toString());
+        orderEventPublisher.publishOrderCreatedEvent(savedOrder);
 
         // Initiate asynchronous validation with timeout
         validateOrderAsync(savedOrder);
@@ -152,11 +152,13 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
             CompletableFuture.runAsync(() -> {
                 // Communicating with payment service for payment authorization (if applicable)
                 // paymentService.authorizePayment(order);
+
                 savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
                 savedOrder.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
                 orderRepository.save(savedOrder);
+
                 // Publishing appropriate events to Kafka
-                //kafkaTemplate.send("order_validated", order.getId().toString());
+                orderEventPublisher.publishOrderValidatedEvent(savedOrder);
 
             }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);// Timeout for asynchronous validation
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -165,7 +167,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
             savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
             savedOrder.setStatus(OrderStatus.VALIDATION_FAILED);
             orderRepository.save(savedOrder);
-            // kafkaTemplate.send("validation_failed", savedOrder.getId().toString());
+            orderEventPublisher.publishValidationFailedEvent(savedOrder);
             throw new OrderValidationException("Order validation failed");
         }
     }
