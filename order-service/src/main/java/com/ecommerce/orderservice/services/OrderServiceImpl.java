@@ -37,7 +37,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -207,6 +206,17 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         if (request.getShippingAddress() != null) {
             orderEntity.setShippingAddress(request.getShippingAddress());
         }
+        // Fetch product details concurrently
+        List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderEntity.getItems(),
+                new TypeToken<List<OrderItemRequest>>() {
+                }.getType());
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList);
+
+        // Calculate updated total price
+        BigDecimal totalPrice = result.stream()
+                .map(item -> BigDecimal.valueOf(item.getUnitPrice()).multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        orderEntity.setTotalPrice(totalPrice);
 
         // Save the updated order entity
         OrderEntity updatedOrder = orderRepository.save(orderEntity);
@@ -216,9 +226,6 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
         // Convert OrderEntity to OrderDto
         OrderDto updatedOrderDto = modelMapper.map(updatedOrder, OrderDto.class);
-
-        // Fetch product details concurrently
-        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(request.getItems());
         updatedOrderDto.setItems(result);
 
         log.info("Order successfully updated");
@@ -226,38 +233,37 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
     }
 
     private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity orderEntity) {
-        // Validate and update items and quantities
-        Set<Long> uniqueProductIds = new HashSet<>();
+        // Remove existing items not present in the updated request
+        orderEntity.getItems()
+                .removeIf(item -> updatedItems.stream()
+                        .noneMatch(updatedItem -> item.getProductId().equals(updatedItem.getProductId())));
 
+        var token = getRequestHeaderToken();
+        // Add or update quantities for existing items
         for (OrderItemRequest updatedItem : updatedItems) {
-            // Check for duplicate product IDs in updated items
-            if (!uniqueProductIds.add(updatedItem.getProductId())) {
-                throw new OrderValidationException(
-                        String.format("Duplicate product found with id: %d in the updated items", updatedItem.getProductId()));
-            }
-
-            // Find the corresponding original order item
-            OrderItemEntity originalItem = orderEntity.getItems().stream()
+            OrderItemEntity existingItem = orderEntity.getItems().stream()
                     .filter(item -> item.getProductId().equals(updatedItem.getProductId()))
                     .findFirst()
-                    .orElseThrow(() -> new OrderValidationException(
-                            String.format("Product with id: %d not found in the original order items", updatedItem.getProductId())));
+                    .orElse(null);
 
-            // Validate and update quantity
-            if (updatedItem.getQuantity() != null) {
-                // Validate quantity (e.g., check against product availability)
-                validateUpdatedQuantity(updatedItem);
-
-                // Update quantity
-                originalItem.setQuantity(updatedItem.getQuantity());
+            if (existingItem != null) {
+                // Update existing item quantity
+                existingItem.setQuantity(updatedItem.getQuantity());
+            } else {
+                // Add new item
+                OrderItemEntity newItem = modelMapper.map(updatedItem, OrderItemEntity.class);
+                newItem.setOrder(orderEntity);
+                orderEntity.getItems().add(newItem);
             }
+
+            // Validate quantity (e.g., check against product availability)
+            validateUpdatedQuantity(updatedItem, token[0]);
         }
     }
 
-    private void validateUpdatedQuantity(OrderItemRequest updatedItem) {
+    private void validateUpdatedQuantity(OrderItemRequest updatedItem, String token) {
         try {
-            var token = getRequestHeaderToken();
-            var availabilityResponse = productFeignClient.verifyProductAvailability(updatedItem, token[0]);
+            var availabilityResponse = productFeignClient.verifyProductAvailability(updatedItem, token);
             if (!availabilityResponse.isAvailable()) {
                 throw new OrderValidationException(
                         String.format("Insufficient inventory for productId %d. Only %d units available.",
