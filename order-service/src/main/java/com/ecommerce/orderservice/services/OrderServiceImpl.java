@@ -48,13 +48,15 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
+        var token = getRequestHeaderToken(); // Get token once
+
         // Validate order details and product availability
         log.info("Validating order details and product availability for order creation...");
-        validateOrderDetails(request);
+        validateOrderDetails(request, token);
 
         // Fetch product details concurrently
         log.info("Fetching product details concurrently...");
-        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(request.getItems());
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(request.getItems(), token[0]);
 
         var orderEntity = modelMapper.map(request, OrderEntity.class);
 
@@ -91,11 +93,11 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         return savedOrderDto;
     }
 
-    private List<OrderItemDto> createOrderItemDtosWithProductDetails(List<OrderItemRequest> orderItemRequests) {
+    private List<OrderItemDto> createOrderItemDtosWithProductDetails(List<OrderItemRequest> orderItemRequests, String accessToken) {
         Map<Long, ProductDto> productMap = getProductDtosConcurrently(
                 orderItemRequests.stream()
                         .map(OrderItemRequest::getProductId)
-                        .collect(Collectors.toSet()), getRequestHeaderToken());
+                        .collect(Collectors.toSet()), accessToken);
 
         // Create OrderItemDtos with product details
         return orderItemRequests.stream()
@@ -118,7 +120,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         return accessToken;
     }
 
-    private void validateOrderDetails(CreateOrderRequest request) {
+    private void validateOrderDetails(CreateOrderRequest request, String[] token) {
         // Check for duplicate items
         Set<Long> uniqueProductIds = new HashSet<>();
         for (OrderItemRequest item : request.getItems()) {
@@ -128,7 +130,6 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
             }
         }
         // Verify product availability
-        var token = getRequestHeaderToken();
         for (OrderItemRequest item : request.getItems()) {
             try {
                 var availabilityResponse = productFeignClient.verifyProductAvailability(item, token[0]);
@@ -179,13 +180,15 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         var orderFound = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", orderId), "P01"));
 
+        var token = getRequestHeaderToken(); // Get token once
+
         // Fetch product details concurrently
         var savedOrderDto = modelMapper.map(orderFound, OrderDto.class);
 
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderFound.getItems(),
                 new TypeToken<List<OrderItemRequest>>() {
                 }.getType());
-        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList);
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         savedOrderDto.setItems(result);
         log.info("Order retrieved successfully");
@@ -199,8 +202,10 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         OrderEntity orderEntity = orderRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", id), "P01"));
 
+        var token = getRequestHeaderToken(); // Get token once
+
         // Validate and update items and quantities
-        validateAndUpdateOrderItems(request.getItems(), orderEntity);
+        validateAndUpdateOrderItems(request.getItems(), orderEntity, token[0]);
 
         // Update shipping address if provided
         if (request.getShippingAddress() != null) {
@@ -210,7 +215,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderEntity.getItems(),
                 new TypeToken<List<OrderItemRequest>>() {
                 }.getType());
-        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList);
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         // Calculate updated total price
         BigDecimal totalPrice = result.stream()
@@ -219,10 +224,11 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         orderEntity.setTotalPrice(totalPrice);
 
         // Save the updated order entity
+        orderEntity.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
         OrderEntity updatedOrder = orderRepository.save(orderEntity);
 
         // Publish order_updated event to Kafka
-        //orderEventPublisher.publishOrderUpdatedEvent(updatedOrder);
+        orderEventPublisher.publishOrderUpdatedEvent(updatedOrder);
 
         // Convert OrderEntity to OrderDto
         OrderDto updatedOrderDto = modelMapper.map(updatedOrder, OrderDto.class);
@@ -232,13 +238,12 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
         return updatedOrderDto;
     }
 
-    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity orderEntity) {
+    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity orderEntity, String accessToken) {
         // Remove existing items not present in the updated request
         orderEntity.getItems()
                 .removeIf(item -> updatedItems.stream()
                         .noneMatch(updatedItem -> item.getProductId().equals(updatedItem.getProductId())));
 
-        var token = getRequestHeaderToken();
         // Add or update quantities for existing items
         for (OrderItemRequest updatedItem : updatedItems) {
             OrderItemEntity existingItem = orderEntity.getItems().stream()
@@ -257,7 +262,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
             }
 
             // Validate quantity (e.g., check against product availability)
-            validateUpdatedQuantity(updatedItem, token[0]);
+            validateUpdatedQuantity(updatedItem, accessToken);
         }
     }
 
@@ -295,7 +300,7 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
         // Retrieve product details for unique product IDs concurrently
         var accessToken = getRequestHeaderToken();
-        Map<Long, ProductDto> productMap = getProductDtosConcurrently(uniqueProductIds, accessToken);
+        Map<Long, ProductDto> productMap = getProductDtosConcurrently(uniqueProductIds, accessToken[0]);
 
         log.info("Retrieved {} orders", orders.getNumberOfElements());
 
@@ -317,11 +322,11 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
     }
 
-    private Map<Long, ProductDto> getProductDtosConcurrently(Set<Long> productIds, String[] accessToken) {
+    private Map<Long, ProductDto> getProductDtosConcurrently(Set<Long> productIds, String accessToken) {
         var productFutures = productIds.stream()
                 .map(productId -> CompletableFuture.supplyAsync(() -> {
                     try {
-                        return productFeignClient.getProductById(productId, accessToken[0]);
+                        return productFeignClient.getProductById(productId, accessToken);
                     } catch (FeignException e) {
                         log.error("Failed to retrieve product with ID {}: {}", productId, e.getMessage());
                         throw new ProductRetrievalException(String.format("Failed to retrieve product with ID %d from the Product Service", productId));

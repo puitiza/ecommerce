@@ -37,6 +37,10 @@ public class OrderEventPublisher {
         publishEvent(order, OrderEventType.ORDER_VALIDATED_FAILED);
     }
 
+    public void publishOrderUpdatedEvent(OrderEntity order) {
+        publishEvent(order, OrderEventType.ORDER_UPDATED);
+    }
+
     private void publishEvent(OrderEntity order, OrderEventType eventType) {
         CloudEvent cloudEvent = createCloudOrderEvent(order, eventType);
         String kafkaRecordKey = UUID.randomUUID().toString();
