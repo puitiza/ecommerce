@@ -37,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -194,7 +195,78 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
     @Override
     public OrderDto updateOrder(Long id, UpdateOrderRequest request) {
-        return null;
+        log.info("Updating order with ID: {}", id);
+
+        OrderEntity orderEntity = orderRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", id), "P01"));
+
+        // Validate and update items and quantities
+        validateAndUpdateOrderItems(request.getItems(), orderEntity);
+
+        // Update shipping address if provided
+        if (request.getShippingAddress() != null) {
+            orderEntity.setShippingAddress(request.getShippingAddress());
+        }
+
+        // Save the updated order entity
+        OrderEntity updatedOrder = orderRepository.save(orderEntity);
+
+        // Publish order_updated event to Kafka
+        //orderEventPublisher.publishOrderUpdatedEvent(updatedOrder);
+
+        // Convert OrderEntity to OrderDto
+        OrderDto updatedOrderDto = modelMapper.map(updatedOrder, OrderDto.class);
+
+        // Fetch product details concurrently
+        List<OrderItemDto> result = createOrderItemDtosWithProductDetails(request.getItems());
+        updatedOrderDto.setItems(result);
+
+        log.info("Order successfully updated");
+        return updatedOrderDto;
+    }
+
+    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity orderEntity) {
+        // Validate and update items and quantities
+        Set<Long> uniqueProductIds = new HashSet<>();
+
+        for (OrderItemRequest updatedItem : updatedItems) {
+            // Check for duplicate product IDs in updated items
+            if (!uniqueProductIds.add(updatedItem.getProductId())) {
+                throw new OrderValidationException(
+                        String.format("Duplicate product found with id: %d in the updated items", updatedItem.getProductId()));
+            }
+
+            // Find the corresponding original order item
+            OrderItemEntity originalItem = orderEntity.getItems().stream()
+                    .filter(item -> item.getProductId().equals(updatedItem.getProductId()))
+                    .findFirst()
+                    .orElseThrow(() -> new OrderValidationException(
+                            String.format("Product with id: %d not found in the original order items", updatedItem.getProductId())));
+
+            // Validate and update quantity
+            if (updatedItem.getQuantity() != null) {
+                // Validate quantity (e.g., check against product availability)
+                validateUpdatedQuantity(updatedItem);
+
+                // Update quantity
+                originalItem.setQuantity(updatedItem.getQuantity());
+            }
+        }
+    }
+
+    private void validateUpdatedQuantity(OrderItemRequest updatedItem) {
+        try {
+            var token = getRequestHeaderToken();
+            var availabilityResponse = productFeignClient.verifyProductAvailability(updatedItem, token[0]);
+            if (!availabilityResponse.isAvailable()) {
+                throw new OrderValidationException(
+                        String.format("Insufficient inventory for productId %d. Only %d units available.",
+                                updatedItem.getProductId(), availabilityResponse.getAvailableUnits()));
+            }
+        } catch (FeignException e) {
+            throw new OrderValidationException(
+                    String.format("Failed to check product availability for productId %d due to communication error: %s", updatedItem.getProductId(), e.getMessage()));
+        }
     }
 
     @Override
