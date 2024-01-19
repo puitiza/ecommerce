@@ -110,10 +110,11 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         log.info("Authentication found: {}", authentication);
 
-        final String[] accessToken = {""};
+        final String[] accessToken = {"", ""};
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationToken) {
             accessToken[0] = "Bearer " + jwtAuthenticationToken.getToken().getTokenValue();
         }
+        accessToken[1] = authentication.getName();
         return accessToken;
     }
 
@@ -127,15 +128,8 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
             }
         }
         // Verify product availability
-        verifyProductAvailability(request.getItems());
-
-        // Apply order limits based on user or product rules
-        applyOrderLimits(request.getUserId(), request.getItems());
-    }
-
-    private void verifyProductAvailability(List<OrderItemRequest> items) {
         var token = getRequestHeaderToken();
-        for (OrderItemRequest item : items) {
+        for (OrderItemRequest item : request.getItems()) {
             try {
                 var availabilityResponse = productFeignClient.verifyProductAvailability(item, token[0]);
                 if (!availabilityResponse.isAvailable()) {
@@ -145,15 +139,12 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient,
                 }
             } catch (FeignException e) {
                 throw new OrderValidationException(
-                        String.format("Failed to check product availability for product %d due to communication error: %s", item.getProductId(), e.getMessage()));
+                        String.format("Failed to check product availability for productId %d due to communication error: %s", item.getProductId(), e.getMessage()));
             }
         }
-    }
 
-    private void applyOrderLimits(String userId, List<OrderItemRequest> items) {
-        // Example: Apply order limits based on user or product rules (you need to implement this)
-        // You may want to check user-specific limits or product-specific limits here.
-        // Throw OrderValidationException if any limits are exceeded.
+        // Extract user ID from JWT claims
+        request.extractUserIdFromToken(token[1]);
     }
 
     private void validateOrderAsync(OrderEntity savedOrder) {

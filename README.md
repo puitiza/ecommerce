@@ -261,7 +261,7 @@ Here are some additional suggestions for improvement:
 * **Manage user reviews and ratings for products:**
     * Allow users to submit reviews and ratings with text, images, and videos.
     * Moderate reviews for inappropriate content.
-    * Calculate average product rating and display it alongside reviews.
+    * Calculate the average product rating and display it alongside reviews.
     * Allow users to like or dislike reviews.
 
 **Business Logic:**
@@ -283,8 +283,8 @@ Here are some additional suggestions for improvement:
 
 3. **Review Moderation:**
     * Review service monitors submitted reviews for inappropriate content:
-        * Uses automated content moderation tools or manual review processes
-        * Flags or removes reviews that violate community guidelines
+        * Use automated content moderation tools or manual review processes
+        * Flags or remove reviews that violate community guidelines
 
 4. **Review Display and Interactions:**
     * Approved reviews are displayed on product pages:

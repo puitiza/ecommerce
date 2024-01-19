@@ -1,11 +1,13 @@
 package com.ecommerce.orderservice.model.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
@@ -15,8 +17,7 @@ import java.util.List;
 @Schema(description = "Request object for creating a new order")
 public class CreateOrderRequest {
 
-    @NotNull(message = "User ID cannot be null")
-    @Schema(description = "ID of the user placing the order")
+    @JsonIgnore
     private String userId;
 
     //@NotBlank(message = "Items cannot be empty")
@@ -26,4 +27,8 @@ public class CreateOrderRequest {
     @NotBlank(message = "Shipping address is required")
     @Schema(description = "Shipping address for the order", example = "123 Main St, Anytown, CA 12345")
     private String shippingAddress;
+
+    public void extractUserIdFromToken(String sub) {
+        this.userId = sub;
+    }
 }
