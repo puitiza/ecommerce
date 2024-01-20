@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: Payment Service API
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: http://localhost:8083
 
@@ -81,6 +81,45 @@ paths:
             application/json:
               example:
                 message: "You are not authorized to access this resource."
+
+  /payments/authorize:
+    post:
+      summary: Authorizes a payment for an order.
+      security:
+        - Auth-JWT: [ ORDER ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentAuthorizationRequest'
+      responses:
+        200:
+          description: Payment authorization successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAuthorizationResponse'
+
+  /payments/refund/{paymentId}:
+    post:
+      summary: Initiates a refund for a payment.
+      security:
+        - Auth-JWT: [ ORDER ]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: ID of the payment to refund.
+      responses:
+        200:
+          description: Refund initiated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
 
 components:
   schemas:
@@ -176,6 +215,29 @@ components:
           type: integer
           description: Unique identifier for card.
           example: 123
+    PaymentAuthorizationRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID of the order to authorize payment for.
+        # ... (other necessary fields for authorization)
+    PaymentAuthorizationResponse:
+      type: object
+      properties:
+        authorized:
+          type: boolean
+          description: Indicates whether payment was authorized.
+          # ... (other relevant details)
+    RefundResponse:
+      type: object
+      properties:
+        refundId:
+          type: string
+          description: ID of the initiated refund.
+        status:
+          type: string
+          description: Status of the refund (e.g., PENDING, COMPLETED).
   securitySchemes:
     Auth-JWT:
       type: http
