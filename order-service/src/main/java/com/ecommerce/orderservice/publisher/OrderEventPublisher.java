@@ -37,6 +37,10 @@ public class OrderEventPublisher {
         publishEvent(order, OrderEventType.ORDER_VALIDATED_FAILED);
     }
 
+    public void publishOrderCancelledEvent(OrderEntity order) {
+        publishEvent(order, OrderEventType.ORDER_CANCELLED);
+    }
+
     public void publishOrderUpdatedEvent(OrderEntity order) {
         publishEvent(order, OrderEventType.ORDER_UPDATED);
     }

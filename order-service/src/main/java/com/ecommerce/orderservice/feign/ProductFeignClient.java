@@ -18,4 +18,9 @@ public interface ProductFeignClient {
     ProductAvailabilityResponse verifyProductAvailability(@RequestBody OrderItemRequest orderItemRequest,
                                                           @RequestHeader("Authorization") String authorizationHeader);
 
+    @PutMapping("/products/update-inventory/{id}/{updatedInventory}")
+    void updateProductInventory(@PathVariable Long id, @PathVariable int updatedInventory,
+                                @RequestHeader("Authorization") String authorizationHeader);
+
+
 }

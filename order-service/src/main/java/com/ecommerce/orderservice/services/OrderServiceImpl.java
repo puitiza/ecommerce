@@ -1,8 +1,10 @@
 package com.ecommerce.orderservice.services;
 
 import com.ecommerce.orderservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellationException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
 import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
+import com.ecommerce.orderservice.feign.PaymentFeignClient;
 import com.ecommerce.orderservice.feign.ProductFeignClient;
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.dto.OrderItemDto;
@@ -10,11 +12,10 @@ import com.ecommerce.orderservice.model.dto.ProductDto;
 import com.ecommerce.orderservice.model.entity.OrderEntity;
 import com.ecommerce.orderservice.model.entity.OrderItemEntity;
 import com.ecommerce.orderservice.model.entity.OrderStatus;
-import com.ecommerce.orderservice.model.request.CreateOrderRequest;
-import com.ecommerce.orderservice.model.request.OrderItemRequest;
-import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.model.request.*;
 import com.ecommerce.orderservice.publisher.OrderEventPublisher;
 import com.ecommerce.orderservice.repository.OrderRepository;
+import com.ecommerce.orderservice.services.component.OrderStateMachine;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -33,16 +34,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEventPublisher orderEventPublisher,
-                               OrderRepository orderRepository, ModelMapper modelMapper) implements OrderService {
+public record OrderServiceImpl(
+        ProductFeignClient productFeignClient, PaymentFeignClient paymentFeignClient,
+        OrderEventPublisher orderEventPublisher, OrderStateMachine orderStateMachine,
+        OrderRepository orderRepository, ModelMapper modelMapper) implements OrderService {
 
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
@@ -151,26 +151,38 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
     private void validateOrderAsync(OrderEntity savedOrder) {
         try {
             CompletableFuture.runAsync(() -> {
-                // Communicating with payment service for payment authorization (if applicable)
-                // paymentService.authorizePayment(order);
+                try {
+                    // Communicating with payment service for payment authorization (if applicable)
+                    boolean paymentAuthorized = paymentFeignClient.authorizePayment(
+                            new PaymentAuthorizationRequest(savedOrder.getId(), savedOrder.getTotalPrice()));
 
-                savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
-                savedOrder.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
-                orderRepository.save(savedOrder);
+                    if (paymentAuthorized) {
+                        savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
+                        savedOrder.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
+                        orderRepository.save(savedOrder);
 
-                // Publishing appropriate events to Kafka
-                orderEventPublisher.publishOrderValidatedEvent(savedOrder);
+                        // Publishing appropriate events to Kafka
+                        orderEventPublisher.publishOrderValidatedEvent(savedOrder);
+                    } else {
+                        handleValidationFailure(savedOrder, "Payment authorization denied", null);
+                    }
+                } catch (FeignException e) {
+                    handleValidationFailure(savedOrder, "Failed to authorize payment", e);
+                }
 
             }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);// Timeout for asynchronous validation
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            // Handle validation timeout or errors
-            log.error("Validation failed or timed out: {}", e.getMessage());
-            savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
-            savedOrder.setStatus(OrderStatus.VALIDATION_FAILED);
-            orderRepository.save(savedOrder);
-            orderEventPublisher.publishValidationFailedEvent(savedOrder);
-            throw new OrderValidationException("Order validation failed");
+            handleValidationFailure(savedOrder, "Validation failed or timed out", e);
         }
+    }
+
+    private void handleValidationFailure(OrderEntity savedOrder, String errorMessage, Throwable exception) {
+        log.error("{}: {}", errorMessage, exception == null ? "" : exception.getMessage());
+        savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
+        savedOrder.setStatus(OrderStatus.VALIDATION_FAILED);
+        orderRepository.save(savedOrder);
+        orderEventPublisher.publishValidationFailedEvent(savedOrder);
+        throw new OrderValidationException("Order validation failed");
     }
 
     @Override
@@ -282,7 +294,62 @@ public record OrderServiceImpl(ProductFeignClient productFeignClient, OrderEvent
 
     @Override
     public void cancelOrder(Long id) {
+        log.info("Cancelling order with ID: {}", id);
 
+        OrderEntity orderEntity = orderRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", id), "P01"));
+
+        var token = getRequestHeaderToken(); // Get token once
+
+        // Check if cancellation is allowed based on order status and business rules
+        if (!orderStateMachine.canCancel(orderEntity)) {
+            throw new OrderCancellationException("Order cannot be canceled in its current state");
+        }
+        // Initiate any necessary reversal processes (e.g., payment refunds, inventory restocking)
+        initiateCancellationProcesses(orderEntity, token[0]);
+
+        // Save the updated order entity
+        orderEntity.setStatus(OrderStatus.CANCELLED);
+        orderEntity.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
+        orderRepository.save(orderEntity);
+
+        // Publish order_cancelled event to Kafka
+        orderEventPublisher.publishOrderCancelledEvent(orderEntity);
+
+        log.info("Order successfully cancelled");
+    }
+
+    private void initiateCancellationProcesses(OrderEntity orderEntity, String accessToken) {
+        // Initiate payment refund
+        try {
+            String paymentId = paymentFeignClient.findPaymentIdByOrderId(String.valueOf(orderEntity.getId()));
+            BigDecimal refundAmount = orderEntity.getTotalPrice();
+            RefundRequest refundRequest = new RefundRequest(orderEntity.getId(), refundAmount);
+            paymentFeignClient.initiateRefund(paymentId, refundRequest);
+        } catch (FeignException e) {
+            // Handle refund failure (e.g., log, notify admin)
+            log.error("Failed to initiate refund for order {}: {}", orderEntity.getId(), e.getMessage());
+            throw new OrderCancellationException("Failed to initiate refund for the order");
+        }
+
+        // Restock items in product-service inventory
+        ExecutorService restockThreadPool = Executors.newFixedThreadPool(5); // Adjust thread pool size as needed
+        try {
+            var productFutures = orderEntity.getItems().stream()
+                    .map(item -> CompletableFuture.runAsync(() -> {
+                        ProductDto productDto = productFeignClient.getProductById(item.getProductId(), accessToken);
+                        int updatedInventory = productDto.getInventory() - item.getQuantity();
+                        productFeignClient.updateProductInventory(productDto.getId(), updatedInventory, accessToken);
+                    }, restockThreadPool))
+                    .toList();
+            CompletableFuture.allOf(productFutures.toArray(new CompletableFuture[0])).join();
+        } catch (FeignException e) {
+            // Handle restocking failure (e.g., log, notify admin)
+            log.error("Failed to restock items for order {}: {}", orderEntity.getId(), e.getMessage());
+            throw new OrderCancellationException("Failed to restock items for the order");
+        } finally {
+            restockThreadPool.shutdown(); // Ensure the thread pool is shut down
+        }
     }
 
     @Override

@@ -2,7 +2,6 @@ package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 

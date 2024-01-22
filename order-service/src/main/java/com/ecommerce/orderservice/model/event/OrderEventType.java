@@ -8,8 +8,8 @@ public enum OrderEventType {
     ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
     ORDER_VALIDATED_SUCCESS("order_validated", "OrderValidatedSuccessEvent", "order.validated.success"),
     ORDER_VALIDATED_FAILED("validation_failed", "OrderValidatedFailedEvent", "order.validated.failed"),
-    ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated");
-
+    ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
+    ORDER_CANCELLED("order_cancelled", "OrderCancelledEvent", "order.cancelled");
 
     private final String topic;
     private final String eventType;
