@@ -1,7 +1,9 @@
 package com.ecommerce.productservice.configuration.exception;
 
 import com.ecommerce.productservice.configuration.exception.handler.BuildErrorResponse;
+import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
 import com.ecommerce.productservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
 import com.ecommerce.productservice.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,5 +50,16 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
         return buildErrorResponse.structure(ex, HttpStatus.NOT_FOUND, request);
     }
 
+    @ExceptionHandler({InvalidInventoryException.class})
+    public ResponseEntity<Object> handleInvalidInventoryException(Exception ex, WebRequest request) {
+        log.error("Invalid inventory value provided", ex);
+        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler({ProductUpdateException.class})
+    public ResponseEntity<Object> handleProductUpdateException(Exception ex, WebRequest request) {
+        log.error("Failed to update product inventory", ex);
+        return buildErrorResponse.structure(ex, HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
 
 }

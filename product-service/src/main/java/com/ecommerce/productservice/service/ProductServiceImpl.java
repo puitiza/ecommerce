@@ -1,12 +1,15 @@
 package com.ecommerce.productservice.service;
 
+import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
 import com.ecommerce.productservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.repository.ProductRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -73,6 +76,29 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
 
         Integer availableQuantity = productEntity.getInventory();
         return new ProductAvailabilityDto((availableQuantity >= quantity), availableQuantity);
+    }
+
+    @Override
+    public void updateProductInventory(Long id, Integer updatedInventory) {
+        log.info("Updating inventory for product with ID {} to {}", id, updatedInventory);
+
+        // Input validation
+        if (updatedInventory < 0) {
+            throw new InvalidInventoryException("Inventory cannot be negative");
+        }
+
+        try {
+            var productEntity = repository.findById(id)
+                    .orElseThrow(() -> new NoSuchElementFoundException(String.format("Product not found with ID %d", id), "P01"));
+            // Save updated product
+            productEntity.setInventory(updatedInventory);
+            repository.save(productEntity);
+
+            log.info("Inventory updated successfully");
+        } catch (DataAccessException ex) {
+            log.error("Failed to update inventory: {}", ex.getMessage());
+            throw new ProductUpdateException("Failed to update product inventory", ex);
+        }
     }
 
 }

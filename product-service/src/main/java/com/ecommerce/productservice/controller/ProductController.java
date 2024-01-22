@@ -56,4 +56,11 @@ public record ProductController(ProductService productService) implements Produc
         log.info("VERIFYING AVAILABILITY FOR PRODUCT: {}", orderItemRequest.getProductId());
         return productService.verifyProductAvailability(orderItemRequest.getProductId(), orderItemRequest.getQuantity());
     }
+
+    @PutMapping("/update-inventory/{id}/{updatedInventory}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateProductInventory(@PathVariable Long id, @PathVariable Integer updatedInventory) {
+        log.info("UPDATING INVENTORY FOR PRODUCT WITH ID {}: {}", id, updatedInventory);
+        productService.updateProductInventory(id, updatedInventory);
+    }
 }
