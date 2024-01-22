@@ -151,16 +151,6 @@ You can combine these commands for specific workflows. For example, `docker-comp
 * **Agility:** Changes can be made to individual microservices without affecting the entire system.
 * **Maintainability:** Each microservice has a smaller codebase, making it easier to understand and maintain.
 
-**Next Steps:**
-
-* Define the specific APIs for each microservice.
-* Design the data models and storage solutions for each service.
-* Choose appropriate technologies for inter-service communication (e.g., REST API, gRPC).
-* Implement security measures for user data and API access.
-* Develop unit and integration tests for each microservice.
-* Deploy the microservices to a cloud platform like AWS, Azure, or GCP.
-* Implement monitoring and logging solutions to track system health and performance.
-
 ## Order State Machine with Error Handling and Retry Mechanisms
 
 Here's an updated version of the order state machine with error handling, retry mechanisms, and timeouts:
@@ -233,7 +223,7 @@ Here's the updated business logic for order processing with the state machine, e
 
 **Order Fulfillment:**
 
-1. Inventory service checks product availability and reserves the required items.
+1. Product service checks product availability and reserves the required items.
 2. Shipping service processes the shipment and sends the order to the user's address.
 3. If fulfillment is successful, the order state transitions to `FULFILLED`, and notifications are sent to the user.
 4. If fulfillment fails due to errors (e.g., out of stock items, shipping issues), the order state transitions to `FULFILLMENT_FAILED`, and notifications are sent to the user and administrator.

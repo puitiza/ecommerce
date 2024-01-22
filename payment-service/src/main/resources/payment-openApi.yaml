@@ -6,14 +6,14 @@ servers:
   - url: http://localhost:8083
 
 security:
-  - Auth-JWT: []
+  - Auth-JWT: [ ]
 
 paths:
   /payments:
     post:
       summary: Processes a payment for an order.
       security:
-        - Auth-JWT: [ORDER]
+        - Auth-JWT: [ ORDER ]
       requestBody:
         required: true
         content:
@@ -52,7 +52,7 @@ paths:
     get:
       summary: Gets details of a specific payment.
       security:
-        - Auth-JWT: [ADMIN, ORDER]
+        - Auth-JWT: [ ADMIN, ORDER ]
       parameters:
         - name: paymentId
           in: path
@@ -100,6 +100,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentAuthorizationResponse'
+        400:
+          description: Invalid payment authorization request.
+          content:
+            application/json:
+              example:
+                message: "Missing required field: amount"
 
   /payments/refund/{paymentId}:
     post:
@@ -113,6 +119,12 @@ paths:
           schema:
             type: string
             description: ID of the payment to refund.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
       responses:
         200:
           description: Refund initiated successfully.
@@ -120,6 +132,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RefundResponse'
+        400:
+          description: Invalid refund request.
+          content:
+            application/json:
+              example:
+                message: "Missing required field: refundAmount"
 
 components:
   schemas:
@@ -135,7 +153,7 @@ components:
           description: Payment method used by the customer (e.g., credit card, PayPal).
           example: "CREDIT_CARD"
         paymentMethodDetails:
-          $ref:  '#/components/schemas/paymentMethodDetails'
+          $ref: '#/components/schemas/paymentMethodDetails'
         amount:
           type: number
           description: Total amount to be paid.
@@ -221,7 +239,10 @@ components:
         orderId:
           type: string
           description: ID of the order to authorize payment for.
-        # ... (other necessary fields for authorization)
+        amount:
+          type: number
+          description: Total amount to be authorized.
+          example: 100.00
     PaymentAuthorizationResponse:
       type: object
       properties:
@@ -238,6 +259,17 @@ components:
         status:
           type: string
           description: Status of the refund (e.g., PENDING, COMPLETED).
+    RefundRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID of the order to refund.
+        refundAmount:
+          type: number
+          description: Amount to be refunded.
+          example: 50.00
+        # ... (potentially other refund details)
   securitySchemes:
     Auth-JWT:
       type: http
