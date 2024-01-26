@@ -1,6 +1,6 @@
 # ecommerce
 
-This is a personal project in order to understand better microservices,
+This is a personal project to understand better microservices,
 and it split by section and commits.
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
@@ -24,7 +24,7 @@ The architecture uses several services and tools for different purposes:
   <li>User can send any request to the relevant service through api gateway with its bearer token</li>
 </ul>
 
-7 services whose name is shown below have been devised within the scope of this project.
+Seven services whose name is shown below have been devised within the scope of this project.
 
 | Service Type               | Service Name    | Description                                                                           |
 |----------------------------|-----------------|---------------------------------------------------------------------------------------|
@@ -48,7 +48,7 @@ These docker-compose commands can be used for various purposes, and here's a bre
      - `-d`: Starts the services in detached mode (background).
 
 2. **docker-compose down -v:**
-   - Use case: For cleaning up the environment completely after development or before applying significant changes.
+   - Use a case: For cleaning up the environment completely after development or before applying significant changes.
    - Explanation:
      - `down`: Stops and removes all containers created by docker-compose.
      - `-v`: Also removes all volumes associated with the services. 
@@ -97,12 +97,11 @@ You can combine these commands for specific workflows. For example, `docker-comp
 
 **Order Service:**
 
-* Creates new orders by receiving user ID, product IDs, and quantities.
-* Validates product availability and updates inventory levels.
+* Create new orders by receiving user ID, product IDs, and quantities.
+* Validates product availability and update inventory levels.
 * Calculates total order amount and taxes.
 * Communicates with Payment service to process payments.
 * Publishes order events to Kafka topics (e.g., "order_created", "order_updated", "order_completed")
-* Subscribes to "product_updated" topic to update local product information.
 
 **Product Service:**
 
@@ -117,14 +116,9 @@ You can combine these commands for specific workflows. For example, `docker-comp
 * Communicates with payment gateways to process payments securely.
 * Updates order status in Order service based on payment success or failure.
 
-**Producer and Consumer Services:**
-
-* Producer:
-    * Generates notifications based on events like orders created, processed, or shipped.
-    * Publishes notification events to Kafka topics (e.g., "notification_created", "comment_added").
-* Consumer:
-    * Subscribes to relevant Kafka topics like "notification_created", "comment_added".
-    * Consumes events and takes actions like sending email notifications, displaying comments on UI, updating dashboards, etc.
+**Notification Service:**
+* Subscribe to relevant kafka (e.g., order_created, order_shipped)
+* Consumes events and takes actions like sending email notifications, displaying comments on UI, updating dashboards, etc.
 
 **Additional Services:**
 
@@ -140,9 +134,8 @@ You can combine these commands for specific workflows. For example, `docker-comp
 4. Order service communicates with Product service to validate product availability and update inventory.
 5. Order service communicates with Payment service to process payment.
 6. Payment service communicates with payment gateway to process payment.
-7. Upon successful payment, Order service updates order status and publishes "order_completed" event to Kafka.
-8. Producer service consumes "order_completed" event and generates a notification for the user.
-9. Consumer service consumes the notification event and sends an email notification to the user.
+7. Upon successful payment, Order service updates order status and publish "order_completed" event to Kafka.
+8. notification service consumes "order_completed" event and generates a notification for the user.
 
 **Benefits of this microservices architecture:**
 
@@ -200,7 +193,6 @@ Here's an updated version of the order state machine with error handling, retry 
 * Error states are defined for each potential failure point in the order process.
 * The state machine can handle errors gracefully by transitioning to appropriate states and taking corrective actions, such as logging the error, sending notifications, or canceling the order.
 * Additional error handling logic can be implemented within each service to handle specific error scenarios.
-
 
 ## Updated Business Logic with State Machine
 
@@ -344,7 +336,7 @@ For further reference, please consider the following sections:
     * [Docker’s health check and Spring Boot apps - how to control containers startup order in docker-compose](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
 
 * **Keycloak Realm Exports:**
-    * [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)  Edit the Administrative Interface’s Realm Export Json
+    * [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/) Edit the Administrative Interface’s Realm Export Json
     * [Keycloak in Docker #5 – How to export a realm with users and secrets](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
 
 * **Examples projects**
