@@ -13,10 +13,6 @@ import java.math.BigDecimal;
 @ToString
 public class RefundRequest {
 
-    @NotNull(message = "Order ID is required")
-    @Schema(description = "ID of the order to refund")
-    private String orderId;
-
     @NotNull(message = "Refund amount is required")
     @Schema(description = "Amount to be refunded", example = "50.00")
     private BigDecimal refundAmount;

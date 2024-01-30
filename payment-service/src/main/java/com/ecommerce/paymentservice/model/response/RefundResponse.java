@@ -11,7 +11,7 @@ import lombok.Setter;
 public class RefundResponse {
 
     @Schema(description = "ID of the initiated refund")
-    private String refundId;
+    private String paymentId;
 
     @Schema(description = "Status of the refund (e.g., PENDING, COMPLETED)")
     private String status;

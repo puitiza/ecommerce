@@ -17,20 +17,22 @@ public class PaymentEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "order_id", nullable = false)
+    @Column(nullable = false)
     private String orderId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "payment_method")
     private String paymentMethod;
 
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column
+    private LocalDateTime updatedAt;
 
 }

@@ -8,12 +8,14 @@ import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
 
+import java.util.UUID;
+
 public interface PaymentService {
     PaymentResponse processPayment(PaymentRequest paymentRequest);
 
     PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest authorizationRequest);
 
-    PaymentTransactionDetails getPaymentDetails(String paymentId);
+    PaymentTransactionDetails getPaymentDetails(UUID paymentId);
 
-    RefundResponse initiateRefund(String paymentId, RefundRequest refundRequest);
+    RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest);
 }
