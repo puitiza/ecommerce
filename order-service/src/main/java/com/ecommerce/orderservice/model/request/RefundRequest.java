@@ -10,6 +10,5 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 public class RefundRequest {
-    private Long orderId;
     private BigDecimal refundAmount;
 }

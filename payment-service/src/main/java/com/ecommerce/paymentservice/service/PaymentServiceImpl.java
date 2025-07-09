@@ -64,17 +64,25 @@ public record PaymentServiceImpl(PaymentRepository paymentRepository) implements
 
     @Override
     public PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest authorizationRequest) {
-        var paymentFound = paymentRepository.findFirstByOrderIdOrderByCreatedAtDesc(authorizationRequest.getOrderId())
-                .orElseThrow(() -> new NoSuchElementFoundException("Payment not found for order: " + authorizationRequest.getOrderId(), "P01"));
-        paymentFound.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
-        if (authorizationRequest.getAmount().compareTo(paymentFound.getAmount()) >= 0) {
-            paymentFound.setStatus(PaymentStatus.SUCCESS);
-            paymentRepository.save(paymentFound);
-            return new PaymentAuthorizationResponse(true);
+        final long paymentCount = paymentRepository.countByOrderId(authorizationRequest.getOrderId());
+
+        if (paymentCount > 0) {
+            return new PaymentAuthorizationResponse(false, "Payment already exists for this order.");
         } else {
-            paymentFound.setStatus(PaymentStatus.FAILED);
-            paymentRepository.save(paymentFound);
-            return new PaymentAuthorizationResponse(false);
+            try {
+                // Create a new payment record with a PENDING status
+                PaymentEntity payment = new PaymentEntity();
+                payment.setOrderId(authorizationRequest.getOrderId());
+                payment.setAmount(authorizationRequest.getAmount());
+                payment.setStatus(PaymentStatus.PENDING);
+                payment.setCreatedAt(ZonedDateTime.now().toLocalDateTime());
+                paymentRepository.save(payment);
+
+                return new PaymentAuthorizationResponse(true, "Payment authorized successfully.");
+            } catch (Exception ex) {
+                log.error("Payment authorization failed:", ex);
+                return new PaymentAuthorizationResponse(false, "An unexpected error occurred during payment authorization.");
+            }
         }
     }
 

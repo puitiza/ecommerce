@@ -10,6 +10,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PaymentAuthorizationResponse {
 
-    @Schema(description = "Indicates whether payment was authorized")
+    @Schema(description = "Indicates whether payment was authorized", example = "true")
     private boolean authorized;
+
+    @Schema(description = "Optional message describing the payment outcome", example = "Payment completed successfully.")
+    private String message;
 }

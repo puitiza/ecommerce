@@ -194,6 +194,51 @@ services:
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
 
+  postgres-payment-db:
+    container_name: postgres-payment-db
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "5430:5432"
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+    networks:
+      - springCloud
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U payment_user" ]
+      timeout: 5s
+      retries: 5
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./payment-service
+    restart: unless-stopped
+    networks:
+      - springCloud
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      zipkin-all-in-one:
+        condition: service_healthy
+      postgres-payment-db:
+        condition: service_healthy
+    environment:
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+      CONFIG_SERVER_URL: http://config-server:8885
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment-db:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
   keycloak-server:
     container_name: keycloak-server
     hostname: keycloak
@@ -276,6 +321,8 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  payment_db_data:
     driver: local
   mysql_data:
     driver: local

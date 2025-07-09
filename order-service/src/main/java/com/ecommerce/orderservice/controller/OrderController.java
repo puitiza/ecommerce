@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequestMapping("/orders")
@@ -31,22 +33,22 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
         return orderService.getAllOrders(page, size);
     }
 
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderDto getOrderById(@PathVariable Long id) {
-        log.info("GETTING ORDER WITH ID {}", id);
-        return orderService.getOrderById(id);
+    @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public OrderDto getOrderById(@PathVariable UUID orderId) {
+        log.info("GETTING ORDER WITH ID {}", orderId);
+        return orderService.getOrderById(orderId);
     }
 
-    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderDto updateOrder(@PathVariable Long id, @Valid @RequestBody UpdateOrderRequest request) {
-        log.info("UPDATING ORDER WITH ID {}: {}", id, request);
-        return orderService.updateOrder(id, request);
+    @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public OrderDto updateOrder(@PathVariable UUID orderId, @Valid @RequestBody UpdateOrderRequest request) {
+        log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
+        return orderService.updateOrder(orderId, request);
     }
 
-    @DeleteMapping(value = "/{id}")
+    @DeleteMapping(value = "/{orderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteOrder(@PathVariable Long id) {
-        log.info("DELETING ORDER WITH ID {}", id);
-        orderService.cancelOrder(id);
+    public void deleteOrder(@PathVariable UUID orderId) {
+        log.info("DELETING ORDER WITH ID {}", orderId);
+        orderService.cancelOrder(orderId);
     }
 }

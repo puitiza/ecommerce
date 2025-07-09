@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 public class PaymentAuthorizationRequest {
-    private Long orderId;
+
+    private String orderId;
     private BigDecimal amount;
+
 }

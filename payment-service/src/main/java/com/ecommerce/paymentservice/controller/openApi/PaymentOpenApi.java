@@ -39,12 +39,9 @@ public interface PaymentOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Payment details retrieved successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentTransactionDetails.class))}),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.UNAUTHORIZED))),
-            @ApiResponse(responseCode = "403", description = "Forbidden",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN))),
-            @ApiResponse(responseCode = "404", description = "Payment not found",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Payment not found", content = @Content)
     })
     PaymentTransactionDetails getPaymentDetails(UUID paymentId);
 
@@ -52,12 +49,9 @@ public interface PaymentOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Payment authorization successful",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentAuthorizationResponse.class))}),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.UNAUTHORIZED))),
-            @ApiResponse(responseCode = "403", description = "Forbidden",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN))),
-            @ApiResponse(responseCode = "422", description = "Invalid payment authorization request",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.UNPROCESSABLE)))
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Invalid payment authorization request", content = @Content)
     })
     PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest authorizationRequest);
 
@@ -65,14 +59,10 @@ public interface PaymentOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Refund initiated successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = RefundResponse.class))}),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.UNAUTHORIZED))),
-            @ApiResponse(responseCode = "403", description = "Forbidden",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN))),
-            @ApiResponse(responseCode = "404", description = "Payment not found",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND))),
-            @ApiResponse(responseCode = "422", description = "Invalid refund request",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.UNPROCESSABLE)))
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Payment not found", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Invalid refund request", content = @Content)
     })
     RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest);
 }

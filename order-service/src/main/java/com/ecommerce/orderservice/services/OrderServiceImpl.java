@@ -30,10 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -153,10 +150,10 @@ public record OrderServiceImpl(
             CompletableFuture.runAsync(() -> {
                 try {
                     // Communicating with payment service for payment authorization (if applicable)
-                    boolean paymentAuthorized = paymentFeignClient.authorizePayment(
-                            new PaymentAuthorizationRequest(savedOrder.getId(), savedOrder.getTotalPrice()));
+                    var paymentAuthorized = paymentFeignClient.authorizePayment(
+                            new PaymentAuthorizationRequest(savedOrder.getId().toString(), savedOrder.getTotalPrice()));
 
-                    if (paymentAuthorized) {
+                    if (paymentAuthorized.isAuthorized()) {
                         savedOrder.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());
                         savedOrder.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
                         orderRepository.save(savedOrder);
@@ -186,11 +183,11 @@ public record OrderServiceImpl(
     }
 
     @Override
-    public OrderDto getOrderById(Long orderId) {
+    public OrderDto getOrderById(UUID orderId) {
         log.info("Retrieving order with ID: {}", orderId);
 
         var orderFound = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", orderId), "P01"));
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", orderId), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -208,11 +205,11 @@ public record OrderServiceImpl(
     }
 
     @Override
-    public OrderDto updateOrder(Long id, UpdateOrderRequest request) {
+    public OrderDto updateOrder(UUID id, UpdateOrderRequest request) {
         log.info("Updating order with ID: {}", id);
 
         OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", id), "P01"));
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", id), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -293,11 +290,11 @@ public record OrderServiceImpl(
     }
 
     @Override
-    public void cancelOrder(Long id) {
+    public void cancelOrder(UUID id) {
         log.info("Cancelling order with ID: {}", id);
 
         OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %d not found", id), "P01"));
+                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", id), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -324,7 +321,7 @@ public record OrderServiceImpl(
         try {
             String paymentId = paymentFeignClient.findPaymentIdByOrderId(String.valueOf(orderEntity.getId()));
             BigDecimal refundAmount = orderEntity.getTotalPrice();
-            RefundRequest refundRequest = new RefundRequest(orderEntity.getId(), refundAmount);
+            RefundRequest refundRequest = new RefundRequest(refundAmount);
             paymentFeignClient.initiateRefund(paymentId, refundRequest);
         } catch (FeignException e) {
             // Handle refund failure (e.g., log, notify admin)

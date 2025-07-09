@@ -2,6 +2,7 @@ package com.ecommerce.orderservice.feign;
 
 import com.ecommerce.orderservice.model.request.PaymentAuthorizationRequest;
 import com.ecommerce.orderservice.model.request.RefundRequest;
+import com.ecommerce.orderservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.orderservice.model.response.RefundResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 public interface PaymentFeignClient {
 
     @PostMapping("/payments/authorize")
-    boolean authorizePayment(@RequestBody PaymentAuthorizationRequest authorizationRequest);
+    PaymentAuthorizationResponse authorizePayment(@RequestBody PaymentAuthorizationRequest authorizationRequest);
 
     @PostMapping("/payments/refund/{paymentId}")
     RefundResponse initiateRefund(@PathVariable String paymentId, @RequestBody RefundRequest refundRequest);

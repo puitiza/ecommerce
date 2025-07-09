@@ -17,7 +17,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
   kafka:
     bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
     producer:
