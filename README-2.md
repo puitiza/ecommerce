@@ -1,6 +1,6 @@
 # E-commerce Microservices
 
-This is a personal project to explore microservices architecture, split into sections and commits for clarity.
+This is a personal project to explore microservices architecture, built with Spring Boot 3.0, Gradle, Docker, and Kubernetes. The project simulates an e-commerce platform where users can register, log in, browse products, manage shopping carts, create orders, and process payments through a secure API Gateway.
 
 [![Build Status](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml/badge.svg)](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
@@ -10,14 +10,18 @@ This is a personal project to explore microservices architecture, split into sec
 
 ## About the Project
 
-This project is a Spring Boot 3.0-based e-commerce platform built with microservices, Docker, and Kubernetes. Users can register, log in, browse products, manage shopping carts, create orders, and process payments through a secure API Gateway. The architecture leverages:
-
-- **Spring Cloud Config** for centralized configuration.
-- **Eureka Server** for service discovery.
-- **Spring Cloud Gateway** for routing and authentication.
-- **Kafka** for asynchronous communication.
-- **Zipkin, Prometheus, Grafana** (local) and **Azure Application Insights/Monitor** (dev/prod) for tracing and monitoring.
-- **Keycloak** for authentication and authorization.
+This project demonstrates a microservices-based e-commerce platform using modern technologies:
+- **Spring Boot 3.0**: Framework for building microservices with Java 17 (planned upgrade to Java 21).
+- **Gradle**: Build tool for dependency management and project compilation.
+- **Spring Cloud Config**: Centralized configuration management.
+- **Eureka Server**: Service discovery for dynamic routing.
+- **Spring Cloud Gateway**: API Gateway for request routing and authentication.
+- **Kafka**: Asynchronous event-driven communication between services.
+- **Keycloak**: OAuth2-based authentication and authorization.
+- **Docker & Kubernetes**: Containerization and orchestration for local and cloud deployments.
+- **Monitoring & Tracing**:
+    - Local: Zipkin (tracing), Prometheus (metrics), Grafana (visualization), AKHQ (Kafka monitoring).
+    - Dev/Prod: Azure Application Insights and Azure Monitor for tracing, metrics, and logs.
 
 ## Services
 
@@ -36,9 +40,10 @@ This project is a Spring Boot 3.0-based e-commerce platform built with microserv
 ## Setup and Installation
 
 ### Prerequisites
-- Java 17
-- Gradle
+- Java 17 (planned upgrade to Java 21)
+- Gradle 8.0+
 - Docker and Docker Compose
+- Docker Desktop with Kubernetes enabled
 - Postman (optional for testing)
 
 ### Local Setup
@@ -55,27 +60,41 @@ This project is a Spring Boot 3.0-based e-commerce platform built with microserv
 4. Use Swagger UI (`http://localhost:8090/swagger-ui.html`) or Postman to test endpoints.
 5. Import the Postman collection from `postman/ecommerce-collection.json`.
 
+### Useful Docker Compose Commands
+- Build and start services: `docker-compose up --build -d`
+- Stop and remove services: `docker-compose down`
+- Remove volumes (clean up): `docker-compose down -v`
+- View logs: `docker-compose logs <service-name>`
+
+
+
 ### Kubernetes Setup
-1. Install Minikube:
-   ```bash
-   brew install minikube
-   minikube start
-   ```
-2. Install Metrics Server for resource metrics:
+1. Enable Kubernetes in Docker Desktop:
+    - Open Docker Desktop > Settings > Kubernetes > Enable Kubernetes > Apply & Restart.
+
+2. Install Metrics Server to enable resource metrics:
    ```bash
    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
    ```
-3. Convert Docker Compose to Kubernetes manifests:
+3. Apply Metrics Server patch for Docker Desktop (if metrics are unavailable):
+   ```bash
+   kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
+   ```
+4. Convert Docker Compose to Kubernetes manifests:
    ```bash
    kompose convert -f docker.yml -o k8s/
    ```
-4. Deploy to Kubernetes:
+5. Deploy to Kubernetes:
    ```bash
    kubectl apply -f k8s/
    ```
-5. Access the API Gateway:
+6. Access the API Gateway:
    ```bash
-   minikube service api-gateway
+   kubectl port-forward svc/api-gateway 8090:8090
+   ```
+7. Verify metrics:
+   ```bash
+   kubectl top pods
    ```
 
 ## Business Logic
@@ -137,6 +156,12 @@ This project is a Spring Boot 3.0-based e-commerce platform built with microserv
 - **Maintainability**: Small, focused codebases for each service.
 - **Flexibility**: Asynchronous communication with Kafka enables loose coupling.
 
+## Testing
+- **Unit Tests**: JUnit 5 and Mockito for testing service logic.
+- **Integration Tests**: Testcontainers for simulating databases and Kafka in tests.
+- **Load Tests**: JMeter for performance testing of API endpoints.
+- **Configuration**: Tests are run via Gradle (`./gradlew test`).
+
 ## Monitoring and Tracing
 - **Local**:
     - **Zipkin**: Distributed tracing (`http://localhost:9411`).
@@ -150,10 +175,10 @@ This project is a Spring Boot 3.0-based e-commerce platform built with microserv
 ## CI/CD
 - **Pipeline**: GitHub Actions for building, testing, and deploying.
 - **Steps**:
-    - Run unit and integration tests with Maven and Testcontainers.
+    - Run unit and integration tests with Gradle and Testcontainers.
     - Perform code quality analysis with SonarQube.
     - Build and push Docker images to Docker Hub.
-    - Deploy to Kubernetes (local Minikube or Azure AKS).
+    - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
 - **Configuration**: See `.github/workflows/build.yml`.
 
 ## Security
