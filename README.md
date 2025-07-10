@@ -1,344 +1,250 @@
-# ecommerce
+# E-commerce Microservices
 
-This is a personal project to understand better microservices,
-and it split by section and commits.
+This is a personal project to explore microservices architecture, built with Spring Boot 3.0, Gradle, Docker, and Kubernetes. The project simulates an e-commerce platform where users can register, log in, browse products, manage shopping carts, create orders, process payments, and track shipments through a secure API Gateway.
 
-[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 [![Build Status](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml/badge.svg)](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
 [![Javadoc](https://img.shields.io/badge/%20-javadoc-blue)](https://javiertuya.github.io/samples-test-spring/)
 
-<img src="https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png?raw=true" alt="architecture diagram">     
-
-
-# About the project
-
-<ul style="list-style-type:disc">
-These stages include checking out code, performing quality code analysis, building and pushing Docker images,
-and deploying the services on a Kubernetes cluster.
-
-The architecture uses several services and tools for different purposes:
-
-  <li>This project is based on Spring Boot 3.0 Microservices with the usage of Docker and Kubernetes</li>
-  <li>User can register and login through USER-SERVICE by user role (ADMIN or USER) through api gateway</li>
-  <li>User can send any request to the relevant service through api gateway with its bearer token</li>
-</ul>
-
-Seven services whose name is shown below have been devised within the scope of this project.
-
-| Service Type               | Service Name    | Description                                                                           |
-|----------------------------|-----------------|---------------------------------------------------------------------------------------|
-| **Configuration Services** | Config Server   | Provides centralized configuration management for all services.                       |
-|                            | Eureka Server   | Acts as a service registry, enabling services to discover each other dynamically.     |
-|                            | API Gateway     | Routes requests to appropriate services and handles authentication and authorization. |
-| **Core Business Services** | User Service    | Manages user registration, login, authentication, and role-based authorization.       |
-|                            | Order Service   | Processes orders, including validation, payment, fulfillment, and status updates.     |
-|                            | Payment Service | Handles payment processing for orders using various payment gateways.                 |
-|                            | Product Service | Provides CRUD operations for product information and inventory management.            |
-
-
-## Using docker-compose 
-These docker-compose commands can be used for various purposes, and here's a breakdown of how they're useful in different situations:
-
-1. **docker-compose up --build -d:**
-   - Use a case: For development and quick testing where you need to constantly update the code and rebuild containers with the latest changes.
-   - Explanation:
-     - `up`: Starts all services defined in the docker-compose.yml file.
-     - `--build`: Forces a rebuild of all service images before starting them, even if the image already exists.
-     - `-d`: Starts the services in detached mode (background).
-
-2. **docker-compose down -v:**
-   - Use a case: For cleaning up the environment completely after development or before applying significant changes.
-   - Explanation:
-     - `down`: Stops and removes all containers created by docker-compose.
-     - `-v`: Also removes all volumes associated with the services. 
-
-3. **docker-compose up -d:**
-   - Use case: For production or staging environments where the code is stable and changes are infrequent.
- 
-### Additional notes:
-
-You can combine these commands for specific workflows. For example, `docker-compose down -v && docker-compose up --build -d` would first clean up the environment and then rebuild and start all services.
-
-- Consider using environment variables with docker-compose for sensitive information such as passwords or database credentials.
-
-- Use docker-compose volumes instead of bind mounts for persistent data that needs to survive container restarts.
-
-### Docker Compose Services at a Glance
-
-| Service           | Build Context                  | Port | Health Check                              | Depends On (Condition)                              | Notes                                      |
-|-------------------|--------------------------------|------|-------------------------------------------|-----------------------------------------------------|--------------------------------------------|
-| config-server     | ./config-server                | 8885 | http://localhost:8885/product-service/dev | -                                                   | Provides configuration properties          |
-| service-registry  | ./service-registry             | 8761 | http://localhost:8761/actuator/health     | -                                                   | Registers and discovers microservices      |
-| api-gateway       | ./api-gateway                  | 8090 | -                                         | config-server (healthy), service-registry (healthy) | Routes requests to other services          |
-| zipkin-all-in-one | openzipkin/zipkin:latest       | 9411 | -                                         | -                                                   | Zipkin tracing system                      |
-| mysql-db          | mysql:8.0                      | 3306 | mysqladmin ping -h localhost              | -                                                   | MySQL database                             |
-| order-service     | ./order-service                | -    | -                                         | config-server (healthy), service-registry (healthy) | 3 replicas, no container_name              |
-| product-service   | ./product-service              | 8002 | -                                         | config-server (healthy), service-registry (healthy) | Product service                            |
-| postgres          | postgres:15                    | 5432 | -                                         | -                                                   | PostgreSQL database                        |
-| keycloak          | quay.io/keycloak/keycloak:23.0 | 9090 | -                                         | postgres                                            | Keycloak authentication server             |
-| user-service	     | ./user-service                 | 8082 | -                                         | config-server (healthy), service-registry (healthy) | User Management + Keycloak Admin, Rest API |
-
-**Network:** All services share the `springCloud` network unless otherwise specified.
-
-**Volumes:**
-
-* `postgres_data`: Persistent volume for PostgreSQL database files.
-* `mysql_data`: Persistent volume for MySQL database files.
-
-## Business Logic for Microservices System
-
-**User Service:**
-
-* Handles user registration, login, and authentication.
-* Stores user data including name, email, address, etc.
-* Issues JWT tokens for authorization.
-* Validates API requests based on user roles and permissions.
-
-**Order Service:**
-
-* Create new orders by receiving user ID, product IDs, and quantities.
-* Validates product availability and update inventory levels.
-* Calculates total order amount and taxes.
-* Communicates with Payment service to process payments.
-* Publishes order events to Kafka topics (e.g., "order_created", "order_updated", "order_completed")
-
-**Product Service:**
-
-* Provides CRUD operations for product information (name, description, price, inventory, etc.)
-* Validates product data and enforces business rules.
-* Publishes product events to Kafka topics (e.g., "product_created", "product_updated", "product_deleted").
-
-**Payment Service:**
-
-* Handles payment processing for orders using various payment gateways.
-* Receives payment requests from Order service with order details and payment information.
-* Communicates with payment gateways to process payments securely.
-* Updates order status in Order service based on payment success or failure.
-
-**Notification Service:**
-* Subscribe to relevant kafka (e.g., order_created, order_shipped)
-* Consumes events and takes actions like sending email notifications, displaying comments on UI, updating dashboards, etc.
-
-**Additional Services:**
-
-* **Review Service:** Manages product reviews and ratings submitted by users.
-* **Recommendation Service:** Recommends products to users based on their past purchases and browsing history.
-* **Analytics Service:** Collects and analyzes data from various services to provide insights into user behavior, product performance, and overall system health.
-
-**Business Logic Flow Example:**
-
-1. User logs in to the system using User service.
-2. User browses products in Product service and adds desired items to cart.
-3. User creates a new order in Order service with selected products.
-4. Order service communicates with Product service to validate product availability and update inventory.
-5. Order service communicates with Payment service to process payment.
-6. Payment service communicates with payment gateway to process payment.
-7. Upon successful payment, Order service updates order status and publish "order_completed" event to Kafka.
-8. notification service consumes "order_completed" event and generates a notification for the user.
-
-**Benefits of this microservices architecture:**
-
-* **Scalability:** Each microservice can be independently scaled to meet demand.
-* **Resilience:** A failure in one microservice does not affect the entire system.
-* **Agility:** Changes can be made to individual microservices without affecting the entire system.
-* **Maintainability:** Each microservice has a smaller codebase, making it easier to understand and maintain.
-
-## Order State Machine with Error Handling and Retry Mechanisms
-
-Here's an updated version of the order state machine with error handling, retry mechanisms, and timeouts:
-
-**States:**
-
-* `CREATED`: Initial state after an order is created.
-* `VALIDATING`: Order details and product availability are being verified.
-* `VALIDATION_FAILED`: Verification failed due to errors.
-* `PAYMENT_PENDING`: Payment processing is initiated.
-* `PAYMENT_FAILED`: Payment processing failed.
-* `FULFILLING`: Order fulfillment process is ongoing.
-* `FULFILLMENT_FAILED`: Fulfillment process failed due to errors.
-* `FULFILLED`: Order is shipped and completed.
-* `CANCELLED`: Order is canceled at any point.
-
-**Transitions:**
-
-| Source State         | Event                   | Target State         | Description                                          | Retry | Timeout             |
-|----------------------|-------------------------|----------------------|------------------------------------------------------|-------|---------------------|
-| `CREATED`            | `order_created`         | `VALIDATING`         | Order details and product availability are verified. | N/A   | Validation timeout  |
-| `VALIDATING`         | `validation_succeeded`  | `PAYMENT_PENDING`    | Successful verification.                             | N/A   | N/A                 |
-| `VALIDATING`         | `validation_failed`     | `VALIDATION_FAILED`  | Verification errors occurred.                        | Yes   | N/A                 |
-| `VALIDATION_FAILED`  | `retry_validation`      | `VALIDATING`         | Retrying validation after error resolution.          | N/A   | Validation timeout  |
-| `PAYMENT_PENDING`    | `payment_initiated`     | `FULFILLING`         | Payment processing initiated.                        | Yes   | Payment timeout     |
-| `PAYMENT_PENDING`    | `payment_failed`        | `PAYMENT_FAILED`     | Payment processing failed.                           | N/A   | N/A                 |
-| `PAYMENT_FAILED`     | `retry_payment`         | `PAYMENT_PENDING`    | Retrying payment after error resolution.             | N/A   | Payment timeout     |
-| `FULFILLING`         | `fulfillment_completed` | `FULFILLED`          | Order successfully shipped.                          | N/A   | N/A                 |
-| `FULFILLING`         | `fulfillment_failed`    | `FULFILLMENT_FAILED` | Fulfillment process encountered errors.              | Yes   | Fulfillment timeout |
-| `FULFILLMENT_FAILED` | `retry_fulfillment`     | `FULFILLING`         | Retrying fulfillment after error resolution.         | N/A   | Fulfillment timeout |
-| Any                  | `order_cancelled`       | `CANCELLED`          | Order is canceled at any point.                      | N/A   | N/A                 |
-
-**Retry Mechanisms:**
-
-* The state machine implements retry mechanisms for validation, payment, and fulfillment processes.
-* After a specific timeout, the corresponding event (retry_validation, retry_payment, or retry_fulfillment) is triggered to attempt the operation again.
-* The number of retries and the delay between attempts can be configured based on specific requirements.
-
-**Timeouts:**
-
-* Timeouts are defined for validation, payment, and fulfillment processes.
-* If the operation doesn't complete within the specified timeout, the state machine transitions to an error state (VALIDATION_FAILED, PAYMENT_FAILED, or FULFILLMENT_FAILED).
-* Timeouts can be used to identify potential issues and trigger recovery actions.
-
-**Error Handling:**
-
-* Error states are defined for each potential failure point in the order process.
-* The state machine can handle errors gracefully by transitioning to appropriate states and taking corrective actions, such as logging the error, sending notifications, or canceling the order.
-* Additional error handling logic can be implemented within each service to handle specific error scenarios.
-
-## Updated Business Logic with State Machine
-
-Here's the updated business logic for order processing with the state machine, error handling, retry mechanisms, and timeouts:
-
-**Order Creation:**
-
-1. User creates an order with selected products.
-2. Order service receives the order creation request and validates the order details, product availability, and user information.
-3. If validation is successful, the order state transitions to `PAYMENT_PENDING`, and the payment process starts.
-4. If validation fails due to errors, the order state transitions to `VALIDATION_FAILED`, and notifications are sent to the user and administrator.
-5. After a configured timeout, the `retry_validation` event is triggered to attempt validation again.
-
-**Payment Processing:**
-
-1. Payment service initiates the payment process using the user's payment information.
-2. If payment is successful, the order state transitions to `FULFILLING`, and the fulfillment process begins.
-3. If payment fails, the order state transitions to `PAYMENT_FAILED`, and notifications are sent to the user and administrator.
-4. After a configured timeout, the `retry_payment` event is triggered to attempt payment again.
-
-**Order Fulfillment:**
-
-1. Product service checks product availability and reserves the required items.
-2. Shipping service processes the shipment and sends the order to the user's address.
-3. If fulfillment is successful, the order state transitions to `FULFILLED`, and notifications are sent to the user.
-4. If fulfillment fails due to errors (e.g., out of stock items, shipping issues), the order state transitions to `FULFILLMENT_FAILED`, and notifications are sent to the user and administrator.
-5. After a configured timeout, the `retry_fulfillment` event is triggered to attempt fulfillment again.
-
-**Order Cancellation:**
-
-1. User or administrator requests to cancel the order.
-2. Order service verifies the cancellation request and updates the order state to `CANCELLED`.
-3. If payment has already been processed, a refund is initiated.
-4. Inventory service updates product availability and releases any reserved items.
-5. Notifications are sent to the user and administrator regarding the cancellation.
-
-
-Here are some additional suggestions for improvement:
-
-- Define rate limits: Specify the allowed number of requests per user/IP address and the time period for each endpoint (e.g., 100 requests per user per hour).
-- Add more responses: Consider including additional response codes for specific error scenarios (e.g., 402 for insufficient funds).
-- Versioning: Implement API versioning to manage future updates and changes.
-
-## Future Implementation: Review Service
-
-**Functionalities:**
-
-* **Manage user reviews and ratings for products:**
-    * Allow users to submit reviews and ratings with text, images, and videos.
-    * Moderate reviews for inappropriate content.
-    * Calculate the average product rating and display it alongside reviews.
-    * Allow users to like or dislike reviews.
-
-**Business Logic:**
-
-1. **Review Submission:**
-    * User submits a review with:
-        * Rating (e.g., 1-5 stars)
-        * Title
-        * Content (text, optional images or video)
-    * Review service validates the submission:
-        * Checks for required fields
-        * Checks for inappropriate content using filtering or moderation tools
-
-2. **Review Validation and Storage:**
-    * If valid, the review is:
-        * Stored in the database with associated product ID, user ID, and metadata
-        * Published to a Kafka topic for other services to consume (e.g., Product service for rating updates)
-    * If invalid, an error message is displayed to the user, and they are prompted to correct the submission.
-
-3. **Review Moderation:**
-    * Review service monitors submitted reviews for inappropriate content:
-        * Use automated content moderation tools or manual review processes
-        * Flags or remove reviews that violate community guidelines
-
-4. **Review Display and Interactions:**
-    * Approved reviews are displayed on product pages:
-        * Title, content, rating, and user information are shown
-        * Images or videos are displayed if included
-        * Average product rating is calculated and displayed prominently
-    * Users can:
-        * Like or dislike reviews
-        * Leave comments on reviews (also subject to moderation)
-
-**Additional Considerations:**
-
-* **Review Ranking:** Consider implementing algorithms to rank reviews based on factors like helpfulness, recency, or user ratings.
-* **Review Reporting:** Allow users to report inappropriate reviews for further moderation.
-* **Review Filtering:** Provide options for users to filter reviews based on criteria like rating, date, or keywords.
-* **Integration with Other Services:** Consider integrating the Review service with other services for:
-    * User profile management
-    * Product recommendations
-    * Fraud detection
-    * Customer support
-* **Data Storage and Scalability:** Choose a database solution that can handle large volumes of reviews and ensure scalability for future growth.
-* **Security:** Implement security measures to protect user data and prevent unauthorized access or manipulation of reviews.
-
-
-## Design the data models and storage solutions for each service.
-
-**User Service:**
-
-* **Data model:** Relational model
-* **Storage solution:** keycloak + PostgreSQL 
-* **Reasons:**
-    * Users have structured data (name, email, password, etc.) with well-defined relationships.
-    * PostgreSQL is a mature and reliable relational database with strong ACID compliance, ensuring data integrity.
-    * Offers efficient querying and filtering capabilities for frequently accessed user data.
-
-**Order Service:**
-
-* **Data model:** Relational model
-* **Storage solution:** MySQL
-* **Reasons:**
-    * Orders have structured data (customer ID, products ordered, order status, etc.) with relationships to User and Product services.
-    * MySQL provides efficient joins and transactions for managing order data and related information.
-
-**Product Service:**
-
-* **Data model:** Relational model
-* **Storage solution:** MySQL (separate database from Order services)
-* **Reasons:**
-    * Products have structured data (product name, description, price, inventory, etc.) with potential relationships to other services (e.g., reviews, recommendations).
-    * MySQL offers efficient searching and filtering for product information.
-    * Separating it from other services improves performance and scalability.
-
-**Payment Service:**
-
-* **Data model:** Relational model
-* **Storage solution:** PostgreSQL (separate database from User services)
-* **Reasons:**
-    * Payment data requires strong ACID compliance and complex transactions.
-    * PostgreSQL offers advanced features like triggers and stored procedures for managing financial transactions.
-    * Its support for JSON data types can be beneficial for storing payment details.
-
-
-## Resources for documentation
-For further reference, please consider the following sections:
-
-* **Learn the basics of Spring Cloud Config:**
-    * [Docker’s health check and Spring Boot apps - how to control containers startup order in docker-compose](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
-
-* **Keycloak Realm Exports:**
-    * [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/) Edit the Administrative Interface’s Realm Export Json
-    * [Keycloak in Docker #5 – How to export a realm with users and secrets](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
-
-* **Examples projects**
-    * [Blog Application](https://github.com/cokutan/blogapplication/tree/develop) (Config Server + Eureka Server + Gateway + App + Mongodb)
-    * [Spring Boot Microservices Deployment to Kubernetes with Helm via GitLab CI ](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm) This project is the most similar to mine.
+![Architecture Diagram](https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png?raw=true)
+
+## About the Project
+
+This project demonstrates a microservices-based e-commerce platform using modern technologies:
+- **Spring Boot 3.0**: Framework for building microservices with Java 17 (planned upgrade to Java 21).
+- **Gradle**: Build tool for dependency management and project compilation.
+- **Spring Cloud Config**: Centralized configuration management.
+- **Eureka Server**: Service discovery for dynamic routing.
+- **Spring Cloud Gateway**: API Gateway for request routing and authentication.
+- **Kafka**: Asynchronous event-driven communication between services.
+- **Keycloak**: OAuth2-based authentication and authorization.
+- **Docker & Kubernetes**: Containerization and orchestration for local and cloud deployments.
+- **Monitoring & Tracing**:
+    - Local: Zipkin (tracing), Prometheus (metrics), Grafana (visualization), AKHQ (Kafka monitoring).
+    - Dev/Prod: Azure Application Insights and Azure Monitor for tracing, metrics, and logs.
+
+## Services
+
+| Service Type               | Service Name         | Description                                                               | Storage               |
+|----------------------------|----------------------|---------------------------------------------------------------------------|-----------------------|
+| **Configuration Services** | Config Server        | Centralized configuration management for all services.                    | -                     |
+|                            | Eureka Server        | Service registry for dynamic discovery of microservices.                  | -                     |
+|                            | API Gateway          | Routes requests and handles authentication/authorization with Keycloak.   | -                     |
+| **Core Business Services** | User Service         | Manages user registration, login, and role-based authorization.           | PostgreSQL + Keycloak |
+|                            | Product Service      | CRUD operations for products and inventory management.                    | MySQL                 |
+|                            | Order Service        | Processes orders with state machine, validation, and payment integration. | MySQL                 |
+|                            | Payment Service      | Handles payment processing with external gateways (e.g., Stripe).         | PostgreSQL            |
+|                            | Cart Service         | Manages user shopping carts for temporary item storage.                   | Redis                 |
+|                            | Shipment Service     | Manages order fulfillment and shipping processes.                         | PostgreSQL            |
+|                            | Notification Service | Sends email, SMS, or push notifications based on order events.            | PostgreSQL (optional) |
+
+## Setup and Installation
+
+### Prerequisites
+- Java 17 (planned upgrade to Java 21)
+- Gradle 8.0+
+- Docker and Docker Compose
+- Docker Desktop with Kubernetes enabled
+- Postman (optional for testing)
+
+### Local Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/puitiza/ecommerce.git
+   cd ecommerce
+   ```
+2. Build and run services:
+   ```bash
+   docker-compose up --build -d
+   ```
+3. Access the API Gateway at `http://localhost:8090`.
+4. Use Swagger UI (`http://localhost:8090/swagger-ui.html`) or Postman to test endpoints.
+5. Import the Postman collection from `postman/ecommerce-collection.json`.
+
+#### Useful Docker Compose Commands
+- Build and start services: `docker-compose up --build -d`
+- Stop and remove services: `docker-compose down`
+- Remove volumes (clean up): `docker-compose down -v`
+- View logs: `docker-compose logs <service-name>`
+
+### Kubernetes Setup
+1. Enable Kubernetes in Docker Desktop:
+    - Open Docker Desktop > Settings > Kubernetes > Enable Kubernetes > Apply & Restart.
+2. Install Metrics Server to enable resource metrics:
+   ```bash
+   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.8.0/components.yaml
+   ```
+3. Apply Metrics Server patch for Docker Desktop:
+   ```bash
+   kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
+   ```
+4. Convert Docker Compose to Kubernetes manifests:
+   ```bash
+   kompose convert -f docker.yml -o k8s/
+   ```
+5. Deploy to Kubernetes:
+   ```bash
+   kubectl apply -f k8s/
+   ```
+6. Access the API Gateway:
+   ```bash
+   kubectl port-forward svc/api-gateway 8090:8090
+   ```
+7. Verify metrics:
+   ```bash
+   kubectl top pods
+   ```
+
+## Roles and Permissions
+- **ADMIN**:
+    - **User Service**: View all user details (`GET /users`), update/delete users (`PUT /users/{id}`, `DELETE /users/{id}`).
+    - **Product Service**: Create, update, and delete products (`POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`).
+    - **Order Service**: View all orders (`GET /orders`), cancel any order (`POST /orders/{orderId}/cancel`).
+    - **Shipment Service**: View all shipments (`GET /shipments`), update shipment status (`PUT /shipments/{id}`).
+- **USER**:
+    - **User Service**: View own profile (`GET /users/me`), update own profile (`PUT /users/me`).
+    - **Product Service**: Browse products (`GET /products`, `GET /products/{id}`).
+    - **Cart Service**: Manage own cart (`POST /cart/{userId}/items`, `GET /cart/{userId}`, `DELETE /cart/{userId}`).
+    - **Order Service**: Create and view own orders (`POST /orders`, `GET /orders/{orderId}`), cancel own orders (`POST /orders/{orderId}/cancel`).
+    - **Shipment Service**: View own shipment status (`GET /shipments/{orderId}`).
+- **Internal (Service-to-Service)**:
+    - **Payment Service**: Invoked by `order-service` via internal API calls (e.g., `POST /payments`) using service credentials or network trust.
+    - **Shipment Service**: Invoked by `order-service` for shipment creation (`POST /shipments`) using service credentials.
+    - **Notification Service**: Triggered by Kafka events, no direct client access.
+- **Authentication**:
+    - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
+    - Service-to-service communication uses API keys or Kubernetes network policies for security.
+
+## Business Logic
+
+### User Service
+- **Functionality**: User registration, login, and role-based authorization (ADMIN, USER) using Keycloak and JWT.
+- **Storage**: PostgreSQL for user data, integrated with Keycloak.
+- **Key Endpoints**:
+    - `POST /users/signup`: Register a new user (public).
+    - `POST /users/login`: Authenticate and obtain JWT (public).
+    - `GET /users/{id}`: Retrieve user details (ADMIN only).
+    - `GET /users/me`: Retrieve own profile (USER).
+    - `PUT /users/me`: Update own profile (USER).
+
+### Product Service
+- **Functionality**: Manages product catalog and inventory with CRUD operations.
+- **Storage**: MySQL for product data.
+- **Key Endpoints**:
+    - `POST /products`: Create a product (ADMIN only).
+    - `GET /products`: List all products (USER, ADMIN).
+    - `GET /products/{id}`: Retrieve product details (USER, ADMIN).
+    - `POST /products/verify-availability`: Check inventory for order validation (ORDER-SERVICE, internal).
+
+### Cart Service
+- **Functionality**: Manages temporary shopping carts for users, allowing item additions and modifications.
+- **Storage**: Redis for fast, ephemeral storage.
+- **Key Endpoints**:
+    - `POST /cart/{userId}/items`: Add item to cart (USER).
+    - `GET /cart/{userId}`: Retrieve cart (USER).
+    - `DELETE /cart/{userId}`: Clear cart (USER).
+
+### Order Service
+- **Functionality**: Creates and manages orders with a state machine (`CREATED`, `VALIDATING`, `PAYMENT_PENDING`, `SHIPPING`, `FULFILLED`, etc.).
+- **Storage**: MySQL for order data.
+- **Key Endpoints**:
+    - `POST /orders`: Create an order from a cart (USER).
+    - `GET /orders/{orderId}`: Retrieve order details (USER for own orders, ADMIN for all).
+    - `POST /orders/{orderId}/cancel`: Cancel an order (USER, ADMIN).
+    - **State Machine**: Manages validation, payment, and shipping with retries and error handling (see `docs/order-state-machine.md`).
+    - **Events**: Publishes Kafka events (`order_created`, `order_updated`, `order_cancelled`) for asynchronous communication.
+
+### Payment Service
+- **Functionality**: Processes payments using external gateways (e.g., Stripe).
+- **Storage**: PostgreSQL for transaction records.
+- **Key Endpoints**:
+    - `POST /payments`: Process payment for an order (ORDER-SERVICE, internal).
+- **Integration**: Consumes `order_created` events and publishes `payment_initiated`, `payment_failed` events via Kafka.
+
+### Shipment Service
+- **Functionality**: Manages order fulfillment and shipping, integrating with external logistics APIs (e.g., FedEx, DHL).
+- **Storage**: PostgreSQL for shipment records.
+- **Key Endpoints**:
+    - `POST /shipments`: Create a shipment for an order (ORDER-SERVICE, internal).
+    - `GET /shipments/{orderId}`: Retrieve shipment status (USER for own orders, ADMIN for all).
+    - `PUT /shipments/{id}`: Update shipment status (ADMIN only).
+- **Integration**: Consumes `payment_initiated` events and publishes `shipment_created`, `shipment_delivered`, `shipment_failed` events via Kafka.
+
+### Notification Service
+- **Functionality**: Sends email, SMS, or push notifications based on order and shipment events.
+- **Storage**: PostgreSQL for notification history (optional).
+- **Integration**: Consumes Kafka events (`order_created`, `order_cancelled`, `shipment_delivered`, `shipment_failed`) using AWS SES or Twilio. No client-facing endpoints.
+
+### Business Flow
+1. User logs in via `user-service` and receives a JWT (USER or ADMIN role).
+2. User browses products (`product-service`) and adds items to cart (`cart-service`).
+3. User creates an order (`order-service`), which validates product availability (`product-service`).
+4. Order transitions to `PAYMENT_PENDING`, and `payment-service` processes the payment.
+5. If payment fails, order transitions to `PAYMENT_FAILED` with retries or cancellation.
+6. On successful payment, order transitions to `SHIPPING`, and `shipment-service` handles the shipping process.
+7. If shipping fails, order transitions to `SHIPPING_FAILED` with retries or cancellation.
+8. On successful shipping, order transitions to `FULFILLED`, and `notification-service` sends a confirmation.
+9. At any point, the user or admin can cancel the order, transitioning to `CANCELLED`.
+
+### Benefits
+- **Scalability**: Each microservice can scale independently.
+- **Resilience**: Failures in one service don’t affect others.
+- **Maintainability**: Small, focused codebases for each service.
+- **Flexibility**: Asynchronous communication with Kafka enables loose coupling.
+
+## Testing
+- **Unit Tests**: JUnit 5 and Mockito for testing service logic.
+- **Integration Tests**: Testcontainers for simulating databases and Kafka.
+- **Load Tests**: JMeter for performance testing of API endpoints.
+- **Configuration**: Run tests with `./gradlew test`.
+
+## Monitoring and Tracing
+- **Local**:
+    - **Zipkin**: Distributed tracing (`http://localhost:9411`).
+    - **Prometheus**: Metrics collection (`http://localhost:9090`).
+    - **Grafana**: Metrics visualization (`http://localhost:3000`).
+    - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
+- **Dev/Prod**:
+    - **Azure Application Insights**: Replaces Zipkin for tracing.
+    - **Azure Monitor**: Replaces Prometheus/Grafana for metrics and logs.
+
+## CI/CD
+- **Pipeline**: GitHub Actions for building, testing, and deploying.
+- **Steps**:
+    - Run unit and integration tests with Gradle and Testcontainers.
+    - Perform code quality analysis with SonarQube.
+    - Build and push Docker images to Docker Hub.
+    - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
+- **Configuration**: See `.github/workflows/build.yml`.
+
+## Security
+- **Authentication**: Keycloak with OAuth2 and JWT for all client-facing endpoints (except `POST /users/signup`, `POST /users/login`). Service-to-service communication uses API keys or Kubernetes network policies.
+- **Secrets**: Planned integration with HashiCorp Vault for sensitive data.
+- **HTTPS**: Planned for all services in production.
+- **Rate Limiting**: Configured in API Gateway to prevent abuse.
+
+## Future Enhancements
+- **Review Service**: Manage product reviews and ratings (MongoDB).
+- **Recommendation Service**: Suggest products based on user behavior (Neo4j or machine learning).
+- **Analytics Service**: Analyze user and product data for insights (Kafka Streams or Spark).
+- **Internationalization**: Support multiple languages and currencies.
+- **Fraud Detection**: Integrate Stripe Radar or custom rules for payment validation.
+
+## Order State Machine
+The `order-service` uses a state machine to manage order lifecycles with error handling and retries. Key states include `CREATED`, `VALIDATING`, `PAYMENT_PENDING`, `SHIPPING`, `FULFILLED`, and `CANCELLED`. For details, see `docs/order-state-machine.md`.
+
+## Resources
+- **Spring Cloud Config**: [Docker’s health check and Spring Boot apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
+- **Keycloak**:
+    - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
+    - [Keycloak in Docker #5](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
+- **Kubernetes Metrics Server**: [Enable Kubernetes Metrics Server on Docker Desktop](https://dev.to/docker/enable-kubernetes-metrics-server-on-docker-desktop-5434)
+- **Example Projects**:
+    - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
+    - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)
+
+## Contributing
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/new-feature`).
+3. Follow coding standards (checkstyle, SonarQube).
+4. Submit a pull request with a clear description of changes.
