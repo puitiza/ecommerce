@@ -97,14 +97,23 @@ This project demonstrates a microservices-based e-commerce platform using modern
 
 ## Roles and Permissions
 - **ADMIN**:
-    - Create, update, and delete products (`POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`).
-    - View all user details (`GET /users`).
-    - Cancel orders (`POST /orders/{orderId}/cancel`).
+    - **User Service**: View all user details (`GET /users`), update/delete users (`PUT /users/{id}`, `DELETE /users/{id}`).
+    - **Product Service**: Create, update, and delete products (`POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`).
+    - **Order Service**: View all orders (`GET /orders`), cancel any order (`POST /orders/{orderId}/cancel`).
+    - **Shipment Service**: View all shipments (`GET /shipments`), update shipment status (`PUT /shipments/{id}`).
 - **USER**:
-    - Browse products (`GET /products`, `GET /products/{id}`).
-    - Manage cart (`POST /cart/{userId}/items`, `GET /cart/{userId}`, `DELETE /cart/{userId}`).
-    - Create and view own orders (`POST /orders`, `GET /orders/{orderId}`).
-- **Authentication**: All endpoints (except `POST /users/signup` and `POST /users/login`) require a JWT token from Keycloak.
+    - **User Service**: View own profile (`GET /users/me`), update own profile (`PUT /users/me`).
+    - **Product Service**: Browse products (`GET /products`, `GET /products/{id}`).
+    - **Cart Service**: Manage own cart (`POST /cart/{userId}/items`, `GET /cart/{userId}`, `DELETE /cart/{userId}`).
+    - **Order Service**: Create and view own orders (`POST /orders`, `GET /orders/{orderId}`), cancel own orders (`POST /orders/{orderId}/cancel`).
+    - **Shipment Service**: View own shipment status (`GET /shipments/{orderId}`).
+- **Internal (Service-to-Service)**:
+    - **Payment Service**: Invoked by `order-service` via internal API calls (e.g., `POST /payments`) using service credentials or network trust.
+    - **Shipment Service**: Invoked by `order-service` for shipment creation (`POST /shipments`) using service credentials.
+    - **Notification Service**: Triggered by Kafka events, no direct client access.
+- **Authentication**:
+    - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
+    - Service-to-service communication uses API keys or Kubernetes network policies for security.
 
 ## Business Logic
 
@@ -115,6 +124,8 @@ This project demonstrates a microservices-based e-commerce platform using modern
     - `POST /users/signup`: Register a new user (public).
     - `POST /users/login`: Authenticate and obtain JWT (public).
     - `GET /users/{id}`: Retrieve user details (ADMIN only).
+    - `GET /users/me`: Retrieve own profile (USER).
+    - `PUT /users/me`: Update own profile (USER).
 
 ### Product Service
 - **Functionality**: Manages product catalog and inventory with CRUD operations.
@@ -123,7 +134,7 @@ This project demonstrates a microservices-based e-commerce platform using modern
     - `POST /products`: Create a product (ADMIN only).
     - `GET /products`: List all products (USER, ADMIN).
     - `GET /products/{id}`: Retrieve product details (USER, ADMIN).
-    - `POST /products/verify-availability`: Check inventory for order validation (ORDER-SERVICE).
+    - `POST /products/verify-availability`: Check inventory for order validation (ORDER-SERVICE, internal).
 
 ### Cart Service
 - **Functionality**: Manages temporary shopping carts for users, allowing item additions and modifications.
@@ -140,23 +151,29 @@ This project demonstrates a microservices-based e-commerce platform using modern
     - `POST /orders`: Create an order from a cart (USER).
     - `GET /orders/{orderId}`: Retrieve order details (USER for own orders, ADMIN for all).
     - `POST /orders/{orderId}/cancel`: Cancel an order (USER, ADMIN).
-    - **State Machine**: Manages validation, payment, and fulfillment with retries and error handling (see `docs/order-state-machine.md`).
+    - **State Machine**: Manages validation, payment, and shipping with retries and error handling (see `docs/order-state-machine.md`).
     - **Events**: Publishes Kafka events (`order_created`, `order_updated`, `order_cancelled`) for asynchronous communication.
 
 ### Payment Service
 - **Functionality**: Processes payments using external gateways (e.g., Stripe).
 - **Storage**: PostgreSQL for transaction records.
+- **Key Endpoints**:
+    - `POST /payments`: Process payment for an order (ORDER-SERVICE, internal).
 - **Integration**: Consumes `order_created` events and publishes `payment_initiated`, `payment_failed` events via Kafka.
 
 ### Shipment Service
 - **Functionality**: Manages order fulfillment and shipping, integrating with external logistics APIs (e.g., FedEx, DHL).
 - **Storage**: PostgreSQL for shipment records.
-- **Integration**: Consumes `payment_initiated` events and publishes `shipment_created`, `shipment_delivered` events via Kafka.
+- **Key Endpoints**:
+    - `POST /shipments`: Create a shipment for an order (ORDER-SERVICE, internal).
+    - `GET /shipments/{orderId}`: Retrieve shipment status (USER for own orders, ADMIN for all).
+    - `PUT /shipments/{id}`: Update shipment status (ADMIN only).
+- **Integration**: Consumes `payment_initiated` events and publishes `shipment_created`, `shipment_delivered`, `shipment_failed` events via Kafka.
 
 ### Notification Service
 - **Functionality**: Sends email, SMS, or push notifications based on order and shipment events.
 - **Storage**: PostgreSQL for notification history (optional).
-- **Integration**: Consumes Kafka events (`order_created`, `order_cancelled`, `shipment_delivered`) using AWS SES or Twilio.
+- **Integration**: Consumes Kafka events (`order_created`, `order_cancelled`, `shipment_delivered`, `shipment_failed`) using AWS SES or Twilio. No client-facing endpoints.
 
 ### Business Flow
 1. User logs in via `user-service` and receives a JWT (USER or ADMIN role).
@@ -164,9 +181,9 @@ This project demonstrates a microservices-based e-commerce platform using modern
 3. User creates an order (`order-service`), which validates product availability (`product-service`).
 4. Order transitions to `PAYMENT_PENDING`, and `payment-service` processes the payment.
 5. If payment fails, order transitions to `PAYMENT_FAILED` with retries or cancellation.
-6. On successful payment, order transitions to `SHIPPING`, and `shipment-service` handles fulfillment.
-7. If fulfillment fails, order transitions to `FULFILLMENT_FAILED` with retries or cancellation.
-8. On successful fulfillment, order transitions to `FULFILLED`, and `notification-service` sends a confirmation.
+6. On successful payment, order transitions to `SHIPPING`, and `shipment-service` handles the shipping process.
+7. If shipping fails, order transitions to `SHIPPING_FAILED` with retries or cancellation.
+8. On successful shipping, order transitions to `FULFILLED`, and `notification-service` sends a confirmation.
 9. At any point, the user or admin can cancel the order, transitioning to `CANCELLED`.
 
 ### Benefits
@@ -201,7 +218,7 @@ This project demonstrates a microservices-based e-commerce platform using modern
 - **Configuration**: See `.github/workflows/build.yml`.
 
 ## Security
-- **Authentication**: Keycloak with OAuth2 and JWT for all endpoints (except `POST /users/signup`, `POST /users/login`).
+- **Authentication**: Keycloak with OAuth2 and JWT for all client-facing endpoints (except `POST /users/signup`, `POST /users/login`). Service-to-service communication uses API keys or Kubernetes network policies.
 - **Secrets**: Planned integration with HashiCorp Vault for sensitive data.
 - **HTTPS**: Planned for all services in production.
 - **Rate Limiting**: Configured in API Gateway to prevent abuse.
