@@ -1,5 +1,8 @@
 package com.ecommerce.apigateway.configuration.exception.handler;
 
+/**
+ * Exception thrown when the rate limit is exceeded.
+ */
 public class RateLimitExceededException extends HandledException {
 
     public RateLimitExceededException(String message) {
@@ -8,6 +11,6 @@ public class RateLimitExceededException extends HandledException {
 
     @Override
     public String getErrorCode() {
-        return null;
+        return "EC-004";
     }
 }

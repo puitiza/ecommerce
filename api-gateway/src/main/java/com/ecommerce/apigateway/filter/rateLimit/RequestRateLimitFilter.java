@@ -1,12 +1,15 @@
 package com.ecommerce.apigateway.filter.rateLimit;
 
 import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
+import org.springframework.cloud.gateway.support.HasRouteId;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -29,11 +32,11 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
-            log.info("Applying rate limit for route: {}, path: {}", config.routeId(), exchange.getRequest().getPath());
-            return config.keyResolver().resolve(exchange)
+            log.info("Applying rate limit for route: {}, path: {}", config.getRouteId(), exchange.getRequest().getPath());
+            return config.getKeyResolver().resolve(exchange)
                     .flatMap(key -> {
                         log.debug("Rate limit key: {}", key);
-                        return rateLimiter.isAllowed(config.routeId(), key);
+                        return rateLimiter.isAllowed(config.getRouteId(), key);
                     })
                     .flatMap(rateLimitResponse -> {
                         log.debug("Rate limit response: allowed={}, remaining={}",
@@ -73,11 +76,24 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
 
     /**
      * Configuration for the rate limit filter.
-     *
-     * @param keyResolver the key resolver for rate limiting
-     * @param routeId     the ID of the route
      */
-    public record Config(KeyResolver keyResolver, String routeId) {
+    public static class Config implements HasRouteId {
+
+        @Getter
+        private final KeyResolver keyResolver;
+
+        @Setter
+        private String routeId;
+
+        public Config(KeyResolver keyResolver) {
+            this.keyResolver = keyResolver;
+        }
+
+        @Override
+        public String getRouteId() {
+            return routeId;
+        }
+
     }
 }
 

@@ -2,6 +2,7 @@ package com.ecommerce.apigateway.configuration.exception.handler;
 
 import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class BuildErrorResponse {
@@ -57,6 +59,7 @@ public class BuildErrorResponse {
                     .map(s -> "   at " + s)
                     .collect(Collectors.joining(System.lineSeparator()));
             errorResponse.setDebugMessage(exception + System.lineSeparator() + detailedTrace);
+            log.debug("Added detailed stack trace to error response");
         }
     }
 }

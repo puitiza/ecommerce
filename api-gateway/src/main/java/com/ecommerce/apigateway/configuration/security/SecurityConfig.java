@@ -3,6 +3,8 @@ package com.ecommerce.apigateway.configuration.security;
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
 import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,13 +17,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
  * Security configuration for the API Gateway.
  * Configures OAuth2 resource server with JWT, public endpoints, and CORS.
  */
+@Slf4j
 @Configuration
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
@@ -30,6 +32,17 @@ public class SecurityConfig {
     private final JwtAuthConverter jwtAuthConverter;
     private final PermitUrlsProperties permitUrls;
 
+    @Value("${cors.allowed-origins:http://localhost:9090}")
+    private List<String> allowedOrigins;
+
+    /**
+     * Configures the security filter chain for the API Gateway.
+     * Allows public access to Swagger and user signup/login endpoints, requires authentication for others.
+     *
+     * @param http                   the ServerHttpSecurity instance
+     * @param exceptionHandlerConfig the exception handler configuration
+     * @return the configured SecurityWebFilterChain
+     */
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
                                                             ExceptionHandlerConfig exceptionHandlerConfig) {
@@ -58,7 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.setAllowedOrigins(Collections.singletonList("http://localhost:9090"));
+        corsConfig.setAllowedOrigins(allowedOrigins);
         corsConfig.setAllowedMethods(List.of("GET", "POST", "HEAD", "PUT", "DELETE"));
         corsConfig.setAllowedHeaders(List.of("Access-Control-Allow-Origin", "*"));
 

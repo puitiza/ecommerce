@@ -1,5 +1,6 @@
 package com.ecommerce.apigateway.configuration.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -12,7 +13,10 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,6 +24,7 @@ import java.util.stream.Stream;
  * Converts a JWT into an authentication token with granted authorities.
  * Extracts roles from the JWT's resource_access claim for the specified client.
  */
+@Slf4j
 @Component
 public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
@@ -74,13 +79,26 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     private Set<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
         Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
         if (resourceAccess == null || !resourceAccess.containsKey(clientId)) {
+            log.debug("No resource_access or clientId {} found in JWT", clientId);
             return Collections.emptySet();
         }
 
-        Map<String, Object> resource = (Map<String, Object>) resourceAccess.get(clientId);
-        Collection<String> roles = (Collection<String>) resource.getOrDefault("roles", Collections.emptyList());
+        Object resourceObj = resourceAccess.get(clientId);
+        if (!(resourceObj instanceof Map)) {
+            log.warn("Invalid resource format for clientId {} in JWT", clientId);
+            return Collections.emptySet();
+        }
+
+        Map<String, Object> resource = (Map<String, Object>) resourceObj;
+        Object rolesObj = resource.getOrDefault("roles", Collections.emptyList());
+        if (!(rolesObj instanceof Collection<?> roles)) {
+            log.warn("Invalid roles format for clientId {} in JWT", clientId);
+            return Collections.emptySet();
+        }
 
         return roles.stream()
+                .filter(String.class::isInstance)
+                .map(role -> (String) role)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toSet());
     }

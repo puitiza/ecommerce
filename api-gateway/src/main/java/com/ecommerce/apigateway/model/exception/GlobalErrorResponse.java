@@ -14,10 +14,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GlobalErrorResponse {
     private final int status;
-    private String timestamp;
-    private String errorCode = "EC-xxx";
+    private final String timestamp;
+    private final String errorCode;
     private final String message;
-    private String detailMessage = "";
     private List<String> stackTrace;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -25,10 +24,10 @@ public class GlobalErrorResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String debugMessage;
 
-    public GlobalErrorResponse(int status, String message,String errorCode) {
+    public GlobalErrorResponse(int status, String message, String errorCode) {
         this.status = status;
         this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-        this.errorCode = errorCode;
+        this.errorCode = errorCode != null ? errorCode : "EC-000";
         this.message = message;
     }
 

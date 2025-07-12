@@ -15,9 +15,9 @@ like JWT, CORS, rate limiting, and token relay.
 
 - **CORS** Enables cross-origin requests from authorized domains.
 
-  - ***Keycloak token:*** Enables internal API gateway calls to other resources on behalf of the user.
-  `"allowed-origins": ["http://localhost:8090"]`
-  - ***CorsWebFilter:*** Enables Swagger UI on `localhost:9090` to access the API gateway directly.
+    - ***Keycloak token:*** Enables internal API gateway calls to other resources on behalf of the user.
+      `"allowed-origins": ["http://localhost:8090"]`
+    - ***CorsWebFilter:*** Enables Swagger UI on `localhost:9090` to access the API gateway directly.
 
   ```yaml
   spring:

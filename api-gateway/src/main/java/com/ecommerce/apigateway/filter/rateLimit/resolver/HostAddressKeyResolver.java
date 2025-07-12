@@ -10,7 +10,9 @@ import java.util.Objects;
 
 /**
  * Key resolver for rate limiting based on the client's IP address.
- * Can be extended to use other keys (e.g., user ID or JWT claims) for more granular rate limiting.
+ * Can be extended to use other keys (e.g., user ID from JWT claims) for more granular rate limiting.
+ * <p>
+ * Example: Use SecurityContextHolder to extract user details for authenticated requests.
  */
 @Slf4j
 @Component
