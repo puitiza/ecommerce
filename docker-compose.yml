@@ -45,7 +45,7 @@ services:
       - product-service
       - user-service
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -55,8 +55,8 @@ services:
       REDIS_PORT: 6379
 
   # Distributed Tracing (Zipkin)
-  zipkin-all-in-one:
-    container_name: zipkin-all-in-one
+  zipkin:
+    container_name: zipkin
     image: openzipkin/zipkin:latest
     restart: unless-stopped
     ports:
@@ -115,7 +115,7 @@ services:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       mysql-order-db:
         condition: service_healthy
@@ -124,7 +124,7 @@ services:
     deploy:
       replicas: 2
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -148,12 +148,12 @@ services:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       mysql-product-db:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -176,10 +176,10 @@ services:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -229,12 +229,12 @@ services:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       postgres-payment-db:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
       KEYCLOAK_SERVER_URL: http://keycloak:8080
