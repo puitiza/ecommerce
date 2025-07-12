@@ -3,7 +3,6 @@ package com.ecommerce.apigateway.configuration.security;
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
 import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,7 +15,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
