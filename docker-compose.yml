@@ -2,13 +2,13 @@ version: '3.8'
 services:
   config-server:
     container_name: config-server
-    build: #Configuration options that are applied at build time that we defined in the Dockerfile with a relative path
+    build:
       context: ./config-server
     ports:
       - "8885:8885"
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8885/product-service/dev" ]
       interval: 10s
@@ -23,7 +23,7 @@ services:
       - "8761:8761"
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 10s
@@ -38,27 +38,31 @@ services:
       - "8090:8090"
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     depends_on:
-      - config-server
-      - service-registry
-      - order-service
-      - product-service
-      - user-service
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: http://keycloak-auth:8080
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
-  zipkin-all-in-one:
-    container_name: zipkin-all-in-one
+  # Distributed Tracing (Zipkin)
+  zipkin:
+    container_name: zipkin
     image: openzipkin/zipkin:latest
     restart: unless-stopped
     ports:
       - "9411:9411"
     networks:
-      - springCloud
+      - ecommerce-network
 
   mysql-product-db:
     container_name: mysql-product-db
@@ -72,11 +76,11 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_product_data:/var/lib/mysql
     networks:
-      - springCloud
+      - ecommerce-network
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 10s
       retries: 5
 
@@ -85,18 +89,18 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_db  # Use a different root password
+      MYSQL_ROOT_PASSWORD: root_order
       MYSQL_DATABASE: order_db
       MYSQL_USER: order_user
       MYSQL_PASSWORD: order_password
     ports:
       - "3307:3306"  # Map to a different port to avoid conflict
     volumes:
-      - order_db_data:/var/lib/mysql
+      - mysql_order_data:/var/lib/mysql
     networks:
-      - springCloud
+      - ecommerce-network
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       timeout: 10s
       retries: 5
 
@@ -105,13 +109,13 @@ services:
       context: ./order-service
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       mysql-order-db:
         condition: service_healthy
@@ -120,10 +124,10 @@ services:
     deploy:
       replicas: 2
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: http://keycloak-auth:8080
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-order-db:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: order_user
       SPRING_DATASOURCE_PASSWORD: order_password
@@ -138,24 +142,24 @@ services:
       - "8002:4005"
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       mysql-product-db:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: http://keycloak-auth:8080
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-product-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: test
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product_password
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
   user-service:
@@ -166,33 +170,39 @@ services:
       - "8082:8082"
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
+      keycloak-auth:
+        condition: service_started
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: http://keycloak-auth:8080
 
-  postgres-db:
-    container_name: postgres-db
+  postgres-keycloak-db:
+    container_name: postgres-keycloak-db
     image: postgres:15
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_keycloak_data:/var/lib/postgresql/data
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
+      timeout: 5s
+      retries: 5
 
   postgres-payment-db:
     container_name: postgres-payment-db
@@ -201,9 +211,9 @@ services:
     ports:
       - "5430:5432"
     volumes:
-      - payment_db_data:/var/lib/postgresql/data
+      - postgres_payment_data:/var/lib/postgresql/data
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       POSTGRES_DB: payment_db
       POSTGRES_USER: payment_user
@@ -219,28 +229,28 @@ services:
       context: ./payment-service
     restart: unless-stopped
     networks:
-      - springCloud
+      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
         condition: service_healthy
       postgres-payment-db:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
       EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
       CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: http://keycloak-auth:8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment-db:5432/payment_db
       SPRING_DATASOURCE_USERNAME: payment_user
       SPRING_DATASOURCE_PASSWORD: payment_password
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
-  keycloak-server:
-    container_name: keycloak-server
+  keycloak-auth:
+    container_name: keycloak-auth
     hostname: keycloak
     image: quay.io/keycloak/keycloak:23.0
     volumes:
@@ -252,12 +262,13 @@ services:
       - --transaction-xa-enabled=false
       - --import-realm
     depends_on:
-      - postgres-db
+      postgres-keycloak-db:
+        condition: service_healthy
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-db:5432/keycloak
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: password
       KEYCLOAK_ADMIN: admin
@@ -269,7 +280,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       ALLOW_EMPTY_PASSWORD: yes
 
@@ -280,23 +291,30 @@ services:
     ports:
       - "2181:2181"
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo stat | nc localhost 2181" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   kafka:
     image: confluentinc/cp-kafka:7.2.0
     hostname: kafka
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "29092:29092"
       - "9092:9092"
       - "9101:9101"
     networks:
-      - springCloud
+      - ecommerce-network
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -315,16 +333,16 @@ services:
       retries: 3
 
 networks:
-  springCloud:
+  ecommerce-network:
     driver: bridge
-    name: springCloud
+    name: ecommerce-network
 
 volumes:
-  postgres_data:
+  postgres_keycloak_data:
     driver: local
-  payment_db_data:
+  postgres_payment_data:
     driver: local
-  mysql_data:
+  mysql_product_data:
     driver: local
-  order_db_data:
+  mysql_order_data:
     driver: local
