@@ -31,11 +31,11 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
             log.info("Applying rate limit for route: {}, path: {}", config.getRouteId(), exchange.getRequest().getPath());
             return resolver(exchange, config)
                     .flatMap(key -> {
-                        log.info("Rate limit key: {}", key);
+                        log.debug("Rate limit key: {}", key);
                         return rateLimiter.isAllowed(config.getRouteId(), key);
                     })
                     .flatMap(rateLimitResponse -> {
-                        log.info("Rate limit response: allowed={}, remaining={}", rateLimitResponse.isAllowed(), rateLimitResponse.getHeaders().get("X-RateLimit-Remaining"));
+                        log.debug("Rate limit response: allowed={}, remaining={}", rateLimitResponse.isAllowed(), rateLimitResponse.getHeaders().get("X-RateLimit-Remaining"));
                         return rateLimitResponse.isAllowed()
                                 ? chain.filter(exchange)
                                 .doOnSuccess(aVoid -> addHeadersToResponse(exchange, rateLimitResponse))
@@ -48,10 +48,17 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
         return config.getKeyResolver().resolve(exchange);
     }
 
+    /**
+     * Adds rate limit headers (like X-RateLimit-Remaining) to the response.
+     */
     private void addHeadersToResponse(ServerWebExchange exchange, RateLimiter.Response response) {
         response.getHeaders().forEach(exchange.getResponse().getHeaders()::add);
     }
 
+    /**
+     * Handles the scenario where the rate limit is exceeded.
+     * Adds rate limit headers and returns a Mono.error with a custom exception.
+     */
     private Mono<Void> handleTooManyRequests(ServerWebExchange exchange, RateLimiter.Response response) {
         addHeadersToResponse(exchange, response);
         log.error("Rate limit exceeded for request: {}", exchange.getRequest().getPath());

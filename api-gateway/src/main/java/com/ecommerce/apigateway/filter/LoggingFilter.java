@@ -24,24 +24,36 @@ public class LoggingFilter implements WebFilter {
         return chain.filter(exchange)
                 .doOnEach(signal -> {
                     if (signal.isOnComplete() || signal.isOnError()) {
+                        // Determine if Authorization header should be masked based on active profile
                         var headersToLog = shouldMaskAuthorization()
                                 ? maskAuthorizationHeader(exchange.getRequest().getHeaders())
                                 : exchange.getRequest().getHeaders();
                         log.info(
-                                "Incoming request :: requestId: {}, ip: {}, method: {},path :{}, headers: {}, response :{}",
-                                exchange.getRequest().getId(), exchange.getRequest().getRemoteAddress(),
-                                exchange.getRequest().getMethod(), exchange.getRequest().getPath(),
-                                headersToLog.entrySet().stream().toList(),
+                                "Incoming request :: requestId: {}, ip: {}, method: {}, path: {}, headers: {}, response: {}",
+                                exchange.getRequest().getId(),
+                                exchange.getRequest().getRemoteAddress(),
+                                exchange.getRequest().getMethod(),
+                                exchange.getRequest().getPath(),
+                                headersToLog.entrySet().stream().toList(), // Convert to list for logging
                                 exchange.getResponse().getStatusCode()
                         );
                     }
                 });
     }
 
+    /**
+     * Determines whether the Authorization header should be masked in logs.
+     * It will mask if the active profile is NOT "prod".
+     * This means it will mask in "dev", "test", etc.
+     */
     private boolean shouldMaskAuthorization() {
         return !"prod".equalsIgnoreCase(activeProfile); // Mask only if not dev profile
     }
 
+    /**
+     * Creates a new HttpHeaders object with the Authorization header masked.
+     * All other headers are copied as-is.
+     */
     private HttpHeaders maskAuthorizationHeader(HttpHeaders headers) {
         HttpHeaders maskedHeaders = new HttpHeaders();
         headers.forEach((key, value) -> {

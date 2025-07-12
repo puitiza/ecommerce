@@ -26,12 +26,12 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
   data:
     redis:
-      host: redis
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       default-filters:
-        - TokenRelay=
+        - TokenRelay= # Relays the OAuth2 token to downstream services
       routes:
         - id: PRODUCT-SERVICE
           uri: lb://PRODUCT-SERVICE
@@ -49,9 +49,10 @@ spring:
             - name: RequestRateLimitFilter
               args:
                 key-resolver: "#{@hostAddressKeyResolver}"
-                redis-rate-limiter.replenishRate: 1
-                redis-rate-limiter.burstCapacity: 2
+                redis-rate-limiter.replenishRate: 1 # Tokens added per second
+                redis-rate-limiter.burstCapacity: 2 # Max burst of tokens allowed
 
+# Publicly accessible URLs (Swagger and user endpoints)
 permit-urls:
   swagger: >
     /webjars/**,
@@ -67,9 +68,11 @@ permit-urls:
 server:
   port: 8090
 
+# Enable tracing for distributed logging
 configuration:
   trace: true
 
+# Springdoc OpenAPI and Swagger UI configuration
 springdoc:
   api-docs:
     enabled: true

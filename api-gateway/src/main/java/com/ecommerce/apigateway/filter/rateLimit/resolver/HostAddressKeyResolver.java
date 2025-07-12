@@ -15,6 +15,7 @@ public class HostAddressKeyResolver implements KeyResolver {
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
         var remoteAddress = Objects.requireNonNull(exchange.getRequest().getRemoteAddress()).getAddress().getHostAddress();
+        log.debug("Resolved host address for rate limiting: {}", remoteAddress); // Added debug log
         return Mono.just(remoteAddress);
     }
 

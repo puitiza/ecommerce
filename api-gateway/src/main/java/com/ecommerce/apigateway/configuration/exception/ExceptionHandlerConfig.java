@@ -22,7 +22,12 @@ import reactor.core.publisher.Mono;
 public class ExceptionHandlerConfig {
 
     private final BuildErrorResponse buildErrorResponse;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Centralized exception handler for various security and custom exceptions.
+     * Dispatches to specific handlers based on exception type.
+     */
     @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
     public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
         return switch (ex) {
@@ -56,27 +61,29 @@ public class ExceptionHandlerConfig {
         return writeErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, "EC-005", ex);
     }
 
+    /**
+     * Writes the error response to the ServerWebExchange.
+     * Sets the status code, content type, and writes the JSON error body.
+     */
     private Mono<Void> writeErrorResponse(ServerWebExchange exchange, HttpStatus statusCode, String errorCode, Exception ex) {
 
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(statusCode.value(), ex.getMessage(), errorCode);
         buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
 
         byte[] bytes;
-        var objectMapper = new ObjectMapper();
         try {
             bytes = objectMapper.writeValueAsBytes(errorResponse);
         } catch (JsonProcessingException e) {
-            return Mono.error(new IllegalStateException("Failed to create error response"));
+            log.error("Error serializing error response: {}", e.getMessage());
+            return Mono.error(new IllegalStateException("Failed to create error response due to serialization error.", e));
         }
 
-        return exchange.getResponse().writeWith(
-                Mono.just(exchange.getResponse().bufferFactory().wrap(bytes))
-                        .map(dataBuffer -> {
-                            exchange.getResponse().setStatusCode(statusCode);
-                            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-                            return dataBuffer;
-                        })
-        );
+        // Set response status and headers, then write the response body, Use Mono.defer for lazy subscription
+        return Mono.defer(() -> {
+            exchange.getResponse().setStatusCode(statusCode);
+            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(bytes)));
+        });
     }
 
 }

@@ -30,7 +30,7 @@ public class SecurityConfig {
                                                             ExceptionHandlerConfig exceptionHandlerConfig,
                                                             PermitUrlsProperties permitUrls) {
         return http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for API Gateway (stateless)
                 .authorizeExchange(
                         (authz) -> authz
                                 .pathMatchers(HttpMethod.GET, permitUrls.getSwagger()).permitAll()
@@ -46,9 +46,10 @@ public class SecurityConfig {
     }
 
     /**
-     * This filter enables CORS (Cross-Origin Resource Sharing) to allow Swagger UI on localhost:9090 to access resources on the API gateway.
-     * The gateway will invoke the keycloak token generation,
-     * which runs on <a href="http://localhost:9090">localhost:9090</a>.
+     * Configures CORS (Cross-Origin Resource Sharing) for the API Gateway.
+     * This is essential for allowing Swagger UI (or any frontend) running on a different origin
+     * to interact with the API Gateway, especially for OAuth2 flows involving Keycloak.
+     * The gateway will invoke the Keycloak token generation, which might be on a different port/domain.
      *
      * @return CorsWebFilter
      */

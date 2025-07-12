@@ -22,10 +22,10 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter;
 
     @Value("${spring.security.oauth2.client.registration.ecommerce.client-id}")
-    public String clientId;
+    private String clientId;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.user-name-attribute}")
-    public String principalAttribute;
+    private String principalAttribute;
 
     public JwtAuthConverter() {
         this.jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
@@ -38,12 +38,20 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
                 .map(authorities -> new JwtAuthenticationToken(jwt, authorities, getPrincipalClaimName(jwt))); // Create AuthenticationToken
     }
 
+    /**
+     * Extracts all granted authorities from the JWT.
+     * Combines authorities from default JWT converter (scopes) and Keycloak resource roles.
+     */
     private Set<GrantedAuthority> extractAuthorities(Jwt jwt) {
-        return Stream.concat(jwtGrantedAuthoritiesConverter.convert(jwt).stream(), extractResourceRoles(jwt, clientId).stream())
+        return Stream.concat(jwtGrantedAuthoritiesConverter.convert(jwt).stream(), extractResourceRoles(jwt).stream())
                 .collect(Collectors.toSet());
 
     }
 
+    /**
+     * Determines the principal claim name from the JWT.
+     * Falls back to 'sub' if principalAttribute is not configured.
+     */
     private String getPrincipalClaimName(Jwt jwt) {
         String claimName = JwtClaimNames.SUB;
         if (principalAttribute != null) {
@@ -52,7 +60,11 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
         return jwt.getClaim(claimName);
     }
 
-    private Set<? extends GrantedAuthority> extractResourceRoles(Jwt jwt, String clientId) {
+    /**
+     * Extracts resource-specific roles from the Keycloak JWT.
+     * It parses the 'resource_access' claim to find roles assigned to the specified client.
+     */
+    private Set<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
         Map<?, ?> resourceAccess = jwt.getClaim("resource_access"); // Use raw Map for initial access
         if (resourceAccess == null) {
             return Collections.emptySet();

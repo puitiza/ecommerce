@@ -7,7 +7,6 @@ import lombok.Setter;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -19,7 +18,7 @@ public class GlobalErrorResponse {
     private String errorCode = "EC-xxx";
     private final String message;
     private String detailMessage = "";
-    private ArrayList<String> stackTrace;
+    private List<String> stackTrace;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ValidationError> errors;
@@ -28,7 +27,7 @@ public class GlobalErrorResponse {
 
     public GlobalErrorResponse(int status, String message,String errorCode) {
         this.status = status;
-        this.timestamp = DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm:ss z").format(ZonedDateTime.now());
+        this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         this.errorCode = errorCode;
         this.message = message;
     }
