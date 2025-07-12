@@ -68,9 +68,7 @@ public class LoggingFilter implements WebFilter {
      */
     private HttpHeaders maskAuthorizationHeader(HttpHeaders headers) {
         HttpHeaders maskedHeaders = new HttpHeaders();
-        headers.forEach((key, value) -> {
-            maskedHeaders.addAll(key, AUTH_HEADER.equalsIgnoreCase(key) ? List.of(MASKED_AUTH_VALUE) : value);
-        });
+        headers.forEach((key, value) -> maskedHeaders.addAll(key, AUTH_HEADER.equalsIgnoreCase(key) ? List.of(MASKED_AUTH_VALUE) : value));
         return maskedHeaders;
     }
 
