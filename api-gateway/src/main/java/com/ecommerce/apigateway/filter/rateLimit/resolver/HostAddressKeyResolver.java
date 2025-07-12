@@ -8,14 +8,20 @@ import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
+/**
+ * Key resolver for rate limiting based on the client's IP address.
+ * Can be extended to use other keys (e.g., user ID or JWT claims) for more granular rate limiting.
+ */
 @Slf4j
 @Component
 public class HostAddressKeyResolver implements KeyResolver {
 
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        var remoteAddress = Objects.requireNonNull(exchange.getRequest().getRemoteAddress()).getAddress().getHostAddress();
-        log.debug("Resolved host address for rate limiting: {}", remoteAddress); // Added debug log
+        String remoteAddress = Objects.requireNonNull(exchange.getRequest().getRemoteAddress())
+                .getAddress()
+                .getHostAddress();
+        log.debug("Resolved rate limit key: {}", remoteAddress);
         return Mono.just(remoteAddress);
     }
 

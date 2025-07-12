@@ -71,6 +71,7 @@ server:
 # Enable tracing for distributed logging
 configuration:
   trace: true
+  stacktrace-depth: 10
 
 # Springdoc OpenAPI and Swagger UI configuration
 springdoc:

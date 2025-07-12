@@ -3,6 +3,7 @@ package com.ecommerce.apigateway.configuration.security;
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
 import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,18 +18,23 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
+/**
+ * Security configuration for the API Gateway.
+ * Configures OAuth2 resource server with JWT, public endpoints, and CORS.
+ */
 @Configuration
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthConverter jwtAuthConverter;
+    private final PermitUrlsProperties permitUrls;
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
-                                                            ExceptionHandlerConfig exceptionHandlerConfig,
-                                                            PermitUrlsProperties permitUrls) {
+                                                            ExceptionHandlerConfig exceptionHandlerConfig) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for API Gateway (stateless)
                 .authorizeExchange(
@@ -46,23 +52,20 @@ public class SecurityConfig {
     }
 
     /**
-     * Configures CORS (Cross-Origin Resource Sharing) for the API Gateway.
-     * This is essential for allowing Swagger UI (or any frontend) running on a different origin
-     * to interact with the API Gateway, especially for OAuth2 flows involving Keycloak.
-     * The gateway will invoke the Keycloak token generation, which might be on a different port/domain.
+     * Configures CORS to allow cross-origin requests from specified origins.
+     * Enables Swagger UI and Keycloak token generation.
      *
-     * @return CorsWebFilter
+     * @return the configured CorsWebFilter
      */
     @Bean
     public CorsWebFilter corsWebFilter() {
-        final CorsConfiguration corsConfig = new CorsConfiguration();
+        CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.setAllowedOrigins(Collections.singletonList("http://localhost:9090"));
-        corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "HEAD", "PUT", "DELETE"));
-        corsConfig.addAllowedHeader("Access-Control-Allow-Origin");
+        corsConfig.setAllowedMethods(List.of("GET", "POST", "HEAD", "PUT", "DELETE"));
+        corsConfig.setAllowedHeaders(List.of("Access-Control-Allow-Origin", "*"));
 
-        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
-
         return new CorsWebFilter(source);
     }
 

@@ -11,10 +11,20 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
+/**
+ * Web filter for logging incoming requests and their responses.
+ * Logs request details such as ID, IP, method, path, headers, and response status.
+ * Masks the Authorization header in non-production environments for security.
+ */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 public class LoggingFilter implements WebFilter {
+
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String MASKED_AUTH_VALUE = "Bearer ...";
 
     @Value("${spring.profiles.active}")
     private String activeProfile;
@@ -42,26 +52,24 @@ public class LoggingFilter implements WebFilter {
     }
 
     /**
-     * Determines whether the Authorization header should be masked in logs.
-     * It will mask if the active profile is NOT "prod".
-     * This means it will mask in "dev", "test", etc.
+     * Checks if the active profile is production.
+     *
+     * @return true if the active profile is 'prod', false otherwise
      */
     private boolean shouldMaskAuthorization() {
         return !"prod".equalsIgnoreCase(activeProfile); // Mask only if not dev profile
     }
 
     /**
-     * Creates a new HttpHeaders object with the Authorization header masked.
-     * All other headers are copied as-is.
+     * Masks the Authorization header if present to prevent logging sensitive data.
+     *
+     * @param headers the original request headers
+     * @return a new HttpHeaders instance with the Authorization header masked
      */
     private HttpHeaders maskAuthorizationHeader(HttpHeaders headers) {
         HttpHeaders maskedHeaders = new HttpHeaders();
         headers.forEach((key, value) -> {
-            if ("authorization".equalsIgnoreCase(key)) {
-                maskedHeaders.add(key, "Bearer ...");
-            } else {
-                maskedHeaders.addAll(key, value);
-            }
+            maskedHeaders.addAll(key, AUTH_HEADER.equalsIgnoreCase(key) ? List.of(MASKED_AUTH_VALUE) : value);
         });
         return maskedHeaders;
     }

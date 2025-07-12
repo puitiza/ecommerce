@@ -8,7 +8,6 @@ import org.springframework.web.server.ServerWebExchange;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,55 +15,49 @@ import java.util.stream.Stream;
 @Component
 @RequiredArgsConstructor
 public class BuildErrorResponse {
-    public static final String TRACE = "trace"; // Query parameter name for enabling trace
+
+    private static final String TRACE_PARAM = "trace";
 
     @Value("${configuration.trace:false}")
-    public boolean printStackTrace;
+    private boolean printStackTrace;
+
+    @Value("${configuration.stacktrace-depth:8}")
+    private int stackTraceDepth;
 
     /**
-     * Checks if the 'trace' query parameter is present in the request.
+     * Checks if stack trace should be included based on configuration and request parameters.
+     *
+     * @param exchange the server web exchange
+     * @return true if stack trace should be included
      */
-    protected boolean isTraceOn(ServerWebExchange exchange) {
-        return exchange.getRequest().getQueryParams().getFirst(TRACE) != null;
+    public boolean stackTrace(ServerWebExchange exchange) {
+        return printStackTrace && exchange.getRequest().getQueryParams().containsKey(TRACE_PARAM);
     }
 
     /**
-     * Populates stack trace information in the GlobalErrorResponse.
-     * It includes a simplified stack trace always, and a full debug message (full stack trace)
-     * only if globally enabled and explicitly requested by the client.
+     * Adds stack trace information to the error response.
      *
-     * @param errorResponse The error response object to modify.
-     * @param exception     The exception that occurred.
-     * @param includeFullDebugTrace A boolean indicating if the full debug message (detailed stack trace)
-     * should be included based on global config and client request.
+     * @param errorResponse the error response to modify
+     * @param exception     the exception to process
+     * @param includeTrace  whether to include detailed stack trace
      */
-    public void addTrace(GlobalErrorResponse errorResponse, Exception exception, boolean includeFullDebugTrace) {
-        List<String> simplifiedStackTrace = Arrays.stream(exception.getStackTrace())
-                .limit(10) // Limit to first 10 elements for brevity in general response
-                .map(StackTraceElement::toString)
-                .collect(Collectors.toList());
+    public void addTrace(GlobalErrorResponse errorResponse, Exception exception, boolean includeTrace) {
+        List<String> stackTrace = new ArrayList<>();
+        stackTrace.add(exception.getClass().getCanonicalName() + ": " + exception.getMessage());
 
-        // Prepend the exception class and message to the simplified stack trace for immediate context
-        List<String> finalSimplifiedStackTrace = simplifiedStackTrace;
-        simplifiedStackTrace = Stream.of(exception.getClass().getCanonicalName() + ": " + exception.getMessage() + (simplifiedStackTrace.isEmpty() ? "" : System.lineSeparator()))
-                .flatMap(s -> Stream.concat(Stream.of(s), finalSimplifiedStackTrace.stream().map(st -> "   at " + st)))
-                .collect(Collectors.toList());
+        Arrays.stream(exception.getStackTrace())
+                .limit(stackTraceDepth / 2)
+                .map(String::valueOf)
+                .forEach(stackTrace::add);
 
-        errorResponse.setStackTrace(simplifiedStackTrace);
+        errorResponse.setStackTrace(stackTrace);
 
-        // Include the full stack trace in 'debugMessage' ONLY if 'includeFullDebugTrace' is true
-        if (includeFullDebugTrace) {
-            String fullStackTrace = Arrays.stream(exception.getStackTrace())
-                    .map(StackTraceElement::toString)
+        if (includeTrace) {
+            String detailedTrace = Arrays.stream(exception.getStackTrace())
+                    .limit(stackTraceDepth)
                     .map(s -> "   at " + s)
                     .collect(Collectors.joining(System.lineSeparator()));
-            String debugMessageContent = exception.getClass().getCanonicalName() + ": " + exception.getMessage() + System.lineSeparator() + fullStackTrace;
-            errorResponse.setDebugMessage(debugMessageContent);
+            errorResponse.setDebugMessage(exception + System.lineSeparator() + detailedTrace);
         }
     }
-
-    public boolean stackTrace(ServerWebExchange request) {
-        return (printStackTrace && isTraceOn(request));
-    }
-
 }

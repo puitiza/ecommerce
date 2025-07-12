@@ -16,6 +16,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Converts a JWT into an authentication token with granted authorities.
+ * Extracts roles from the JWT's resource_access claim for the specified client.
+ */
 @Component
 public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
@@ -39,8 +43,10 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     }
 
     /**
-     * Extracts all granted authorities from the JWT.
-     * Combines authorities from default JWT converter (scopes) and Keycloak resource roles.
+     * Extracts authorities from the JWT, combining standard scopes and client-specific roles.
+     *
+     * @param jwt the JWT token
+     * @return a set of granted authorities
      */
     private Set<GrantedAuthority> extractAuthorities(Jwt jwt) {
         return Stream.concat(jwtGrantedAuthoritiesConverter.convert(jwt).stream(), extractResourceRoles(jwt).stream())
@@ -49,46 +55,34 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     }
 
     /**
-     * Determines the principal claim name from the JWT.
-     * Falls back to 'sub' if principalAttribute is not configured.
+     * Gets the principal claim name from the JWT.
+     *
+     * @param jwt the JWT token
+     * @return the principal claim name
      */
     private String getPrincipalClaimName(Jwt jwt) {
-        String claimName = JwtClaimNames.SUB;
-        if (principalAttribute != null) {
-            claimName = principalAttribute;
-        }
-        return jwt.getClaim(claimName);
+        return principalAttribute != null ? jwt.getClaim(principalAttribute) : jwt.getClaim(JwtClaimNames.SUB);
     }
 
     /**
-     * Extracts resource-specific roles from the Keycloak JWT.
-     * It parses the 'resource_access' claim to find roles assigned to the specified client.
+     * Extracts client-specific roles from the JWT's resource_access claim.
+     *
+     * @param jwt the JWT token
+     * @return a set of granted authorities for the client roles
      */
+    @SuppressWarnings("unchecked")
     private Set<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
-        Map<?, ?> resourceAccess = jwt.getClaim("resource_access"); // Use raw Map for initial access
-        if (resourceAccess == null) {
+        Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
+        if (resourceAccess == null || !resourceAccess.containsKey(clientId)) {
             return Collections.emptySet();
         }
 
-        // Safely extract the resource object
-        Map<?, ?> resource = Optional.ofNullable(resourceAccess.get(clientId))
-                .filter(Map.class::isInstance)
-                .map(Map.class::cast)
-                .orElse(Collections.emptyMap());
+        Map<String, Object> resource = (Map<String, Object>) resourceAccess.get(clientId);
+        Collection<String> roles = (Collection<String>) resource.getOrDefault("roles", Collections.emptyList());
 
-        // Safely extract the role collection
-        Collection<?> resourceRoles = Optional.ofNullable(resource.get("roles"))
-                .filter(Collection.class::isInstance)
-                .map(Collection.class::cast)
-                .orElse(Collections.emptyList());
-
-        // Filter and map to GrantedAuthority, ensuring String elements
-        return resourceRoles.stream()
-                .filter(String.class::isInstance)
-                .map(role -> (String) role)  // Explicit cast to String
+        return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                 .collect(Collectors.toSet());
     }
-
 
 }
