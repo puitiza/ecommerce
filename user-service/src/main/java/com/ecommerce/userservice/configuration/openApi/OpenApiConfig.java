@@ -25,12 +25,12 @@ public class OpenApiConfig {
 
     private List<Server> serverList() {
         Server localServer = new Server();
-        localServer.setDescription("gateway");
+        localServer.setDescription("API Gateway URL");
         localServer.setUrl("http://localhost:8090");
 
         // Add other servers if needed
         Server localServer_2 = new Server();
-        localServer_2.setDescription("local");
+        localServer_2.setDescription("Direct Local Service URL");
         localServer_2.setUrl("http://localhost:8082");
         return Arrays.asList(localServer, localServer_2);
     }

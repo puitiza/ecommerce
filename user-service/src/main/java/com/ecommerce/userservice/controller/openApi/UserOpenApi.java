@@ -10,8 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 
-import static com.ecommerce.userservice.model.templateAPI.AuthResponseTemplate.*;
+import static com.ecommerce.userservice.model.templateAPI.AuthResponseTemplate.UNAUTHORIZED;
+import static com.ecommerce.userservice.model.templateAPI.AuthResponseTemplate.UNPROCESSABLE;
 
+/**
+ * Defines the OpenAPI specifications for the User Service endpoints.
+ * This interface is used by Swagger/Springdoc to generate API documentation.
+ */
 @SuppressWarnings("ALL")
 public interface UserOpenApi {
 

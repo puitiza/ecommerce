@@ -28,6 +28,12 @@ public class GlobalErrorResponse {
     private record ValidationError(String field, String message) {
     }
 
+    /**
+     * Adds a validation error to the list of errors.
+     *
+     * @param field   The name of the field that failed validation.
+     * @param message The validation error message for the field.
+     */
     public void addValidationError(String field, String message) {
         if (Objects.isNull(errors)) {
             errors = new ArrayList<>();

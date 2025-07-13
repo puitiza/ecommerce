@@ -25,9 +25,10 @@ keycloak:
   principal-attribute: preferred_username # Configures what principal.getName() will return
   use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
 
+# Logging configuration to suppress unnecessary warnings
 logging:
   level:
-    org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR # Suppress warnings
+    org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR
 
 configuration:
   trace: true
@@ -50,3 +51,11 @@ springdoc:
   swagger-ui:
     enabled: true
     path: ${springdoc.base-path}/swagger-ui.html
+
+resilience4j.circuitbreaker:
+  instances:
+    keycloak:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3

@@ -6,11 +6,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Data Transfer Object (DTO) for user registration requests.
+ * Contains user details such as email, username, names, password, and admin status.
+ */
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "password")
+@ToString(exclude = "password")  // Excludes password from toString() for security.
 public class UserDto {
 
     @NotBlank(message = "'email' field not should be null or empty")

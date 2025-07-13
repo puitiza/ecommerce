@@ -1,5 +1,5 @@
-# Use an official Gradle image with JDK 17
-FROM gradle:jdk17
+# Use an official Gradle image with JDK 21
+FROM gradle:jdk21
 # Set the working directory to /app
 WORKDIR /app
 # Copy the project files
