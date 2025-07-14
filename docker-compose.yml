@@ -2,14 +2,15 @@ services:
   config-server:
     container_name: config-server
     build:
-      context: ./config-server
+      context: .
+      dockerfile: config-server/Dockerfile
     ports:
       - "8885:8885"
     restart: unless-stopped
     networks:
       - ecommerce-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8885/product-service/dev" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8885/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -17,7 +18,8 @@ services:
   service-registry:
     container_name: service-registry
     build:
-      context: ./service-registry
+      context: .
+      dockerfile: service-registry/Dockerfile
     ports:
       - "8761:8761"
     restart: unless-stopped
@@ -32,7 +34,8 @@ services:
   api-gateway:
     container_name: api-gateway
     build:
-      context: ./api-gateway
+      context: .
+      dockerfile: api-gateway/Dockerfile
     ports:
       - "8090:8090"
     restart: unless-stopped
@@ -80,9 +83,11 @@ services:
     networks:
       - ecommerce-network
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
-      timeout: 10s
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
   mysql-order-db:
     container_name: mysql-order-db
@@ -100,13 +105,16 @@ services:
     networks:
       - ecommerce-network
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
-      timeout: 10s
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 10s
 
   order-service: #This service hasn't container_name because it has 3 replicas
     build:
-      context: ./order-service
+      context: .
+      dockerfile: order-service/Dockerfile
     restart: unless-stopped
     networks:
       - ecommerce-network
@@ -137,7 +145,8 @@ services:
   product-service:
     container_name: product-service
     build:
-      context: ./product-service
+      context: .
+      dockerfile: product-service/Dockerfile
     ports:
       - "8002:4005"
     restart: unless-stopped
@@ -165,7 +174,8 @@ services:
   user-service:
     container_name: user-service
     build:
-      context: ./user-service
+      context: .
+      dockerfile: user-service/Dockerfile
     ports:
       - "8082:8082"
     restart: unless-stopped
@@ -213,14 +223,17 @@ services:
       POSTGRES_USER: payment_user
       POSTGRES_PASSWORD: payment_password
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U payment_user" ]
+      test: [ "CMD-SHELL", "pg_isready -U payment_user -d payment_db" ]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   payment-service:
     container_name: payment-service
     build:
-      context: ./payment-service
+      context: .
+      dockerfile: payment-service/Dockerfile
     restart: unless-stopped
     networks:
       - ecommerce-network
@@ -316,7 +329,8 @@ services:
       test: [ "CMD", "nc", "-vz", "localhost", "9092" ]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 10s
 
 networks:
   ecommerce-network:

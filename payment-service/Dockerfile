@@ -1,14 +1,26 @@
-# Use an official Gradle image with JDK 21
-FROM gradle:jdk21
-# Set the working directory to /app
+# Build stage
+FROM gradle:jdk21 AS builder
+
+# Set the working directory
 WORKDIR /app
-# Copy the project files
+
+# Copy the entire project from the root context (ecommerce)
 COPY . .
-# Clean the previous build
-RUN gradle clean
-# Build the application
-RUN gradle build -x test
-# Expose the port that the application will run on
+
+# Ensure Gradle Wrapper is executable and build the payment-service module
+RUN chmod +x ./gradlew && ./gradlew :payment-service:build -x test
+
+# Runtime stage
+FROM openjdk:21-jdk-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the built JAR from the builder stage
+COPY --from=builder /app/payment-service/build/libs/payment-service-0.0.1-SNAPSHOT.jar app.jar
+
+# Expose the port
 EXPOSE 8080
-# Specify the command to run on container start
-CMD ["java", "-jar", "build/libs/payment-service-0.0.1-SNAPSHOT.jar"]
+
+# Run the application
+CMD ["java", "-jar", "app.jar"]
