@@ -3,7 +3,10 @@ services:
     container_name: config-server
     build:
       context: .
-      dockerfile: config-server/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: config-server
+        PORT: 8761
     ports:
       - "8885:8885"
     restart: unless-stopped
@@ -19,7 +22,10 @@ services:
     container_name: service-registry
     build:
       context: .
-      dockerfile: service-registry/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: service-registry
+        PORT: 8761
     ports:
       - "8761:8761"
     restart: unless-stopped
@@ -35,7 +41,10 @@ services:
     container_name: api-gateway
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: api-gateway
+        PORT: 8090
     ports:
       - "8090:8090"
     restart: unless-stopped
@@ -111,10 +120,13 @@ services:
       retries: 5
       start_period: 10s
 
-  order-service: #This service hasn't container_name because it has 3 replicas
+  order-service: #This service hasn't container_name because it has 2 replicas
     build:
       context: .
-      dockerfile: order-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: order-service
+        PORT: 8080
     restart: unless-stopped
     networks:
       - ecommerce-network
@@ -146,7 +158,10 @@ services:
     container_name: product-service
     build:
       context: .
-      dockerfile: product-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: product-service
+        PORT: 4005
     ports:
       - "8002:4005"
     restart: unless-stopped
@@ -175,7 +190,10 @@ services:
     container_name: user-service
     build:
       context: .
-      dockerfile: user-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: user-service
+        PORT: 8082
     ports:
       - "8082:8082"
     restart: unless-stopped
@@ -233,7 +251,10 @@ services:
     container_name: payment-service
     build:
       context: .
-      dockerfile: payment-service/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        MODULE: payment-service
+        PORT: 8080
     restart: unless-stopped
     networks:
       - ecommerce-network
