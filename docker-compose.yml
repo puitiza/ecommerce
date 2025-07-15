@@ -282,7 +282,7 @@ services:
     hostname: keycloak
     image: quay.io/keycloak/keycloak:23.0
     volumes:
-      - ./imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "9090:8080"
     command:
