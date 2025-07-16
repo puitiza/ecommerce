@@ -58,7 +58,6 @@ public class BuildErrorResponse {
                 .limit(stackTraceDepth / 2)
                 .map(String::valueOf)
                 .forEach(stackTraceList::add);
-
         errorResponse.setStackTrace(stackTraceList);
 
         if (includeTrace) {
@@ -69,9 +68,6 @@ public class BuildErrorResponse {
             errorResponse.setDebugMessage(exception + System.lineSeparator() + detailedTrace);
             log.debug("Added detailed stack trace to error response");
         }
-
-        // Common timestamp logic
-        errorResponse.setTimestamp(ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)); // Or use a common pattern
 
         // Set error code if it's a HandledException
         if (exception instanceof HandledException handledException) {

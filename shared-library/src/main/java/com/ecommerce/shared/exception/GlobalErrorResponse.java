@@ -2,9 +2,8 @@ package com.ecommerce.shared.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import lombok.AllArgsConstructor;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,14 +13,12 @@ import java.util.Objects;
 
 @Getter
 @Setter
-@NoArgsConstructor // Added for Jackson deserialization if needed, or if you use a builder pattern
-@AllArgsConstructor // Added for the constructor with all final fields
+@RequiredArgsConstructor
 public class GlobalErrorResponse {
-    private int status;
-    private String timestamp;
+    private final int status;
+    private final String message;
     private String errorCode;
-    private String message;
-    private String detailMessage = ""; // From order-service/payment-service GlobalErrorResponse
+    private String timestamp;
     private List<String> stackTrace;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -29,19 +26,11 @@ public class GlobalErrorResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String debugMessage;
 
-    // Common constructor from various services
     public GlobalErrorResponse(int status, String message, String errorCode) {
         this.status = status;
-        this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        this.message = message;
         this.errorCode = errorCode != null ? errorCode : "EC-000";
-        this.message = message;
-    }
-
-    // Constructor from order-service/payment-service with timestamp logic ----------------------------------
-    public GlobalErrorResponse(int status, String message) {
-        this.status = status;
-        this.message = message;
-        this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm:ss z"));
+        this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     private record ValidationError(String field, String message) {

@@ -1,17 +1,15 @@
 package com.ecommerce.shared.exception;
 
 public class ResourceNotFoundException extends HandledException {
-    private String code;
+    private final String code;
 
     public ResourceNotFoundException(String message, String code) {
         super(message);
-        this.code = code;
+        this.code = code != null ? code : "EC-404";
     }
 
-    // Constructor to match API Gateway's RateLimitExceededException which only takes a message
     public ResourceNotFoundException(String message) {
-        super(message);
-        this.code = "EC-404"; // Default code if not provided
+        this(message, "EC-404");
     }
 
     @Override
