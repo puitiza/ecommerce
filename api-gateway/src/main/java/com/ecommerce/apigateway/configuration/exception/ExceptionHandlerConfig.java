@@ -63,7 +63,7 @@ public class ExceptionHandlerConfig {
         log.error("Exception occurred: {} - {}", errorCode, message);
 
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(statusCode.value(), message, errorCode);
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(exchange));
+        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.shouldIncludeStackTrace(exchange));
 
         try {
             byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);

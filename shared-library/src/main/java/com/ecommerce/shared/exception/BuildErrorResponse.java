@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ServerWebExchange;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,12 +30,12 @@ public class BuildErrorResponse {
     private int stackTraceDepth;
 
     // Method for WebFlux (API Gateway)
-    public boolean stackTrace(ServerWebExchange exchange) {
+    public boolean shouldIncludeStackTrace(ServerWebExchange exchange) {
         return printStackTrace && exchange.getRequest().getQueryParams().containsKey(TRACE_PARAM);
     }
 
     // Method for Spring MVC (other services)
-    public boolean stackTrace(WebRequest request) {
+    public boolean shouldIncludeStackTrace(WebRequest request) {
         String[] value = request.getParameterValues(TRACE_PARAM);
         return printStackTrace && Objects.nonNull(value) && value.length > 0 && value[0].contentEquals("true");
     }
@@ -84,9 +82,9 @@ public class BuildErrorResponse {
     }
 
     // Helper method for Spring MVC services to build ResponseEntity
-    public ResponseEntity<Object> structure(Exception exception, HttpStatus httpStatus, WebRequest request) {
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(httpStatus.value(), exception.getMessage());
-        addTrace(errorResponse, exception, stackTrace(request));
+    public ResponseEntity<Object> structure(Exception exception, HttpStatus httpStatus, WebRequest request, String errorCode) {
+        GlobalErrorResponse errorResponse = new GlobalErrorResponse(httpStatus.value(), exception.getMessage(), errorCode);
+        addTrace(errorResponse, exception, shouldIncludeStackTrace(request));
         return ResponseEntity.status(httpStatus).body(errorResponse);
     }
 }

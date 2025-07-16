@@ -29,7 +29,7 @@ public class GlobalErrorResponse {
     public GlobalErrorResponse(int status, String message, String errorCode) {
         this.status = status;
         this.message = message;
-        this.errorCode = errorCode != null ? errorCode : "EC-000";
+        this.errorCode = Objects.requireNonNullElse(errorCode, "GEN-001");
         this.timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
