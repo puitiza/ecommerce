@@ -1,8 +1,8 @@
 package com.ecommerce.apigateway.configuration.exception;
 
-import com.ecommerce.apigateway.configuration.exception.handler.BuildErrorResponse;
 import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
-import com.ecommerce.apigateway.model.exception.GlobalErrorResponse;
+import com.ecommerce.sharedlibrary.exception.BuildErrorResponse;
+import com.ecommerce.sharedlibrary.exception.GlobalErrorResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +38,12 @@ public class ExceptionHandlerConfig {
     @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
     public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
         return switch (ex) {
-            case AuthenticationException authenticationException ->
-                    handleException(ex, exchange, HttpStatus.UNAUTHORIZED, "EC-001", "Authentication failed: " + ex.getMessage());
-            case AccessDeniedException accessDeniedException ->
-                    handleException(ex, exchange, HttpStatus.FORBIDDEN, "EC-003", "Access denied: " + ex.getMessage());
-            case RateLimitExceededException rateLimitExceededException ->
-                    handleException(ex, exchange, HttpStatus.TOO_MANY_REQUESTS, "EC-004", "Rate limit exceeded: " + ex.getMessage());
+            case AuthenticationException AuthEx ->
+                    handleException(AuthEx, exchange, HttpStatus.UNAUTHORIZED, "EC-001", "Authentication failed: " + ex.getMessage());
+            case AccessDeniedException AccessEx ->
+                    handleException(AccessEx, exchange, HttpStatus.FORBIDDEN, "EC-003", "Access denied: " + ex.getMessage());
+            case RateLimitExceededException RateEx ->
+                    handleException(RateEx, exchange, HttpStatus.TOO_MANY_REQUESTS, "EC-004", "Rate limit exceeded: " + ex.getMessage());
             default ->
                     handleException(ex, exchange, HttpStatus.INTERNAL_SERVER_ERROR, "EC-005", "Unexpected error: " + ex.getMessage());
         };

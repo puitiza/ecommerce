@@ -1,13 +1,16 @@
-package com.ecommerce.apigateway.configuration.exception.handler;
+package com.ecommerce.sharedlibrary.exception;
 
 /**
- * Base exception class for handled exceptions in the API Gateway.
+ * Base exception class for handled exceptions.
  * Provides a method to retrieve a custom error code.
  */
 public abstract class HandledException extends RuntimeException {
-
     protected HandledException(String message) {
         super(message);
+    }
+
+    protected HandledException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     /**
@@ -16,5 +19,6 @@ public abstract class HandledException extends RuntimeException {
      * @return the error code
      */
     public abstract String getErrorCode();
-
 }
+
+

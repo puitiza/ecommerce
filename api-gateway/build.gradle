@@ -3,10 +3,14 @@ dependencies {
     applyCommonDependencies(dependencies)
     applyTracingDependencies(dependencies)
     applySecurityDependencies(dependencies)
-    // Service-specific dependencies
+
+    // Specific dependencies for API Gateway
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.3.0'
+
+    // Add this line to depend on the shared-library module
+    implementation project(':shared-library')
 }
