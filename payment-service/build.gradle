@@ -2,7 +2,6 @@ dependencies {
 	// Apply shared dependency sets
 	applyCommonDependencies(dependencies)
 	applyTracingDependencies(dependencies)
-	applySecurityDependencies(dependencies)
 	applyOpenApiDependencies(dependencies)
 	// Service-specific dependencies
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
