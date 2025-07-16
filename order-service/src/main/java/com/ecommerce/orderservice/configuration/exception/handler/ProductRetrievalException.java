@@ -1,6 +1,8 @@
 package com.ecommerce.orderservice.configuration.exception.handler;
 
-public class ProductRetrievalException extends HandledException{
+import com.ecommerce.shared.exception.HandledException;
+
+public class ProductRetrievalException extends HandledException {
     public ProductRetrievalException(String message) {
         super(message);
     }

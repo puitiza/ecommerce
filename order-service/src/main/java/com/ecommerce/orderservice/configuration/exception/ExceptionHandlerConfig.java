@@ -1,7 +1,11 @@
 package com.ecommerce.orderservice.configuration.exception;
 
-import com.ecommerce.orderservice.configuration.exception.handler.*;
-import com.ecommerce.orderservice.model.exception.GlobalErrorResponse;
+import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellationException;
+import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
+import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
+import com.ecommerce.orderservice.configuration.exception.handler.ResourceNotFoundException;
+import com.ecommerce.shared.exception.BuildErrorResponse;
+import com.ecommerce.shared.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -32,31 +36,32 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
                                                                   WebRequest request) {
         log.error("Failed to validate the requested element", ex);
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                "Validation error. Check 'errors' field for details.");
-        errorResponse.setErrorCode("P01");
+                "Validation error. Check 'errors' field for details.", "ORD-001");
+
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errorResponse.addValidationError(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(request));
+
+        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.shouldIncludeStackTrace(request));
         return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
-    @ExceptionHandler({NoSuchElementFoundException.class, ProductRetrievalException.class})
+    @ExceptionHandler({ResourceNotFoundException.class, ProductRetrievalException.class})
     public ResponseEntity<Object> handleNoSuchElementFoundException(Exception ex, WebRequest request) {
         log.error("Failed to find the requested element", ex);
-        return buildErrorResponse.structure(ex, HttpStatus.NOT_FOUND, request);
+        return buildErrorResponse.structure(ex, HttpStatus.NOT_FOUND, request, "ORD-002");
     }
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
         log.error("Order validation failed: " + ex.getMessage() + "{}", ex);
-        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request, "ORD-003");
     }
 
     @ExceptionHandler(OrderCancellationException.class)
     public ResponseEntity<Object> handleOrderCancellationException(OrderValidationException ex, WebRequest request) {
         log.error("Failed to cancel the order: " + ex.getMessage() + "{}", ex);
-        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request, "ORD-004");
     }
 
 }

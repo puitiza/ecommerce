@@ -1,6 +1,8 @@
 package com.ecommerce.orderservice.configuration.exception.handler;
 
-public class OrderValidationException extends HandledException{
+import com.ecommerce.shared.exception.HandledException;
+
+public class OrderValidationException extends HandledException {
 
     public OrderValidationException(String message) {
         super(message);

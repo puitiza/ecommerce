@@ -5,6 +5,7 @@ dependencies {
 	applySecurityDependencies(dependencies)
 	applyOpenApiDependencies(dependencies)
 	applyModelMapperDependencies(dependencies)
+
 	// Service-specific dependencies
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -14,4 +15,7 @@ dependencies {
 	implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Kafka
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	implementation 'io.github.openfeign:feign-micrometer' // Zipkin for feign
+
+	// Add this line to depend on the shared-library module
+	implementation project(':shared-library')
 }

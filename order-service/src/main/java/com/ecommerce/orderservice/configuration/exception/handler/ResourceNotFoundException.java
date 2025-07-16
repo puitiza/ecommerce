@@ -1,10 +1,12 @@
 package com.ecommerce.orderservice.configuration.exception.handler;
 
-public class NoSuchElementFoundException extends HandledException {
+import com.ecommerce.shared.exception.HandledException;
+
+public class ResourceNotFoundException extends HandledException {
 
     String code;
 
-    public NoSuchElementFoundException(String message, String code) {
+    public ResourceNotFoundException(String message, String code) {
         super(message);
         this.code = code;
     }

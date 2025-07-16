@@ -1,6 +1,6 @@
 package com.ecommerce.orderservice.services;
 
-import com.ecommerce.orderservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.orderservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellationException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
 import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
@@ -187,7 +187,7 @@ public record OrderServiceImpl(
         log.info("Retrieving order with ID: {}", orderId);
 
         var orderFound = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", orderId), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", orderId), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -209,7 +209,7 @@ public record OrderServiceImpl(
         log.info("Updating order with ID: {}", id);
 
         OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", id), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", id), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -294,7 +294,7 @@ public record OrderServiceImpl(
         log.info("Cancelling order with ID: {}", id);
 
         OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Order with ID %s not found", id), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("OrderZwith ID %s not found", id), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
