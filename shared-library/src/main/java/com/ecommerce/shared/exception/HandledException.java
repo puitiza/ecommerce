@@ -1,4 +1,4 @@
-package com.ecommerce.sharedlibrary.exception;
+package com.ecommerce.shared.exception;
 
 /**
  * Base exception class for handled exceptions.

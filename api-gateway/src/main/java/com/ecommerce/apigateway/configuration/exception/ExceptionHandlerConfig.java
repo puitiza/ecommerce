@@ -1,8 +1,8 @@
 package com.ecommerce.apigateway.configuration.exception;
 
 import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
-import com.ecommerce.sharedlibrary.exception.BuildErrorResponse;
-import com.ecommerce.sharedlibrary.exception.GlobalErrorResponse;
+import com.ecommerce.shared.exception.BuildErrorResponse;
+import com.ecommerce.shared.exception.GlobalErrorResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

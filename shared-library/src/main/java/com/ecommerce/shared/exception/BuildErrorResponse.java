@@ -1,4 +1,4 @@
-package com.ecommerce.sharedlibrary.exception;
+package com.ecommerce.shared.exception;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,9 +54,8 @@ public class BuildErrorResponse {
         List<String> stackTraceList = new ArrayList<>();
         stackTraceList.add(exception.getClass().getCanonicalName() + ": " + exception.getMessage());
 
-        int initialStackTraceLimit = 4;
         Arrays.stream(exception.getStackTrace())
-                .limit(initialStackTraceLimit)
+                .limit(stackTraceDepth / 2)
                 .map(String::valueOf)
                 .forEach(stackTraceList::add);
 

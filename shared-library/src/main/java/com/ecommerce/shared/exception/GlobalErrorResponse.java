@@ -1,4 +1,4 @@
-package com.ecommerce.sharedlibrary.exception;
+package com.ecommerce.shared.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;

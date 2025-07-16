@@ -1,6 +1,6 @@
 package com.ecommerce.apigateway.configuration.exception.handler;
 
-import com.ecommerce.sharedlibrary.exception.HandledException;
+import com.ecommerce.shared.exception.HandledException;
 
 /**
  * Exception thrown when the rate limit is exceeded.

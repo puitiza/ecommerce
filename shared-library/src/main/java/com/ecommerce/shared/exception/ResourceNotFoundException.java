@@ -1,15 +1,15 @@
-package com.ecommerce.sharedlibrary.exception;
+package com.ecommerce.shared.exception;
 
-public class NoSuchElementFoundException extends HandledException {
+public class ResourceNotFoundException extends HandledException {
     private String code;
 
-    public NoSuchElementFoundException(String message, String code) {
+    public ResourceNotFoundException(String message, String code) {
         super(message);
         this.code = code;
     }
 
     // Constructor to match API Gateway's RateLimitExceededException which only takes a message
-    public NoSuchElementFoundException(String message) {
+    public ResourceNotFoundException(String message) {
         super(message);
         this.code = "EC-404"; // Default code if not provided
     }

@@ -1,4 +1,4 @@
-package com.ecommerce.sharedlibrary;
+package com.ecommerce.shared;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

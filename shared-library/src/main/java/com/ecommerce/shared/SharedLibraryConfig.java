@@ -1,6 +1,6 @@
-package com.ecommerce.sharedlibrary;
+package com.ecommerce.shared;
 
-import com.ecommerce.sharedlibrary.exception.BuildErrorResponse;
+import com.ecommerce.shared.exception.BuildErrorResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
