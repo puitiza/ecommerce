@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,10 +31,10 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
     private final BuildErrorResponse buildErrorResponse;
 
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatusCode status,
-                                                                  WebRequest request) {
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(@NonNull MethodArgumentNotValidException ex,
+                                                                  @NonNull HttpHeaders headers,
+                                                                  @NonNull HttpStatusCode status,
+                                                                  @NonNull WebRequest request) {
         log.error("Failed to validate the requested element", ex);
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
                 "Validation error. Check 'errors' field for details.", "ORD-001");
@@ -54,7 +55,7 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
-        log.error("Order validation failed: " + ex.getMessage() + "{}", ex);
+        log.error("Order validation failed: {}. Details: {}", ex.getMessage(), ex.toString());
         return buildErrorResponse.structure(ex, HttpStatus.BAD_REQUEST, request, "ORD-003");
     }
 
