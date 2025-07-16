@@ -1,18 +1,18 @@
 # E-commerce Microservices
 
-This is a personal project to explore microservices architecture, built with Spring Boot 3.0, Gradle, Docker, and Kubernetes. The project simulates an e-commerce platform where users can register, log in, browse products, manage shopping carts, create orders, process payments, and track shipments through a secure API Gateway.
+This is a personal project to explore microservices architecture, built with **Spring Boot 3.0**, **Gradle**, **Docker**, and **Kubernetes**. The project simulates an e-commerce platform where users can register, log in, browse products, manage shopping carts, create orders, process payments, and track shipments through a secure API Gateway.
 
 [![Build Status](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml/badge.svg)](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
 [![Javadoc](https://img.shields.io/badge/%20-javadoc-blue)](https://javiertuya.github.io/samples-test-spring/)
 
-![Architecture Diagram](https://github.com/puitiza/ecommerce/blob/main/images/Architecture%20Software%20final.png?raw=true)
+![Architecture Diagram](config/images/Architecture_Software_final.png)
 
 ## About the Project
 
 This project demonstrates a microservices-based e-commerce platform using modern technologies:
 - **Spring Boot 3.0**: Framework for building microservices with Java 17 (planned upgrade to Java 21).
-- **Gradle**: Build tool for dependency management and project compilation.
+- **Gradle**: Build tool for dependency management and multi-module project structure.
 - **Spring Cloud Config**: Centralized configuration management.
 - **Eureka Server**: Service discovery for dynamic routing.
 - **Spring Cloud Gateway**: API Gateway for request routing and authentication.
@@ -20,23 +20,27 @@ This project demonstrates a microservices-based e-commerce platform using modern
 - **Keycloak**: OAuth2-based authentication and authorization.
 - **Docker & Kubernetes**: Containerization and orchestration for local and cloud deployments.
 - **Monitoring & Tracing**:
-    - Local: Zipkin (tracing), Prometheus (metrics), Grafana (visualization), AKHQ (Kafka monitoring).
-    - Dev/Prod: Azure Application Insights and Azure Monitor for tracing, metrics, and logs.
+  - Local: Zipkin (tracing), Prometheus (metrics), Grafana (visualization), AKHQ (Kafka monitoring).
+  - Dev/Prod: Azure Application Insights and Azure Monitor for tracing, metrics, and logs.
+
+For detailed multi-module setup, see [docs/multi-module.md](config/docs/multi-module.md).
 
 ## Services
 
-| Service Type               | Service Name         | Description                                                               | Storage               |
-|----------------------------|----------------------|---------------------------------------------------------------------------|-----------------------|
-| **Configuration Services** | Config Server        | Centralized configuration management for all services.                    | -                     |
-|                            | Eureka Server        | Service registry for dynamic discovery of microservices.                  | -                     |
-|                            | API Gateway          | Routes requests and handles authentication/authorization with Keycloak.   | -                     |
-| **Core Business Services** | User Service         | Manages user registration, login, and role-based authorization.           | PostgreSQL + Keycloak |
-|                            | Product Service      | CRUD operations for products and inventory management.                    | MySQL                 |
-|                            | Order Service        | Processes orders with state machine, validation, and payment integration. | MySQL                 |
-|                            | Payment Service      | Handles payment processing with external gateways (e.g., Stripe).         | PostgreSQL            |
-|                            | Cart Service         | Manages user shopping carts for temporary item storage.                   | Redis                 |
-|                            | Shipment Service     | Manages order fulfillment and shipping processes.                         | PostgreSQL            |
-|                            | Notification Service | Sends email, SMS, or push notifications based on order events.            | PostgreSQL (optional) |
+| Service Type               | Service Name         | Description                                                               | Storage               | Documentation                                                    |
+|----------------------------|----------------------|---------------------------------------------------------------------------|-----------------------|------------------------------------------------------------------|
+| **Configuration Services** | Config Server        | Centralized configuration management for all services.                    | -                     | [config-server/README.md](config-server/README.md)               |
+|                            | Eureka Server        | Service registry for dynamic discovery of microservices.                  | -                     | [service-registry/README.md](service-registry/README.md)         |
+|                            | API Gateway          | Routes requests and handles authentication/authorization with Keycloak.   | -                     | [api-gateway/README.md](api-gateway/README.md)                   |
+| **Core Business Services** | User Service         | Manages user registration, login, and role-based authorization.           | PostgreSQL + Keycloak | [user-service/README.md](user-service/README.md)                 |
+|                            | Product Service      | CRUD operations for products and inventory management.                    | MySQL                 | [product-service/README.md](product-service/README.md)           |
+|                            | Order Service        | Processes orders with state machine, validation, and payment integration. | MySQL                 | [order-service/README.md](order-service/README.md)               |
+|                            | Payment Service      | Handles payment processing with external gateways (e.g., Stripe).         | PostgreSQL            | [payment-service/README.md](payment-service/README.md)           |
+|                            | Cart Service         | Manages user shopping carts for temporary item storage.                   | Redis                 | [cart-service/README.md](cart-service/README.md)                 |
+|                            | Shipment Service     | Manages order fulfillment and shipping processes.                         | PostgreSQL            | [shipment-service/README.md](shipment-service/README.md)         |
+|                            | Notification Service | Sends email, SMS, or push notifications based on order events.            | PostgreSQL (optional) | [notification-service/README.md](notification-service/README.md) |
+
+For details on the order state machine, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
 ## Setup and Installation
 
@@ -68,183 +72,87 @@ This project demonstrates a microservices-based e-commerce platform using modern
 - View logs: `docker-compose logs <service-name>`
 
 ### Kubernetes Setup
-1. Enable Kubernetes in Docker Desktop:
-    - Open Docker Desktop > Settings > Kubernetes > Enable Kubernetes > Apply & Restart.
-2. Install Metrics Server to enable resource metrics:
-   ```bash
-   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.8.0/components.yaml
-   ```
-3. Apply Metrics Server patch for Docker Desktop:
-   ```bash
-   kubectl patch deployment metrics-server -n kube-system --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--kubelet-insecure-tls"}]'
-   ```
-4. Convert Docker Compose to Kubernetes manifests:
-   ```bash
-   kompose convert -f docker.yml -o k8s/
-   ```
-5. Deploy to Kubernetes:
-   ```bash
-   kubectl apply -f k8s/
-   ```
-6. Access the API Gateway:
-   ```bash
-   kubectl port-forward svc/api-gateway 8090:8090
-   ```
-7. Verify metrics:
-   ```bash
-   kubectl top pods
-   ```
+See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes and Azure deployment instructions.
 
 ## Roles and Permissions
 - **ADMIN**:
-    - **User Service**: View all user details (`GET /users`), update/delete users (`PUT /users/{id}`, `DELETE /users/{id}`).
-    - **Product Service**: Create, update, and delete products (`POST /products`, `PUT /products/{id}`, `DELETE /products/{id}`).
-    - **Order Service**: View all orders (`GET /orders`), cancel any order (`POST /orders/{orderId}/cancel`).
-    - **Shipment Service**: View all shipments (`GET /shipments`), update shipment status (`PUT /shipments/{id}`).
+  - **User Service**: View all user details, update/delete users.
+  - **Product Service**: Create, update, and delete products.
+  - **Order Service**: View all orders, cancel any order.
+  - **Shipment Service**: View all shipments, update shipment status.
 - **USER**:
-    - **User Service**: View own profile (`GET /users/me`), update own profile (`PUT /users/me`).
-    - **Product Service**: Browse products (`GET /products`, `GET /products/{id}`).
-    - **Cart Service**: Manage own cart (`POST /cart/{userId}/items`, `GET /cart/{userId}`, `DELETE /cart/{userId}`).
-    - **Order Service**: Create and view own orders (`POST /orders`, `GET /orders/{orderId}`), cancel own orders (`POST /orders/{orderId}/cancel`).
-    - **Shipment Service**: View own shipment status (`GET /shipments/{orderId}`).
+  - **User Service**: View/update own profile.
+  - **Product Service**: Browse products.
+  - **Cart Service**: Manage own cart.
+  - **Order Service**: Create/view/cancel own orders.
+  - **Shipment Service**: View own shipment status.
 - **Internal (Service-to-Service)**:
-    - **Payment Service**: Invoked by `order-service` via internal API calls (e.g., `POST /payments`) using service credentials or network trust.
-    - **Shipment Service**: Invoked by `order-service` for shipment creation (`POST /shipments`) using service credentials.
-    - **Notification Service**: Triggered by Kafka events, no direct client access.
+  - **Payment Service**: Invoked by `order-service` via internal API calls.
+  - **Shipment Service**: Invoked by `order-service` for shipment creation.
+  - **Notification Service**: Triggered by Kafka events, no direct client access.
 - **Authentication**:
-    - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
-    - Service-to-service communication uses API keys or Kubernetes network policies for security.
+  - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
+  - Service-to-service communication uses API keys or Kubernetes network policies.
 
 ## Business Logic
-
-### User Service
-- **Functionality**: User registration, login, and role-based authorization (ADMIN, USER) using Keycloak and JWT.
-- **Storage**: PostgreSQL for user data, integrated with Keycloak.
-- **Key Endpoints**:
-    - `POST /users/signup`: Register a new user (public).
-    - `POST /users/login`: Authenticate and obtain JWT (public).
-    - `GET /users/{id}`: Retrieve user details (ADMIN only).
-    - `GET /users/me`: Retrieve own profile (USER).
-    - `PUT /users/me`: Update own profile (USER).
-
-### Product Service
-- **Functionality**: Manages product catalog and inventory with CRUD operations.
-- **Storage**: MySQL for product data.
-- **Key Endpoints**:
-    - `POST /products`: Create a product (ADMIN only).
-    - `GET /products`: List all products (USER, ADMIN).
-    - `GET /products/{id}`: Retrieve product details (USER, ADMIN).
-    - `POST /products/verify-availability`: Check inventory for order validation (ORDER-SERVICE, internal).
-
-### Cart Service
-- **Functionality**: Manages temporary shopping carts for users, allowing item additions and modifications.
-- **Storage**: Redis for fast, ephemeral storage.
-- **Key Endpoints**:
-    - `POST /cart/{userId}/items`: Add item to cart (USER).
-    - `GET /cart/{userId}`: Retrieve cart (USER).
-    - `DELETE /cart/{userId}`: Clear cart (USER).
-
-### Order Service
-- **Functionality**: Creates and manages orders with a state machine (`CREATED`, `VALIDATING`, `PAYMENT_PENDING`, `SHIPPING`, `FULFILLED`, etc.).
-- **Storage**: MySQL for order data.
-- **Key Endpoints**:
-    - `POST /orders`: Create an order from a cart (USER).
-    - `GET /orders/{orderId}`: Retrieve order details (USER for own orders, ADMIN for all).
-    - `POST /orders/{orderId}/cancel`: Cancel an order (USER, ADMIN).
-    - **State Machine**: Manages validation, payment, and shipping with retries and error handling (see `docs/order-state-machine.md`).
-    - **Events**: Publishes Kafka events (`order_created`, `order_updated`, `order_cancelled`) for asynchronous communication.
-
-### Payment Service
-- **Functionality**: Processes payments using external gateways (e.g., Stripe).
-- **Storage**: PostgreSQL for transaction records.
-- **Key Endpoints**:
-    - `POST /payments`: Process payment for an order (ORDER-SERVICE, internal).
-- **Integration**: Consumes `order_created` events and publishes `payment_initiated`, `payment_failed` events via Kafka.
-
-### Shipment Service
-- **Functionality**: Manages order fulfillment and shipping, integrating with external logistics APIs (e.g., FedEx, DHL).
-- **Storage**: PostgreSQL for shipment records.
-- **Key Endpoints**:
-    - `POST /shipments`: Create a shipment for an order (ORDER-SERVICE, internal).
-    - `GET /shipments/{orderId}`: Retrieve shipment status (USER for own orders, ADMIN for all).
-    - `PUT /shipments/{id}`: Update shipment status (ADMIN only).
-- **Integration**: Consumes `payment_initiated` events and publishes `shipment_created`, `shipment_delivered`, `shipment_failed` events via Kafka.
-
-### Notification Service
-- **Functionality**: Sends email, SMS, or push notifications based on order and shipment events.
-- **Storage**: PostgreSQL for notification history (optional).
-- **Integration**: Consumes Kafka events (`order_created`, `order_cancelled`, `shipment_delivered`, `shipment_failed`) using AWS SES or Twilio. No client-facing endpoints.
-
-### Business Flow
-1. User logs in via `user-service` and receives a JWT (USER or ADMIN role).
-2. User browses products (`product-service`) and adds items to cart (`cart-service`).
-3. User creates an order (`order-service`), which validates product availability (`product-service`).
-4. Order transitions to `PAYMENT_PENDING`, and `payment-service` processes the payment.
-5. If payment fails, order transitions to `PAYMENT_FAILED` with retries or cancellation.
-6. On successful payment, order transitions to `SHIPPING`, and `shipment-service` handles the shipping process.
-7. If shipping fails, order transitions to `SHIPPING_FAILED` with retries or cancellation.
-8. On successful shipping, order transitions to `FULFILLED`, and `notification-service` sends a confirmation.
-9. At any point, the user or admin can cancel the order, transitioning to `CANCELLED`.
-
-### Benefits
-- **Scalability**: Each microservice can scale independently.
-- **Resilience**: Failures in one service don’t affect others.
-- **Maintainability**: Small, focused codebases for each service.
-- **Flexibility**: Asynchronous communication with Kafka enables loose coupling.
+See individual service READMEs for detailed business logic. For the order lifecycle, refer to [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
 ## Testing
-- **Unit Tests**: JUnit 5 and Mockito for testing service logic.
-- **Integration Tests**: Testcontainers for simulating databases and Kafka.
-- **Load Tests**: JMeter for performance testing of API endpoints.
+- **Unit Tests**: JUnit 5 and Mockito for service logic.
+- **Integration Tests**: Testcontainers for databases and Kafka.
+- **Load Tests**: JMeter for API endpoint performance.
 - **Configuration**: Run tests with `./gradlew test`.
 
 ## Monitoring and Tracing
 - **Local**:
-    - **Zipkin**: Distributed tracing (`http://localhost:9411`).
-    - **Prometheus**: Metrics collection (`http://localhost:9090`).
-    - **Grafana**: Metrics visualization (`http://localhost:3000`).
-    - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
+  - **Zipkin**: Distributed tracing (`http://localhost:9411`).
+  - **Prometheus**: Metrics collection (`http://localhost:9090`).
+  - **Grafana**: Metrics visualization (`http://localhost:3000`).
+  - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
 - **Dev/Prod**:
-    - **Azure Application Insights**: Replaces Zipkin for tracing.
-    - **Azure Monitor**: Replaces Prometheus/Grafana for metrics and logs.
+  - **Azure Application Insights**: Tracing.
+  - **Azure Monitor**: Metrics and logs.
+
+For production monitoring, see [docs/production-setup.md](config/docs/production-setup.md).
 
 ## CI/CD
 - **Pipeline**: GitHub Actions for building, testing, and deploying.
 - **Steps**:
-    - Run unit and integration tests with Gradle and Testcontainers.
-    - Perform code quality analysis with SonarQube.
-    - Build and push Docker images to Docker Hub.
-    - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
+  - Run unit and integration tests with Gradle and Testcontainers.
+  - Perform code quality analysis with SonarQube.
+  - Build and push Docker images to Docker Hub.
+  - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
 - **Configuration**: See `.github/workflows/build.yml`.
 
 ## Security
-- **Authentication**: Keycloak with OAuth2 and JWT for all client-facing endpoints (except `POST /users/signup`, `POST /users/login`). Service-to-service communication uses API keys or Kubernetes network policies.
-- **Secrets**: Planned integration with HashiCorp Vault for sensitive data.
-- **HTTPS**: Planned for all services in production.
+- **Authentication**: Keycloak with OAuth2 and JWT for client-facing endpoints.
+- **Secrets**: Planned integration with Azure Key Vault for sensitive data.
+- **HTTPS**: Planned for production.
 - **Rate Limiting**: Configured in API Gateway to prevent abuse.
+
+## Production Deployment
+For production setup with Azure, Kubernetes, and Application Insights, see [docs/production-setup.md](config/docs/production-setup.md).
 
 ## Future Enhancements
 - **Review Service**: Manage product reviews and ratings (MongoDB).
 - **Recommendation Service**: Suggest products based on user behavior (Neo4j or machine learning).
-- **Analytics Service**: Analyze user and product data for insights (Kafka Streams or Spark).
+- **Analytics Service**: Analyze user and product data (Kafka Streams or Spark).
 - **Internationalization**: Support multiple languages and currencies.
 - **Fraud Detection**: Integrate Stripe Radar or custom rules for payment validation.
-
-## Order State Machine
-The `order-service` uses a state machine to manage order lifecycles with error handling and retries. Key states include `CREATED`, `VALIDATING`, `PAYMENT_PENDING`, `SHIPPING`, `FULFILLED`, and `CANCELLED`. For details, see `docs/order-state-machine.md`.
-
-## Resources
-- **Spring Cloud Config**: [Docker’s health check and Spring Boot apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
-- **Keycloak**:
-    - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
-    - [Keycloak in Docker #5](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
-- **Kubernetes Metrics Server**: [Enable Kubernetes Metrics Server on Docker Desktop](https://dev.to/docker/enable-kubernetes-metrics-server-on-docker-desktop-5434)
-- **Example Projects**:
-    - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
-    - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)
+- **Multi-Module Enhancements**: Shared DTOs, exceptions, and utilities in the `common` module (see [docs/multi-module.md](config/docs/multi-module.md)).
 
 ## Contributing
 1. Fork the repository.
 2. Create a feature branch (`git checkout -b feature/new-feature`).
 3. Follow coding standards (checkstyle, SonarQube).
 4. Submit a pull request with a clear description of changes.
+
+## Resources
+- **Spring Cloud Config**: [Docker’s health check and Spring Boot apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
+- **Keycloak**:
+  - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
+  - [Keycloak in Docker #5](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
+- **Kubernetes Metrics Server**: [Enable Kubernetes Metrics Server on Docker Desktop](https://dev.to/docker/enable-kubernetes-metrics-server-on-docker-desktop-5434)
+- **Example Projects**:
+  - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
+  - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)

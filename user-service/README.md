@@ -1,22 +1,38 @@
-# User-Service API
+# User Service
 
-The following was discovered as part of building this project:
+The User Service manages user registration, login, and role-based authorization using Keycloak for OAuth2 and JWT.
+
+## Key Features
+- **User Management**: Handles registration, login, and profile updates.
+- **Role-Based Authorization**: Supports `ADMIN` and `USER` roles.
+- **Keycloak Integration**: Uses OAuth2 for secure authentication.
 
 ## Concepts
+| Name              | Description                                                              |
+|-------------------|--------------------------------------------------------------------------|
+| Roles             | User types (e.g., `ADMIN`, `USER`) for access control.                   |
+| User Role Mapping | Associates roles with users, stored in JWT tokens.                       |
+| Composite Roles   | Roles inheriting other roles (e.g., `superuser` includes `sales-admin`). |
+| Groups            | Manage user sets with shared attributes and roles.                       |
+| Realms            | Isolated user management scopes (e.g., `ecommerce` realm).               |
+| Clients           | Entities requesting authentication from Keycloak.                        |
+| Client Role       | Client-specific roles for fine-grained access control.                   |
+| Client Scopes     | Shared protocol mappers and role mappings for clients.                   |
 
-KEYCLOAK implements almost all standard identity and access management (IAM) protocols like OAuth 2.0, OpenID, and SAML.
-So we can use one of these protocols to connect with Keycloak
+## Key Endpoints
+- `POST /users/signup`: Register a new user (public).
+- `POST /users/login`: Authenticate and obtain JWT (public).
+- `GET /users/{id}`: Retrieve user details (ADMIN only).
+- `GET /users/me`: Retrieve own profile (USER).
+- `PUT /users/me`: Update own profile (USER).
 
-| Name              | Description                                                                                                                                                                                                                              |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Roles             | Identify a user type or category (e.g., admin, user, manager, employee). Applications often grant access and permissions based on roles for easier management.                                                                           |
-| User Role Mapping | Defines the association between a role and a user. A user can have zero or more roles. This information can be stored in tokens and assertions for access control by applications.                                                       |
-| Composite Roles   | Roles that can be associated with other roles (e.g., a "superuser" role associated with "sales-admin" and "order-entry-admin" roles). A user assigned to the "superuser" role automatically inherits the other two roles.                |
-| Groups            | Manage sets of users with defined attributes. Roles can be mapped to groups, and users joining a group inherit its attributes and role mappings.                                                                                         |
-| Realms            | Manage users, credentials, roles, and groups. A user belongs to and logs into a specific realm. Realms are isolated from each other and can only manage their own users and authentication.                                              |
-| Clients           | Are entities that can request Keycloak to authenticate a user                                                                                                                                                                            |
-| Client role       | Clients can define roles that are specific to them. This is basically a role namespace dedicated to the client. More information [link](https://www.keycloak.org/docs/latest/server_admin/#assigning-permissions-using-roles-and-groups) |
-| Client scopes     | When a client is registered, you must define protocol mappers and role scope mappings for that client. It is often useful to store a client scope, to make creating new clients easier by sharing some common settings                   |
+## Production Considerations
+- **Storage**: Uses PostgreSQL for user data, integrated with Keycloak.
+- **Secrets**: Store Keycloak credentials in Azure Key Vault (see [docs/production-setup.md](../config/docs/production-setup.md)).
+- **Tracing**: Use Azure Application Insights in production.
+
+## Multi-Module Integration
+Shares DTOs and exceptions with other services via the `common` module. See [docs/multi-module.md](../config/docs/multi-module.md).
 
 ## Key Resources for Documentation
 
@@ -30,7 +46,7 @@ So we can use one of these protocols to connect with Keycloak
 
 * **Keycloak User Management:**
     * [Search Users With Keycloak in Java](https://www.baeldung.com/java-keycloak-search-users)
-    * [How to Set Up Keycloak Admin Client with Spring Boot and Kotlin?](https://codersee.com/how-to-set-up-keycloak-admin-client-with-spring-boot-and-kotlin/)
+    * [Keycloak Admin Client with Spring Boot](https://codersee.com/how-to-set-up-keycloak-admin-client-with-spring-boot-and-kotlin/)
 
 * **Keycloak Realm Management:**
     * [How to create a new realm with the Keycloak REST API](https://suedbroecker.net/2020/08/04/how-to-create-a-new-realm-with-the-keycloak-rest-api/)
@@ -44,6 +60,4 @@ So we can use one of these protocols to connect with Keycloak
 **Code Examples:**
 
 * [KeycloakAdminClientExample.java](https://gist.github.com/thomasdarimont/a19cf78a4cff3b87173a84b)
-
-
 
