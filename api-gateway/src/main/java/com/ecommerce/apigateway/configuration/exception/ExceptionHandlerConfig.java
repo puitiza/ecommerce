@@ -1,13 +1,14 @@
 package com.ecommerce.apigateway.configuration.exception;
 
 import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
-import com.ecommerce.shared.exception.BuildErrorResponse;
-import com.ecommerce.shared.exception.GlobalErrorResponse;
+import com.ecommerce.shared.exception.ErrorCodes;
+import com.ecommerce.shared.exception.ErrorResponse;
+import com.ecommerce.shared.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.exception.ErrorType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -25,7 +26,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class ExceptionHandlerConfig {
 
-    private final BuildErrorResponse buildErrorResponse;
+    private final ErrorResponseBuilder errorResponseBuilder;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -38,36 +39,23 @@ public class ExceptionHandlerConfig {
     @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
     public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
         return switch (ex) {
-            case AuthenticationException AuthEx ->
-                    handleException(AuthEx, exchange, HttpStatus.UNAUTHORIZED, "EC-001", "Authentication failed: " + ex.getMessage());
-            case AccessDeniedException AccessEx ->
-                    handleException(AccessEx, exchange, HttpStatus.FORBIDDEN, "EC-003", "Access denied: " + ex.getMessage());
-            case RateLimitExceededException RateEx ->
-                    handleException(RateEx, exchange, HttpStatus.TOO_MANY_REQUESTS, "EC-004", "Rate limit exceeded: " + ex.getMessage());
+            case AuthenticationException authEx ->
+                    handleException(authEx, exchange, ErrorType.UNAUTHORIZED, ErrorCodes.GATEWAY_UNAUTHORIZED, "Authentication failed: " + ex.getMessage());
+            case AccessDeniedException accessEx ->
+                    handleException(accessEx, exchange, ErrorType.FORBIDDEN, ErrorCodes.GATEWAY_FORBIDDEN, "Access denied: " + ex.getMessage());
+            case RateLimitExceededException rateEx ->
+                    handleException(rateEx, exchange, ErrorType.RATE_LIMIT_EXCEEDED, ErrorCodes.GATEWAY_RATE_LIMIT, "Rate limit exceeded: " + ex.getMessage());
             default ->
-                    handleException(ex, exchange, HttpStatus.INTERNAL_SERVER_ERROR, "EC-005", "Unexpected error: " + ex.getMessage());
+                    handleException(ex, exchange, ErrorType.NOT_FOUND, ErrorCodes.GATEWAY_UNEXPECTED, "Unexpected error: " + ex.getMessage());
         };
     }
 
-    /**
-     * Writes an error response to the exchange, including stack trace if configured.
-     *
-     * @param ex         the exception to include in the response
-     * @param exchange   the server web exchange
-     * @param statusCode the HTTP status code
-     * @param errorCode  the custom error code
-     * @param message    the error message
-     * @return a Mono signaling the response
-     */
-    private Mono<Void> handleException(Exception ex, ServerWebExchange exchange, HttpStatus statusCode, String errorCode, String message) {
+    private Mono<Void> handleException(Exception ex, ServerWebExchange exchange, ErrorType errorType, String errorCode, String message) {
         log.error("Exception occurred: {} - {}", errorCode, message);
-
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(statusCode.value(), message, errorCode);
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.shouldIncludeStackTrace(exchange));
-
+        ErrorResponse errorResponse = errorResponseBuilder.structure(ex, errorType, message, errorCode);
         try {
             byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);
-            exchange.getResponse().setStatusCode(statusCode);
+            exchange.getResponse().setStatusCode(errorType.getStatus());
             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
             return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(bytes)));
         } catch (JsonProcessingException e) {

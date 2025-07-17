@@ -13,11 +13,6 @@ public abstract class HandledException extends RuntimeException {
         super(message, cause);
     }
 
-    /**
-     * Returns the custom error code for the exception.
-     *
-     * @return the error code
-     */
     public abstract String getErrorCode();
 }
 
