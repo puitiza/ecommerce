@@ -1,5 +1,7 @@
 package com.ecommerce.paymentservice.configuration.exception.handler;
 
+import com.ecommerce.shared.exception.HandledException;
+
 public class NoSuchElementFoundException extends HandledException {
     String code;
 
