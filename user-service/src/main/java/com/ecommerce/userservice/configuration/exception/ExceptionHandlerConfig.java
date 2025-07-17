@@ -1,8 +1,8 @@
 package com.ecommerce.userservice.configuration.exception;
 
-import com.ecommerce.userservice.configuration.exception.handler.BuildErrorResponse;
+import com.ecommerce.shared.exception.BuildErrorResponse;
+import com.ecommerce.shared.exception.GlobalErrorResponse;
 import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
-import com.ecommerce.userservice.model.exception.GlobalErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -44,18 +45,18 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
      * @return A ResponseEntity containing a `GlobalErrorResponse` with validation details.
      */
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatusCode status,
-                                                                  WebRequest request) {
-        log.error("Validation error for request: {}", ex.getMessage(), ex); // Log exception with stack trace
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(@NonNull MethodArgumentNotValidException ex,
+                                                                  @NonNull HttpHeaders headers,
+                                                                  @NonNull HttpStatusCode status,
+                                                                  @NonNull WebRequest request) {
+        log.error("Validation error for request: {}", ex.getMessage(), ex);
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                "Validation error. Check 'errors' field for details.");
-        errorResponse.setErrorCode("P01"); // Custom error code for validation failures.
+                "Validation error. Check 'errors' field for details.", "USER-001");
+
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errorResponse.addValidationError(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(request));
+        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.shouldIncludeStackTrace(request));
         return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
@@ -69,12 +70,8 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
      */
     @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
     public ResponseEntity<Object> handleAuthenticationException(Exception ex, WebRequest request) {
-        log.error("Authentication failed or invalid user: {}", ex.getMessage(), ex); // Log exception with stack trace
-        GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
-        errorResponse.setErrorCode("P02"); // Custom error code for authentication failures.
-        buildErrorResponse.addTrace(errorResponse, ex, buildErrorResponse.stackTrace(request));
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        log.error("Authentication failed or invalid user: {}", ex.getMessage(), ex);
+        return buildErrorResponse.structure(ex, HttpStatus.UNAUTHORIZED, request, "USER-002");
     }
 
 
