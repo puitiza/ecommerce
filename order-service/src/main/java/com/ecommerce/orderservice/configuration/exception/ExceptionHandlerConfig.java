@@ -35,7 +35,7 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
                                                                   @NonNull HttpHeaders headers,
                                                                   @NonNull HttpStatusCode status,
                                                                   @NonNull WebRequest request) {
-        log.error("Failed to validate the requested element", ex);
+        log.error("Validation error for request: {}", ex.getMessage(), ex);
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
                 "Validation error. Check 'errors' field for details.", "ORD-001");
 
