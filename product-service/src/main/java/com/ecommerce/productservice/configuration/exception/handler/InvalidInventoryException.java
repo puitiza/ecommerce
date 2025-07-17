@@ -1,6 +1,8 @@
 package com.ecommerce.productservice.configuration.exception.handler;
 
-public class InvalidInventoryException extends HandledException{
+import com.ecommerce.shared.exception.HandledException;
+
+public class InvalidInventoryException extends HandledException {
     public InvalidInventoryException(String message) {
         super(message);
     }
