@@ -66,19 +66,6 @@ public class BuildErrorResponse {
             errorResponse.setDebugMessage(exception + System.lineSeparator() + detailedTrace);
             log.debug("Added detailed stack trace to error response");
         }
-
-        // Set error code if it's a HandledException
-        if (exception instanceof HandledException handledException) {
-            errorResponse.setErrorCode(
-                    Optional.ofNullable(handledException.getErrorCode())
-                            .orElse("EC-000") // Default common error code
-            );
-        } else {
-            // For unhandled exceptions, assign a generic error code if not already set
-            if (errorResponse.getErrorCode() == null || errorResponse.getErrorCode().isEmpty()) {
-                errorResponse.setErrorCode("GEN-001");
-            }
-        }
     }
 
     // Helper method for Spring MVC services to build ResponseEntity

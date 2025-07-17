@@ -34,7 +34,7 @@ public class ExceptionHandlerConfig extends ResponseEntityExceptionHandler {
                                                                   @NonNull HttpHeaders headers,
                                                                   @NonNull HttpStatusCode status,
                                                                   @NonNull WebRequest request) {
-        log.error("Validation error for request: {}", ex.getMessage(), ex);
+        log.error("Validation error for request:", ex);
         GlobalErrorResponse errorResponse = new GlobalErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY.value(),
                 "Validation error. Check 'errors' field for details.", "PROD-001");
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {

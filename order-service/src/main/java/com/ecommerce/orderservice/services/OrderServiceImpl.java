@@ -294,7 +294,7 @@ public record OrderServiceImpl(
         log.info("Cancelling order with ID: {}", id);
 
         OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("OrderZwith ID %s not found", id), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", id), "P01"));
 
         var token = getRequestHeaderToken(); // Get token once
 
