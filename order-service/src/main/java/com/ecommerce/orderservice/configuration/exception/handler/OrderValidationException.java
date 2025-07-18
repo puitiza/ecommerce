@@ -1,15 +1,11 @@
 package com.ecommerce.orderservice.configuration.exception.handler;
 
-import com.ecommerce.shared.exception.HandledException;
+import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ServiceException;
 
-public class OrderValidationException extends HandledException {
+public class OrderValidationException extends ServiceException {
 
-    public OrderValidationException(String message) {
-        super(message);
-    }
-
-    @Override
-    public String getErrorCode() {
-        return null;
+    public OrderValidationException(String id) {
+        super(ExceptionError.ORDER_NOT_FOUND, "Order not found", id);
     }
 }

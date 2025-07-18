@@ -1,14 +1,10 @@
 package com.ecommerce.orderservice.configuration.exception.handler;
 
-import com.ecommerce.shared.exception.HandledException;
+import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ServiceException;
 
-public class ProductRetrievalException extends HandledException {
-    public ProductRetrievalException(String message) {
-        super(message);
-    }
-
-    @Override
-    public String getErrorCode() {
-        return null;
+public class ProductRetrievalException extends ServiceException {
+    public ProductRetrievalException(String message, Object... messageArgs) {
+        super(ExceptionError.PRODUCT_UPDATE_FAILED, message, messageArgs);
     }
 }

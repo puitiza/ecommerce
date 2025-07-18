@@ -1,7 +1,7 @@
 package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
-import com.ecommerce.productservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
@@ -42,7 +42,7 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
     public ProductDto getProductById(Long productId) {
         Optional<ProductEntity> productOptional = repository.findById(productId);
         var productEntity = productOptional
-                .orElseThrow(() -> new NoSuchElementFoundException("Product not found with ID: " + productId, "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId, "P01"));
         return modelMapper.map(productEntity, ProductDto.class);
     }
 
@@ -72,7 +72,7 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
     @Override
     public ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity) {
         var productEntity = repository.findById(productId)
-                .orElseThrow(() -> new NoSuchElementFoundException(String.format("Product not found with ID %d", productId), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("Product not found with ID %d", productId), "P01"));
 
         Integer availableQuantity = productEntity.getInventory();
         return new ProductAvailabilityDto((availableQuantity >= quantity), availableQuantity);
@@ -89,7 +89,7 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
 
         try {
             var productEntity = repository.findById(id)
-                    .orElseThrow(() -> new NoSuchElementFoundException(String.format("Product not found with ID %d", id), "P01"));
+                    .orElseThrow(() -> new ResourceNotFoundException(String.format("Product not found with ID %d", id), "P01"));
             // Save updated product
             productEntity.setInventory(updatedInventory);
             repository.save(productEntity);

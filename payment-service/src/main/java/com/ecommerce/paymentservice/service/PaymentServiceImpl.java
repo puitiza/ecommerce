@@ -1,6 +1,6 @@
 package com.ecommerce.paymentservice.service;
 
-import com.ecommerce.paymentservice.configuration.exception.handler.NoSuchElementFoundException;
+import com.ecommerce.paymentservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.paymentservice.model.entity.PaymentEntity;
 import com.ecommerce.paymentservice.model.entity.PaymentStatus;
 import com.ecommerce.paymentservice.model.request.PaymentAuthorizationRequest;
@@ -89,7 +89,7 @@ public record PaymentServiceImpl(PaymentRepository paymentRepository) implements
     @Override
     public PaymentTransactionDetails getPaymentDetails(UUID paymentId) {
         PaymentEntity paymentEntity = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NoSuchElementFoundException("Payment not found with ID: " + paymentId, "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId, "P01"));
 
         return new PaymentTransactionDetails(
                 paymentEntity.getId().toString(),
@@ -104,7 +104,7 @@ public record PaymentServiceImpl(PaymentRepository paymentRepository) implements
     @Override
     public RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest) {
         PaymentEntity paymentEntity = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new NoSuchElementFoundException("Payment not found with ID: " + paymentId, "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId, "P01"));
 
         if (refundRequest.getRefundAmount().compareTo(paymentEntity.getAmount()) <= 0) {
             paymentEntity.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());

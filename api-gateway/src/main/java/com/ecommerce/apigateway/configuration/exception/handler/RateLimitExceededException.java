@@ -1,18 +1,14 @@
 package com.ecommerce.apigateway.configuration.exception.handler;
 
-import com.ecommerce.shared.exception.HandledException;
+import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ServiceException;
 
 /**
  * Exception thrown when the rate limit is exceeded.
  */
-public class RateLimitExceededException extends HandledException {
+public class RateLimitExceededException extends ServiceException {
 
-    public RateLimitExceededException(String message) {
-        super(message);
-    }
-
-    @Override
-    public String getErrorCode() {
-        return "EC-004";
+    public RateLimitExceededException(String message, Object... messageArgs) {
+        super(ExceptionError.RATE_LIMIT_EXCEEDED, message, messageArgs);
     }
 }

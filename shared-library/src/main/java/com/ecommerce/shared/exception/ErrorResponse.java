@@ -1,6 +1,7 @@
 package com.ecommerce.shared.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.springframework.http.HttpStatus;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,11 +19,11 @@ public record ErrorResponse(
         List<ValidationError> errors,
         String debugMessage) {
 
-    public ErrorResponse(ErrorType errorType, String message, String errorCode) {
+    public ErrorResponse(HttpStatus status, String message, String errorCode) {
         this(
-                errorType.getStatus().value(),
-                message != null ? message : errorType.getDefaultMessage(),
-                errorCode != null ? errorCode : errorType.getDefaultErrorCode(),
+                status.value(),
+                message,
+                errorCode,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                 null,
                 null,

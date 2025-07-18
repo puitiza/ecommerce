@@ -4,10 +4,12 @@ import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellat
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
 import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
 import com.ecommerce.orderservice.configuration.exception.handler.ResourceNotFoundException;
-import com.ecommerce.shared.exception.ErrorCodes;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -21,26 +23,26 @@ import org.springframework.web.context.request.WebRequest;
 @RestControllerAdvice
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
 
-    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder) {
-        super(errorResponseBuilder);
+    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
+        super(errorResponseBuilder, messageSource);
     }
 
     @ExceptionHandler({ResourceNotFoundException.class, ProductRetrievalException.class})
-    public ResponseEntity<Object> handleNotFoundException(Exception ex, WebRequest request) {
-        log.error("Failed to find the requested element", ex);
-        return errorResponseBuilder.structure(ex, HttpStatus.NOT_FOUND, request, ErrorCodes.ORDER_NOT_FOUND);
+    public ResponseEntity<Object> handleNotFoundException(ServiceException ex, WebRequest request) {
+        var body = errorResponseBuilder.structure(ex, HttpStatus.NOT_FOUND, ExceptionError.ORDER_NOT_FOUND, ex.getMessage(), ex.getMessageArgs());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
-        log.error("Order validation failed: {}. Details: {}", ex.getMessage(), ex.toString());
-        return errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, request, ErrorCodes.ORDER_VALIDATION);
+        var body = errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, ExceptionError.ORDER_VALIDATION, ex.getMessage(), ex.getMessageArgs());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(OrderCancellationException.class)
     public ResponseEntity<Object> handleOrderCancellationException(OrderCancellationException ex, WebRequest request) {
-        log.error("Failed to cancel the order: " + ex.getMessage() + "{}", ex);
-        return errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, request, ErrorCodes.ORDER_CANCELLATION);
+        var body = errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, ExceptionError.ORDER_CANCELLATION, ex.getMessage(), ex.getMessageArgs());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
 }
