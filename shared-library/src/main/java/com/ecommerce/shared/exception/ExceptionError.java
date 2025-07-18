@@ -15,10 +15,8 @@ public enum ExceptionError {
     // Order service errors
     ORDER_VALIDATION("error.order.validation"),
     ORDER_CANCELLATION("error.order.cancellation"),
-    ORDER_NOT_FOUND("error.order.not_found"),
 
     // Product service errors
-    PRODUCT_NOT_FOUND("error.product.not_found"),
     PRODUCT_INVALID_INVENTORY("error.product.invalid_inventory"),
     PRODUCT_UPDATE_FAILED("error.product.update_failed"),
 

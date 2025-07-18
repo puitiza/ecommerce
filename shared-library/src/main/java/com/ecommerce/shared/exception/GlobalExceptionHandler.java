@@ -2,18 +2,18 @@ package com.ecommerce.shared.exception;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.List;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -28,33 +28,22 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
             @NonNull HttpStatusCode status,
             @NonNull WebRequest request
     ) {
-        ErrorResponse errorResponse = errorResponseBuilder.createErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ExceptionError.VALIDATION_ERROR, null);
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            errorResponse = errorResponse.withValidationError(fieldError.getField(), fieldError.getDefaultMessage());
-        }
-        return ResponseEntity.status(status)
-                .body(errorResponseBuilder.addTrace(errorResponse, ex, errorResponseBuilder.shouldIncludeStackTrace(request)));
+        List<ErrorResponse.ValidationError> validationErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> new ErrorResponse.ValidationError(fieldError.getField(), fieldError.getDefaultMessage()))
+                .toList();
+        return errorResponseBuilder.buildWithValidationErrors(ex, HttpStatus.UNPROCESSABLE_ENTITY, request, ExceptionError.VALIDATION_ERROR, validationErrors);
     }
 
     @ExceptionHandler(ServiceException.class)
     public ResponseEntity<Object> handleServiceException(ServiceException ex, WebRequest request) {
-        String message = messageSource.getMessage(
-                ex.getError().getKey() + ".msg",
-                ex.getMessageArgs(),
-                ex.getMessage(),
-                LocaleContextHolder.getLocale()
-        );
-        ErrorResponse errorResponse = errorResponseBuilder.createErrorResponse(
-                mapErrorToHttpStatus(ex.getError()), ex.getError(), message, ex.getMessageArgs()
-        );
-        return ResponseEntity.status(mapErrorToHttpStatus(ex.getError()))
-                .body(errorResponseBuilder.addTrace(errorResponse, ex, errorResponseBuilder.shouldIncludeStackTrace(request)));
+        return errorResponseBuilder.build(ex, mapErrorToHttpStatus(ex.getError()), request, ex.getError(), ex.getMessageArgs());
     }
 
+    //creo que deberia ir a shared-library
     private HttpStatus mapErrorToHttpStatus(ExceptionError error) {
         return switch (error) {
             case VALIDATION_ERROR -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case NOT_FOUND, ORDER_NOT_FOUND, PRODUCT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case UNAUTHORIZED, GATEWAY_UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN, GATEWAY_FORBIDDEN -> HttpStatus.FORBIDDEN;
             case RATE_LIMIT_EXCEEDED, GATEWAY_RATE_LIMIT -> HttpStatus.TOO_MANY_REQUESTS;

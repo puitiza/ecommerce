@@ -6,10 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ServerWebExchange;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -30,9 +33,69 @@ public class ErrorResponseBuilder {
 
     private final MessageSource messageSource;
 
-    public boolean shouldIncludeStackTrace(Object request) {
+    public ResponseEntity<Object> build(Exception exception, HttpStatus httpStatus, Object requestContext,
+                                        ExceptionError error, Object... messageArgs) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
+        String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
+
+        List<String> stackTraceList = shouldIncludeStackTrace(requestContext) ?
+                Arrays.stream(exception.getStackTrace())
+                        .limit(stackTraceDepth)
+                        .map(StackTraceElement::toString)
+                        .toList() : null;
+
+        String debugMessage = shouldIncludeStackTrace(requestContext) ?
+                Arrays.stream(exception.getStackTrace())
+                        .map(s -> "    at " + s)
+                        .collect(Collectors.joining(System.lineSeparator())) : null;
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                httpStatus.value(),
+                message,
+                errorCode,
+                ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                stackTraceList,
+                null,
+                debugMessage
+        );
+
+        return ResponseEntity.status(httpStatus).body(errorResponse);
+    }
+
+    public ResponseEntity<Object> buildWithValidationErrors(Exception exception, HttpStatus httpStatus, Object requestContext,
+                                                            ExceptionError error, List<ErrorResponse.ValidationError> validationErrors, Object... messageArgs) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
+        String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
+
+        List<String> stackTraceList = shouldIncludeStackTrace(requestContext) ?
+                Arrays.stream(exception.getStackTrace())
+                        .limit(stackTraceDepth)
+                        .map(StackTraceElement::toString)
+                        .toList() : null;
+
+        String debugMessage = shouldIncludeStackTrace(requestContext) ?
+                Arrays.stream(exception.getStackTrace())
+                        .map(s -> "    at " + s)
+                        .collect(Collectors.joining(System.lineSeparator())) : null;
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                httpStatus.value(),
+                message,
+                errorCode,
+                ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                stackTraceList,
+                validationErrors,
+                debugMessage
+        );
+
+        return ResponseEntity.status(httpStatus).body(errorResponse);
+    }
+
+    public boolean shouldIncludeStackTrace(Object requestContext) {
         if (!printStackTrace) return false;
-        return switch (request) {
+        return switch (requestContext) {
             case ServerWebExchange exchange -> exchange.getRequest().getQueryParams().containsKey(TRACE_PARAM);
             case WebRequest webRequest -> {
                 String[] value = webRequest.getParameterValues(TRACE_PARAM);
@@ -40,37 +103,5 @@ public class ErrorResponseBuilder {
             }
             default -> false;
         };
-    }
-
-    public ErrorResponse addTrace(ErrorResponse errorResponse, Exception exception, boolean includeTrace) {
-        List<String> stackTraceList = Arrays.stream(exception.getStackTrace())
-                .limit(stackTraceDepth)
-                .map(StackTraceElement::toString)
-                .toList();
-
-        return new ErrorResponse(
-                errorResponse.status(),
-                errorResponse.message(),
-                errorResponse.errorCode(),
-                errorResponse.timestamp(),
-                stackTraceList,
-                errorResponse.errors(),
-                includeTrace ? Arrays.stream(exception.getStackTrace())
-                        .map(s -> "    at " + s)
-                        .collect(Collectors.joining(System.lineSeparator())) : null
-        );
-    }
-
-    public ErrorResponse structure(Exception exception, HttpStatus httpStatus, ExceptionError error, String customMessage, Object... messageArgs) {
-        ErrorResponse errorResponse = createErrorResponse(httpStatus, error, customMessage, messageArgs);
-        return addTrace(errorResponse, exception, false);
-    }
-
-    public ErrorResponse createErrorResponse(HttpStatus httpStatus, ExceptionError error, String customMessage, Object... messageArgs) {
-        Locale locale = LocaleContextHolder.getLocale();
-        String message = customMessage != null ? customMessage :
-                messageSource.getMessage(error.getKey() + ".msg", messageArgs, "Unknown error", locale);
-        String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
-        return new ErrorResponse(httpStatus, message, errorCode);
     }
 }

@@ -4,8 +4,7 @@ import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ServiceException;
 
 public class ResourceNotFoundException extends ServiceException {
-
-    public ResourceNotFoundException(String message, Object... messageArgs) {
-        super(ExceptionError.NOT_FOUND, message, messageArgs);
+    public ResourceNotFoundException(String resourceType, String id) {
+        super(ExceptionError.NOT_FOUND, "Resource not found", resourceType, id);
     }
 }

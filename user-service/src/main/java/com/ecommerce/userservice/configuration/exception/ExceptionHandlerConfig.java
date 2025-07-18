@@ -3,7 +3,6 @@ package com.ecommerce.userservice.configuration.exception;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
-import com.ecommerce.shared.exception.ServiceException;
 import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
@@ -16,34 +15,23 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-/**
- * Global exception handler for the User Service REST API.
- * Catches and processes various exceptions, converting them into standardized
- * `GlobalErrorResponse` objects for consistent API error reporting.
- */
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
-
     public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
         super(errorResponseBuilder, messageSource);
     }
 
-    /**
-     * Handles authentication-related exceptions such as 'AuthenticationException'
-     * and 'InvalidUserException'.
-     *
-     * @param ex      The caught exception (AuthenticationException or InvalidUserException).
-     * @param request The current WebRequest.
-     * @return A ResponseEntity containing a `GlobalErrorResponse` with unauthorized status.
-     */
-    @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
-        public ResponseEntity<Object> handleAuthenticationException(ServiceException ex, WebRequest request) {
-        log.error("Authentication failed or invalid user: {}", ex.getMessage(), ex);
-        var body = errorResponseBuilder.structure(ex, HttpStatus.UNAUTHORIZED, ExceptionError.USER_USERNAME_FOUND, ex.getMessage(), ex.getMessageArgs());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    @ExceptionHandler(InvalidUserException.class)
+    public ResponseEntity<Object> handleInvalidUserException(InvalidUserException ex, WebRequest request) {
+        log.error("Invalid user: {}", ex.getMessage(), ex);
+        return errorResponseBuilder.build(ex, HttpStatus.UNAUTHORIZED, request, ExceptionError.USER_USERNAME_FOUND, ex.getMessageArgs());
     }
 
-
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        log.error("Authentication failed: {}", ex.getMessage(), ex);
+        return errorResponseBuilder.build(ex, HttpStatus.UNAUTHORIZED, request, ExceptionError.UNAUTHORIZED);
+    }
 }

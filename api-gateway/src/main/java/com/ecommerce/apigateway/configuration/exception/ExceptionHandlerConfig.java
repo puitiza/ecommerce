@@ -1,7 +1,6 @@
 package com.ecommerce.apigateway.configuration.exception;
 
 import com.ecommerce.apigateway.configuration.exception.handler.RateLimitExceededException;
-import com.ecommerce.shared.exception.ErrorResponse;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -40,9 +40,9 @@ public class ExceptionHandlerConfig {
 
     private Mono<Void> handleException(Exception ex, ServerWebExchange exchange, ExceptionError error, HttpStatus status) {
         log.error("Exception occurred: {} - {}", error.getKey(), ex.getMessage());
-        ErrorResponse errorResponse = errorResponseBuilder.structure(ex,status, error,null,ex.getMessage());
+        ResponseEntity<Object> responseEntity = errorResponseBuilder.build(ex, status, exchange, error);
         try {
-            byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);
+            byte[] bytes = objectMapper.writeValueAsBytes(responseEntity.getBody());
             exchange.getResponse().setStatusCode(status);
             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
             return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(bytes)));

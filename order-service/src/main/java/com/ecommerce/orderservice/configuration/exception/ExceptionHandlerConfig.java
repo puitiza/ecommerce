@@ -22,27 +22,22 @@ import org.springframework.web.context.request.WebRequest;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
-
     public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
         super(errorResponseBuilder, messageSource);
     }
 
     @ExceptionHandler({ResourceNotFoundException.class, ProductRetrievalException.class})
     public ResponseEntity<Object> handleNotFoundException(ServiceException ex, WebRequest request) {
-        var body = errorResponseBuilder.structure(ex, HttpStatus.NOT_FOUND, ExceptionError.ORDER_NOT_FOUND, ex.getMessage(), ex.getMessageArgs());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+        return errorResponseBuilder.build(ex, HttpStatus.NOT_FOUND, request, ExceptionError.NOT_FOUND, ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
-        var body = errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, ExceptionError.ORDER_VALIDATION, ex.getMessage(), ex.getMessageArgs());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        return errorResponseBuilder.build(ex, HttpStatus.BAD_REQUEST, request, ExceptionError.ORDER_VALIDATION, ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderCancellationException.class)
     public ResponseEntity<Object> handleOrderCancellationException(OrderCancellationException ex, WebRequest request) {
-        var body = errorResponseBuilder.structure(ex, HttpStatus.BAD_REQUEST, ExceptionError.ORDER_CANCELLATION, ex.getMessage(), ex.getMessageArgs());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        return errorResponseBuilder.build(ex, HttpStatus.BAD_REQUEST, request, ExceptionError.ORDER_CANCELLATION, ex.getMessageArgs());
     }
-
 }
