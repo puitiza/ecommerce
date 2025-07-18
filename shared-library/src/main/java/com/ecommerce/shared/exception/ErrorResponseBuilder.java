@@ -39,61 +39,39 @@ public class ErrorResponseBuilder {
         String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
         String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
 
-        List<String> stackTraceList = shouldIncludeStackTrace(requestContext) ?
-                Arrays.stream(exception.getStackTrace())
-                        .limit(stackTraceDepth)
-                        .map(StackTraceElement::toString)
-                        .toList() : null;
-
-        String debugMessage = shouldIncludeStackTrace(requestContext) ?
-                Arrays.stream(exception.getStackTrace())
-                        .map(s -> "    at " + s)
-                        .collect(Collectors.joining(System.lineSeparator())) : null;
+        TraceInfo traceInfo = getTraceInfo(exception, requestContext);
 
         ErrorResponse errorResponse = new ErrorResponse(
                 httpStatus.value(),
                 message,
                 errorCode,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                stackTraceList,
+                traceInfo.stackTraceList(),
                 null,
-                debugMessage
+                traceInfo.debugMessage()
         );
 
         return ResponseEntity.status(httpStatus).body(errorResponse);
     }
 
-    public ResponseEntity<Object> buildWithValidationErrors(Exception exception, HttpStatus httpStatus, Object requestContext,
-                                                            ExceptionError error, List<ErrorResponse.ValidationError> validationErrors, Object... messageArgs) {
-        Locale locale = LocaleContextHolder.getLocale();
-        String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
-        String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
+    private TraceInfo getTraceInfo(Exception exception, Object requestContext) {
+        if (!shouldIncludeStackTrace(requestContext)) {
+            return new TraceInfo(null, null);
+        }
 
-        List<String> stackTraceList = shouldIncludeStackTrace(requestContext) ?
-                Arrays.stream(exception.getStackTrace())
-                        .limit(stackTraceDepth)
-                        .map(StackTraceElement::toString)
-                        .toList() : null;
+        List<String> stackTraceList = Arrays.stream(exception.getStackTrace())
+                .limit(stackTraceDepth)
+                .map(StackTraceElement::toString)
+                .toList();
 
-        String debugMessage = shouldIncludeStackTrace(requestContext) ?
-                Arrays.stream(exception.getStackTrace())
-                        .map(s -> "    at " + s)
-                        .collect(Collectors.joining(System.lineSeparator())) : null;
+        String debugMessage = Arrays.stream(exception.getStackTrace())
+                .map(s -> "    at " + s)
+                .collect(Collectors.joining(System.lineSeparator()));
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                httpStatus.value(),
-                message,
-                errorCode,
-                ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                stackTraceList,
-                validationErrors,
-                debugMessage
-        );
-
-        return ResponseEntity.status(httpStatus).body(errorResponse);
+        return new TraceInfo(stackTraceList, debugMessage);
     }
 
-    public boolean shouldIncludeStackTrace(Object requestContext) {
+    private boolean shouldIncludeStackTrace(Object requestContext) {
         if (!printStackTrace) return false;
         return switch (requestContext) {
             case ServerWebExchange exchange -> exchange.getRequest().getQueryParams().containsKey(TRACE_PARAM);
@@ -103,5 +81,8 @@ public class ErrorResponseBuilder {
             }
             default -> false;
         };
+    }
+
+    private record TraceInfo(List<String> stackTraceList, String debugMessage) {
     }
 }

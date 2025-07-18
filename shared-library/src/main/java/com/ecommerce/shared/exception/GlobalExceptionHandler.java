@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,10 +29,13 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
             @NonNull HttpStatusCode status,
             @NonNull WebRequest request
     ) {
-        List<ErrorResponse.ValidationError> validationErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> new ErrorResponse.ValidationError(fieldError.getField(), fieldError.getDefaultMessage()))
-                .toList();
-        return errorResponseBuilder.buildWithValidationErrors(ex, HttpStatus.UNPROCESSABLE_ENTITY, request, ExceptionError.VALIDATION_ERROR, validationErrors);
+        ResponseEntity<Object> response = errorResponseBuilder.build(ex, HttpStatus.UNPROCESSABLE_ENTITY,
+                request, ExceptionError.VALIDATION_ERROR);
+        ErrorResponse errorResponse = (ErrorResponse) response.getBody();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            errorResponse = errorResponse.withValidationError(fieldError.getField(), fieldError.getDefaultMessage());
+        }
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     @ExceptionHandler(ServiceException.class)
@@ -39,7 +43,6 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
         return errorResponseBuilder.build(ex, mapErrorToHttpStatus(ex.getError()), request, ex.getError(), ex.getMessageArgs());
     }
 
-    //creo que deberia ir a shared-library
     private HttpStatus mapErrorToHttpStatus(ExceptionError error) {
         return switch (error) {
             case VALIDATION_ERROR -> HttpStatus.UNPROCESSABLE_ENTITY;

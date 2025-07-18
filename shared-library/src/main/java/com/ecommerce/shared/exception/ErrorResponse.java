@@ -1,10 +1,6 @@
 package com.ecommerce.shared.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.springframework.http.HttpStatus;
-
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -18,18 +14,6 @@ public record ErrorResponse(
         List<String> stackTrace,
         List<ValidationError> errors,
         String debugMessage) {
-
-    public ErrorResponse(HttpStatus status, String message, String errorCode) {
-        this(
-                status.value(),
-                message,
-                errorCode,
-                ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                null,
-                null,
-                null
-        );
-    }
 
     public ErrorResponse withValidationError(String field, String message) {
         List<ValidationError> newErrors = new ArrayList<>(Objects.requireNonNullElse(errors, List.of()));
