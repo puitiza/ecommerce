@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-import javax.sql.rowset.serial.SerialException;
-
 /**
  * Global exception handler for the User Service REST API.
  * Catches and processes various exceptions, converting them into standardized

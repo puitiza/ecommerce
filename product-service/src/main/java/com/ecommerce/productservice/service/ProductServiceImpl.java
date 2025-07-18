@@ -1,8 +1,8 @@
 package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
-import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
+import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;

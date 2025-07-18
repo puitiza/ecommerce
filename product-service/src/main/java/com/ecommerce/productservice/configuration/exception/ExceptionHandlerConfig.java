@@ -1,8 +1,8 @@
 package com.ecommerce.productservice.configuration.exception;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
-import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
+import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
