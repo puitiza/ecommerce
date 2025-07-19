@@ -29,13 +29,19 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
             @NonNull HttpStatusCode status,
             @NonNull WebRequest request
     ) {
-        ResponseEntity<Object> response = errorResponseBuilder.build(ex, HttpStatus.UNPROCESSABLE_ENTITY,
-                request, ExceptionError.VALIDATION_ERROR);
-        ErrorResponse errorResponse = (ErrorResponse) response.getBody();
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            errorResponse = errorResponse.withValidationError(fieldError.getField(), fieldError.getDefaultMessage());
-        }
-        return ResponseEntity.status(status).body(errorResponse);
+        List<ErrorResponse.ValidationError> validationErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> new ErrorResponse.ValidationError(
+                        fieldError.getField(),
+                        fieldError.getDefaultMessage()
+                ))
+                .toList();
+        return errorResponseBuilder.buildInternal(
+                ex,
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                request,
+                ExceptionError.VALIDATION_ERROR,
+                validationErrors
+        );
     }
 
     @ExceptionHandler(ServiceException.class)

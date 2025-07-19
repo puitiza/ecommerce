@@ -35,6 +35,12 @@ public class ErrorResponseBuilder {
 
     public ResponseEntity<Object> build(Exception exception, HttpStatus httpStatus, Object requestContext,
                                         ExceptionError error, Object... messageArgs) {
+        return buildInternal(exception, httpStatus, requestContext, error, null, messageArgs);
+    }
+
+    public ResponseEntity<Object> buildInternal(Exception exception, HttpStatus httpStatus, Object requestContext,
+                                                 ExceptionError error, List<ErrorResponse.ValidationError> validationErrors,
+                                                 Object... messageArgs) {
         Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
         String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
@@ -47,7 +53,7 @@ public class ErrorResponseBuilder {
                 errorCode,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                 traceInfo.stackTraceList(),
-                null,
+                validationErrors,
                 traceInfo.debugMessage()
         );
 

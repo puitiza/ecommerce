@@ -15,12 +15,6 @@ public record ErrorResponse(
         List<ValidationError> errors,
         String debugMessage) {
 
-    public ErrorResponse withValidationError(String field, String message) {
-        List<ValidationError> newErrors = new ArrayList<>(Objects.requireNonNullElse(errors, List.of()));
-        newErrors.add(new ValidationError(field, message));
-        return new ErrorResponse(status, this.message, errorCode, timestamp, stackTrace, newErrors, debugMessage);
-    }
-
     public record ValidationError(String field, String message) {
     }
 }
