@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,15 +22,9 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
         super(errorResponseBuilder, messageSource);
     }
 
-    @ExceptionHandler(InvalidUserException.class)
+    @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
     public ResponseEntity<Object> handleInvalidUserException(InvalidUserException ex, WebRequest request) {
         log.error("Invalid user: {}", ex.getMessage(), ex);
-        return errorResponseBuilder.build(ex, HttpStatus.UNAUTHORIZED, request, ExceptionError.USER_USERNAME_FOUND, ex.getMessageArgs());
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
-        log.error("Authentication failed: {}", ex.getMessage(), ex);
-        return errorResponseBuilder.build(ex, HttpStatus.UNAUTHORIZED, request, ExceptionError.UNAUTHORIZED);
+        return errorResponseBuilder.build(ex, request, ExceptionError.USER_USERNAME_FOUND, null, ex.getMessageArgs());
     }
 }
