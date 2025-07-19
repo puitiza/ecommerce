@@ -4,7 +4,7 @@ import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ServiceException;
 
 public class ProductRetrievalException extends ServiceException {
-    public ProductRetrievalException(String message, Object... messageArgs) {
-        super(ExceptionError.PRODUCT_UPDATE_FAILED, message, messageArgs);
+    public ProductRetrievalException(String resourceType, String id) {
+        super(ExceptionError.NOT_FOUND, null, resourceType, id);
     }
 }

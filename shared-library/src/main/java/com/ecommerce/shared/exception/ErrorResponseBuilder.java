@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.WebRequest;
@@ -16,7 +15,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -33,48 +31,38 @@ public class ErrorResponseBuilder {
 
     private final MessageSource messageSource;
 
-    public ResponseEntity<Object> build(Exception exception, HttpStatus httpStatus, Object requestContext,
-                                        ExceptionError error, Object... messageArgs) {
-        return buildInternal(exception, httpStatus, requestContext, error, null, messageArgs);
-    }
-
-    public ResponseEntity<Object> buildInternal(Exception exception, HttpStatus httpStatus, Object requestContext,
-                                                 ExceptionError error, List<ErrorResponse.ValidationError> validationErrors,
-                                                 Object... messageArgs) {
+    public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
+                                        List<ErrorResponse.ValidationError> validationErrors, Object... messageArgs) {
         Locale locale = LocaleContextHolder.getLocale();
-        String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, exception.getMessage(), locale);
+        String message = exception.getMessage() != null && !exception.getMessage().isEmpty()
+                ? exception.getMessage()
+                : messageSource.getMessage(error.getKey() + ".msg", messageArgs, "Unexpected error", locale);
         String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
 
         TraceInfo traceInfo = getTraceInfo(exception, requestContext);
 
         ErrorResponse errorResponse = new ErrorResponse(
-                httpStatus.value(),
+                error.getHttpStatus().value(),
                 message,
                 errorCode,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                 traceInfo.stackTraceList(),
-                validationErrors,
-                traceInfo.debugMessage()
+                validationErrors
         );
 
-        return ResponseEntity.status(httpStatus).body(errorResponse);
+        return ResponseEntity.status(error.getHttpStatus()).body(errorResponse);
     }
 
     private TraceInfo getTraceInfo(Exception exception, Object requestContext) {
         if (!shouldIncludeStackTrace(requestContext)) {
-            return new TraceInfo(null, null);
+            return new TraceInfo(null);
         }
 
         List<String> stackTraceList = Arrays.stream(exception.getStackTrace())
                 .limit(stackTraceDepth)
                 .map(StackTraceElement::toString)
                 .toList();
-
-        String debugMessage = Arrays.stream(exception.getStackTrace())
-                .map(s -> "    at " + s)
-                .collect(Collectors.joining(System.lineSeparator()));
-
-        return new TraceInfo(stackTraceList, debugMessage);
+        return new TraceInfo(stackTraceList);
     }
 
     private boolean shouldIncludeStackTrace(Object requestContext) {
@@ -89,6 +77,6 @@ public class ErrorResponseBuilder {
         };
     }
 
-    private record TraceInfo(List<String> stackTraceList, String debugMessage) {
+    private record TraceInfo(List<String> stackTraceList) {
     }
 }

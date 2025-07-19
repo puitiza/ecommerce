@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,16 +27,16 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
 
     @ExceptionHandler({ResourceNotFoundException.class, ProductRetrievalException.class})
     public ResponseEntity<Object> handleNotFoundException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, HttpStatus.NOT_FOUND, request, ExceptionError.NOT_FOUND, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.NOT_FOUND, null, ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, HttpStatus.BAD_REQUEST, request, ExceptionError.ORDER_VALIDATION, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ex.getError(), null, ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderCancellationException.class)
     public ResponseEntity<Object> handleOrderCancellationException(OrderCancellationException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, HttpStatus.BAD_REQUEST, request, ExceptionError.ORDER_CANCELLATION, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.ORDER_CANCELLATION, null, ex.getMessageArgs());
     }
 }

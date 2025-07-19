@@ -16,7 +16,9 @@ import com.ecommerce.orderservice.model.request.*;
 import com.ecommerce.orderservice.publisher.OrderEventPublisher;
 import com.ecommerce.orderservice.repository.OrderRepository;
 import com.ecommerce.orderservice.services.component.OrderStateMachine;
+import com.ecommerce.shared.exception.ExceptionError;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
@@ -36,10 +38,15 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public record OrderServiceImpl(
-        ProductFeignClient productFeignClient, PaymentFeignClient paymentFeignClient,
-        OrderEventPublisher orderEventPublisher, OrderStateMachine orderStateMachine,
-        OrderRepository orderRepository, ModelMapper modelMapper) implements OrderService {
+@RequiredArgsConstructor
+public class OrderServiceImpl implements OrderService {
+
+    private final ProductFeignClient productFeignClient;
+    private final PaymentFeignClient paymentFeignClient;
+    private final OrderEventPublisher orderEventPublisher;
+    private final OrderStateMachine orderStateMachine;
+    private final OrderRepository orderRepository;
+    private final ModelMapper modelMapper;
 
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
@@ -66,7 +73,7 @@ public record OrderServiceImpl(
         order.setStatus(OrderStatus.VALIDATING);
         order.setCreatedAt(ZonedDateTime.now().toLocalDateTime());
 
-        //Assign Relation Order to OrderItems
+        // Assign Relation Order to OrderItems
         order.getItems().forEach(orderItemEntity -> orderItemEntity.setOrder(order));
 
         // Calculate total price
@@ -122,22 +129,24 @@ public record OrderServiceImpl(
         Set<Long> uniqueProductIds = new HashSet<>();
         for (OrderItemRequest item : request.getItems()) {
             if (!uniqueProductIds.add(item.getProductId())) {
-                throw new OrderValidationException(
-                        String.format("Duplicate product found with id: %d in the order", item.getProductId()));
+                throw new OrderValidationException(ExceptionError.ORDER_DUPLICATE_PRODUCT, item.getProductId());
             }
         }
+
         // Verify product availability
         for (OrderItemRequest item : request.getItems()) {
             try {
                 var availabilityResponse = productFeignClient.verifyProductAvailability(item, token[0]);
                 if (!availabilityResponse.isAvailable()) {
                     throw new OrderValidationException(
-                            String.format("Insufficient inventory for productId %d. Only %d units available.",
-                                    item.getProductId(), availabilityResponse.getAvailableUnits()));
+                            ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
+                            item.getProductId(), availabilityResponse.getAvailableUnits());
                 }
             } catch (FeignException e) {
                 throw new OrderValidationException(
-                        String.format("Failed to check product availability for productId %d due to communication error: %s", item.getProductId(), e.getMessage()));
+                        ExceptionError.ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED,
+                        String.format("Failed to check product availability for productId %d: %s", item.getProductId(), e.getMessage()),
+                        e, item.getProductId(), e.getMessage());
             }
         }
 
@@ -166,8 +175,7 @@ public record OrderServiceImpl(
                 } catch (FeignException e) {
                     handleValidationFailure(savedOrder, "Failed to authorize payment", e);
                 }
-
-            }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);// Timeout for asynchronous validation
+            }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS); // Timeout for asynchronous validation
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             handleValidationFailure(savedOrder, "Validation failed or timed out", e);
         }
@@ -179,7 +187,7 @@ public record OrderServiceImpl(
         savedOrder.setStatus(OrderStatus.VALIDATION_FAILED);
         orderRepository.save(savedOrder);
         orderEventPublisher.publishValidationFailedEvent(savedOrder);
-        throw new OrderValidationException("Order validation failed");
+        throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, errorMessage, exception);
     }
 
     @Override
@@ -187,7 +195,7 @@ public record OrderServiceImpl(
         log.info("Retrieving order with ID: {}", orderId);
 
         var orderFound = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", orderId), "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId.toString()));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -195,8 +203,7 @@ public record OrderServiceImpl(
         var savedOrderDto = modelMapper.map(orderFound, OrderDto.class);
 
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderFound.getItems(),
-                new TypeToken<List<OrderItemRequest>>() {
-                }.getType());
+                new TypeToken<List<OrderItemRequest>>() {}.getType());
         List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         savedOrderDto.setItems(result);
@@ -205,11 +212,11 @@ public record OrderServiceImpl(
     }
 
     @Override
-    public OrderDto updateOrder(UUID id, UpdateOrderRequest request) {
-        log.info("Updating order with ID: {}", id);
+    public OrderDto updateOrder(UUID orderId, UpdateOrderRequest request) {
+        log.info("Updating order with ID: {}", orderId);
 
-        OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", id), "P01"));
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId.toString()));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -222,8 +229,7 @@ public record OrderServiceImpl(
         }
         // Fetch product details concurrently
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderEntity.getItems(),
-                new TypeToken<List<OrderItemRequest>>() {
-                }.getType());
+                new TypeToken<List<OrderItemRequest>>() {}.getType());
         List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         // Calculate updated total price
@@ -275,26 +281,28 @@ public record OrderServiceImpl(
         }
     }
 
-    private void validateUpdatedQuantity(OrderItemRequest updatedItem, String token) {
+    private void validateUpdatedQuantity(OrderItemRequest updatedItem, String accessToken) {
         try {
-            var availabilityResponse = productFeignClient.verifyProductAvailability(updatedItem, token);
+            var availabilityResponse = productFeignClient.verifyProductAvailability(updatedItem, accessToken);
             if (!availabilityResponse.isAvailable()) {
                 throw new OrderValidationException(
-                        String.format("Insufficient inventory for productId %d. Only %d units available.",
-                                updatedItem.getProductId(), availabilityResponse.getAvailableUnits()));
+                        ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
+                        updatedItem.getProductId(), availabilityResponse.getAvailableUnits());
             }
         } catch (FeignException e) {
             throw new OrderValidationException(
-                    String.format("Failed to check product availability for productId %d due to communication error: %s", updatedItem.getProductId(), e.getMessage()));
+                    ExceptionError.ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED,
+                    String.format("Failed to check product availability for productId %d: %s", updatedItem.getProductId(), e.getMessage()),
+                    e, updatedItem.getProductId(), e.getMessage());
         }
     }
 
     @Override
-    public void cancelOrder(UUID id) {
-        log.info("Cancelling order with ID: {}", id);
+    public void cancelOrder(UUID orderId) {
+        log.info("Cancelling order with ID: {}", orderId);
 
-        OrderEntity orderEntity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Order with ID %s not found", id), "P01"));
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId.toString()));
 
         var token = getRequestHeaderToken(); // Get token once
 
@@ -383,7 +391,6 @@ public record OrderServiceImpl(
                 })
                 .toList();
         return new PageImpl<>(orderDtos, pageable, orders.getTotalElements());
-
     }
 
     private Map<Long, ProductDto> getProductDtosConcurrently(Set<Long> productIds, String accessToken) {
@@ -393,7 +400,7 @@ public record OrderServiceImpl(
                         return productFeignClient.getProductById(productId, accessToken);
                     } catch (FeignException e) {
                         log.error("Failed to retrieve product with ID {}: {}", productId, e.getMessage());
-                        throw new ProductRetrievalException(String.format("Failed to retrieve product with ID %d from the Product Service", productId));
+                        throw new ProductRetrievalException("Product", productId.toString());
                     }
                 }))
                 .toList();

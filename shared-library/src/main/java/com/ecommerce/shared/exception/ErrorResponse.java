@@ -11,8 +11,7 @@ public record ErrorResponse(
         String errorCode,
         String timestamp,
         List<String> stackTrace,
-        List<ValidationError> errors,
-        String debugMessage) {
+        List<ValidationError> errors) {
 
     public record ValidationError(String field, String message) {
     }

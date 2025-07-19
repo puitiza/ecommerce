@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -26,24 +25,18 @@ public class ExceptionHandlerConfig {
 
     @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
     public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
-        return switch (ex) {
-            case AuthenticationException authEx ->
-                    handleException(authEx, exchange, ExceptionError.GATEWAY_UNAUTHORIZED, HttpStatus.UNAUTHORIZED);
-            case AccessDeniedException accessEx ->
-                    handleException(accessEx, exchange, ExceptionError.GATEWAY_FORBIDDEN, HttpStatus.FORBIDDEN);
-            case RateLimitExceededException rateEx ->
-                    handleException(rateEx, exchange, ExceptionError.GATEWAY_RATE_LIMIT, HttpStatus.TOO_MANY_REQUESTS);
-            default ->
-                    handleException(ex, exchange, ExceptionError.GATEWAY_UNEXPECTED, HttpStatus.INTERNAL_SERVER_ERROR);
+        ExceptionError error = switch (ex) {
+            case AuthenticationException authEx -> ExceptionError.GATEWAY_UNAUTHORIZED;
+            case AccessDeniedException accessEx -> ExceptionError.GATEWAY_FORBIDDEN;
+            case RateLimitExceededException rateEx -> ExceptionError.GATEWAY_RATE_LIMIT;
+            default -> ExceptionError.GATEWAY_UNEXPECTED;
         };
-    }
 
-    private Mono<Void> handleException(Exception ex, ServerWebExchange exchange, ExceptionError error, HttpStatus status) {
         log.error("Exception occurred: {} - {}", error.getKey(), ex.getMessage());
-        ResponseEntity<Object> responseEntity = errorResponseBuilder.build(ex, status, exchange, error);
+        ResponseEntity<Object> responseEntity = errorResponseBuilder.build(ex, exchange, error, null);
         try {
             byte[] bytes = objectMapper.writeValueAsBytes(responseEntity.getBody());
-            exchange.getResponse().setStatusCode(status);
+            exchange.getResponse().setStatusCode(error.getHttpStatus());
             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
             return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(bytes)));
         } catch (JsonProcessingException e) {
