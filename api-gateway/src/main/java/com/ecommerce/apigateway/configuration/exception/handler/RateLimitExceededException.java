@@ -9,6 +9,6 @@ import com.ecommerce.shared.exception.ServiceException;
 public class RateLimitExceededException extends ServiceException {
 
     public RateLimitExceededException(String message, Object... messageArgs) {
-        super(ExceptionError.RATE_LIMIT_EXCEEDED, message, messageArgs);
+        super(ExceptionError.GATEWAY_RATE_LIMIT, message, messageArgs);
     }
 }
