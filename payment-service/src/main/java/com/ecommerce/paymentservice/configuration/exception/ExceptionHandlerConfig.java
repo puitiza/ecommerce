@@ -3,7 +3,6 @@ package com.ecommerce.paymentservice.configuration.exception;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -12,8 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
-    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
-        super(errorResponseBuilder, messageSource);
+    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder) {
+        super(errorResponseBuilder);
     }
 
 }

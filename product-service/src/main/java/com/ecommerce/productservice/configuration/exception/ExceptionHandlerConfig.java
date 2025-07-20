@@ -7,7 +7,6 @@ import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
 import com.ecommerce.shared.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +18,8 @@ import org.springframework.web.context.request.WebRequest;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
-    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
-        super(errorResponseBuilder, messageSource);
+    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder) {
+        super(errorResponseBuilder);
     }
 
     @ExceptionHandler(InvalidInventoryException.class)

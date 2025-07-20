@@ -1,8 +1,6 @@
 package com.ecommerce.shared.exception;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.MessageSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected final ErrorResponseBuilder errorResponseBuilder;
-    protected final MessageSource messageSource;
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
