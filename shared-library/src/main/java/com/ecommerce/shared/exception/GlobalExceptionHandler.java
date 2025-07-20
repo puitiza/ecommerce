@@ -1,6 +1,7 @@
 package com.ecommerce.shared.exception;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -44,5 +45,10 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
         return errorResponseBuilder.build(ex, request, ExceptionError.NOT_FOUND, null, ex.getMessageArgs());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.INTERNAL_SERVER_ERROR, null);
     }
 }

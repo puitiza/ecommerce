@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-@Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
+@Slf4j(topic = "GATEWAY_EXCEPTION_HANDLER")
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class ExceptionHandlerConfig {
@@ -26,9 +26,9 @@ public class ExceptionHandlerConfig {
     @ExceptionHandler({AuthenticationException.class, AccessDeniedException.class, RateLimitExceededException.class})
     public Mono<Void> handleGlobalException(Exception ex, ServerWebExchange exchange) {
         ExceptionError error = switch (ex) {
-            case AuthenticationException authEx -> ExceptionError.GATEWAY_UNAUTHORIZED;
-            case AccessDeniedException accessEx -> ExceptionError.GATEWAY_FORBIDDEN;
-            case RateLimitExceededException rateEx -> ExceptionError.GATEWAY_RATE_LIMIT;
+            case AuthenticationException ignored -> ExceptionError.GATEWAY_UNAUTHORIZED;
+            case AccessDeniedException ignored -> ExceptionError.GATEWAY_FORBIDDEN;
+            case RateLimitExceededException ignored -> ExceptionError.GATEWAY_RATE_LIMIT;
             default -> ExceptionError.GATEWAY_UNEXPECTED;
         };
 

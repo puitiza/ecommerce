@@ -8,9 +8,6 @@ public enum ExceptionError {
     // General errors
     VALIDATION_ERROR("error.validation", HttpStatus.UNPROCESSABLE_ENTITY),
     NOT_FOUND("error.not_found", HttpStatus.NOT_FOUND),
-    UNAUTHORIZED("error.unauthorized", HttpStatus.UNAUTHORIZED),
-    FORBIDDEN("error.forbidden", HttpStatus.FORBIDDEN),
-    RATE_LIMIT_EXCEEDED("error.rate_limit_exceeded", HttpStatus.TOO_MANY_REQUESTS),
     INTERNAL_SERVER_ERROR("error.internal_server", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Order service errors
