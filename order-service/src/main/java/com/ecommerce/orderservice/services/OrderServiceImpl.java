@@ -2,8 +2,6 @@ package com.ecommerce.orderservice.services;
 
 import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellationException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
-import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
-import com.ecommerce.orderservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.orderservice.feign.PaymentFeignClient;
 import com.ecommerce.orderservice.feign.ProductFeignClient;
 import com.ecommerce.orderservice.model.dto.OrderDto;
@@ -17,6 +15,7 @@ import com.ecommerce.orderservice.publisher.OrderEventPublisher;
 import com.ecommerce.orderservice.repository.OrderRepository;
 import com.ecommerce.orderservice.services.component.OrderStateMachine;
 import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ResourceNotFoundException;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -400,7 +399,7 @@ public class OrderServiceImpl implements OrderService {
                         return productFeignClient.getProductById(productId, accessToken);
                     } catch (FeignException e) {
                         log.error("Failed to retrieve product with ID {}: {}", productId, e.getMessage());
-                        throw new ProductRetrievalException("Product", productId.toString());
+                        throw new ResourceNotFoundException("Product", productId.toString());
                     }
                 }))
                 .toList();

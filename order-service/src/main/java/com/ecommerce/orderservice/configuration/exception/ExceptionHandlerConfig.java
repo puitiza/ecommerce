@@ -2,12 +2,9 @@ package com.ecommerce.orderservice.configuration.exception;
 
 import com.ecommerce.orderservice.configuration.exception.handler.OrderCancellationException;
 import com.ecommerce.orderservice.configuration.exception.handler.OrderValidationException;
-import com.ecommerce.orderservice.configuration.exception.handler.ProductRetrievalException;
-import com.ecommerce.orderservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
-import com.ecommerce.shared.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.core.Ordered;
@@ -23,11 +20,6 @@ import org.springframework.web.context.request.WebRequest;
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
     public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
         super(errorResponseBuilder, messageSource);
-    }
-
-    @ExceptionHandler({ResourceNotFoundException.class, ProductRetrievalException.class})
-    public ResponseEntity<Object> handleNotFoundException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.NOT_FOUND, null, ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderValidationException.class)

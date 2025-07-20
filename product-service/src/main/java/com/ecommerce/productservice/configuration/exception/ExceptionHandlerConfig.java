@@ -2,7 +2,6 @@ package com.ecommerce.productservice.configuration.exception;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
-import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
@@ -22,11 +21,6 @@ import org.springframework.web.context.request.WebRequest;
 public class ExceptionHandlerConfig extends GlobalExceptionHandler {
     public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder, MessageSource messageSource) {
         super(errorResponseBuilder, messageSource);
-    }
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Object> handleNotFoundException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.NOT_FOUND, null, ex.getMessageArgs());
     }
 
     @ExceptionHandler(InvalidInventoryException.class)

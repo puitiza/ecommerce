@@ -2,18 +2,17 @@ package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
-import com.ecommerce.productservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.repository.ProductRepository;
+import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,9 +39,8 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
 
     @Override
     public ProductDto getProductById(Long productId) {
-        Optional<ProductEntity> productOptional = repository.findById(productId);
-        var productEntity = productOptional
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId, "P01"));
+        var productEntity = repository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
         return modelMapper.map(productEntity, ProductDto.class);
     }
 
@@ -72,15 +70,14 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
     @Override
     public ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity) {
         var productEntity = repository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("Product not found with ID %d", productId), "P01"));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
         Integer availableQuantity = productEntity.getInventory();
         return new ProductAvailabilityDto((availableQuantity >= quantity), availableQuantity);
     }
 
     @Override
-    public void updateProductInventory(Long id, Integer updatedInventory) {
-        log.info("Updating inventory for product with ID {} to {}", id, updatedInventory);
+    public void updateProductInventory(Long productId, Integer updatedInventory) {
+        log.info("Updating inventory for product with ID {} to {}", productId, updatedInventory);
 
         // Input validation
         if (updatedInventory < 0) {
@@ -88,8 +85,8 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
         }
 
         try {
-            var productEntity = repository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException(String.format("Product not found with ID %d", id), "P01"));
+            var productEntity = repository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
             // Save updated product
             productEntity.setInventory(updatedInventory);
             repository.save(productEntity);

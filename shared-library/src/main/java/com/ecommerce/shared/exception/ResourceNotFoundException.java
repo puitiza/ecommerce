@@ -1,7 +1,4 @@
-package com.ecommerce.productservice.configuration.exception.handler;
-
-import com.ecommerce.shared.exception.ExceptionError;
-import com.ecommerce.shared.exception.ServiceException;
+package com.ecommerce.shared.exception;
 
 public class ResourceNotFoundException extends ServiceException {
     public ResourceNotFoundException(String resourceType, String id) {

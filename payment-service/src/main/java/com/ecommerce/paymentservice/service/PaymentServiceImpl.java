@@ -1,6 +1,5 @@
 package com.ecommerce.paymentservice.service;
 
-import com.ecommerce.paymentservice.configuration.exception.handler.ResourceNotFoundException;
 import com.ecommerce.paymentservice.model.entity.PaymentEntity;
 import com.ecommerce.paymentservice.model.entity.PaymentStatus;
 import com.ecommerce.paymentservice.model.request.PaymentAuthorizationRequest;
@@ -11,6 +10,7 @@ import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
 import com.ecommerce.paymentservice.repository.PaymentRepository;
+import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -89,7 +89,7 @@ public record PaymentServiceImpl(PaymentRepository paymentRepository) implements
     @Override
     public PaymentTransactionDetails getPaymentDetails(UUID paymentId) {
         PaymentEntity paymentEntity = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId, "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId.toString()));
 
         return new PaymentTransactionDetails(
                 paymentEntity.getId().toString(),
@@ -104,7 +104,7 @@ public record PaymentServiceImpl(PaymentRepository paymentRepository) implements
     @Override
     public RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest) {
         PaymentEntity paymentEntity = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found with ID: " + paymentId, "P01"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId.toString()));
 
         if (refundRequest.getRefundAmount().compareTo(paymentEntity.getAmount()) <= 0) {
             paymentEntity.setUpdatedAt(ZonedDateTime.now().toLocalDateTime());

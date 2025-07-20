@@ -40,4 +40,9 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     public ResponseEntity<Object> handleServiceException(ServiceException ex, WebRequest request) {
         return errorResponseBuilder.build(ex, request, ex.getError(), null, ex.getMessageArgs());
     }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.NOT_FOUND, null, ex.getMessageArgs());
+    }
 }
