@@ -7,8 +7,9 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorResponse(
         int status,
-        String message,
         String errorCode,
+        String message,
+        String details,
         String timestamp,
         List<String> stackTrace,
         List<ValidationError> errors) {

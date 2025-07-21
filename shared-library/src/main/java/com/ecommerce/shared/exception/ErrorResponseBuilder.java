@@ -33,18 +33,23 @@ public class ErrorResponseBuilder {
 
     public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
                                         List<ErrorResponse.ValidationError> validationErrors, Object... messageArgs) {
+        return build(exception, requestContext, error, validationErrors, exception.getMessage(), messageArgs);
+    }
+
+    public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
+                                        List<ErrorResponse.ValidationError> validationErrors,
+                                        String details, Object... messageArgs) {
         Locale locale = LocaleContextHolder.getLocale();
-        String message = exception.getMessage() != null && !exception.getMessage().isEmpty()
-                ? exception.getMessage()
-                : messageSource.getMessage(error.getKey() + ".msg", messageArgs, "Unexpected error", locale);
+        String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, "Unexpected error", locale);
         String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
 
         TraceInfo traceInfo = getTraceInfo(exception, requestContext);
 
         ErrorResponse errorResponse = new ErrorResponse(
                 error.getHttpStatus().value(),
-                message,
                 errorCode,
+                message,
+                details,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                 traceInfo.stackTraceList(),
                 validationErrors

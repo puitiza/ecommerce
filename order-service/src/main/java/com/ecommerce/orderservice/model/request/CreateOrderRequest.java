@@ -3,6 +3,8 @@ package com.ecommerce.orderservice.model.request;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -19,6 +21,8 @@ public class CreateOrderRequest {
     private String userId;
 
     //@NotBlank(message = "Items cannot be empty")
+    @NotNull(message = "The list of items cannot be null")
+    @NotEmpty(message = "The list of items cannot be empty")
     @Schema(description = "List of items to order", example = "[{productId: 1, quantity: 2}, {productId: 4, quantity: 1}]")
     private List<OrderItemRequest> items;
 
