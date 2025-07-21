@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ExceptionError {
     // General errors
-    VALIDATION_ERROR("error.validation", HttpStatus.UNPROCESSABLE_ENTITY),
+    VALIDATION_ERROR("error.validation", HttpStatus.BAD_REQUEST),
     NOT_FOUND("error.not_found", HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR("error.internal_server", HttpStatus.INTERNAL_SERVER_ERROR),
 

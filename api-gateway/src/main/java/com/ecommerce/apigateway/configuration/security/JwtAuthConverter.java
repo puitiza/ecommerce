@@ -3,6 +3,7 @@ package com.ecommerce.apigateway.configuration.security;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,7 +42,7 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     }
 
     @Override
-    public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
+    public Mono<AbstractAuthenticationToken> convert(@NonNull Jwt jwt) {
         return Mono.just(jwt)
                 .map(this::extractAuthorities)  // Extract authorities
                 .map(authorities -> new JwtAuthenticationToken(jwt, authorities, getPrincipalClaimName(jwt))); // Create AuthenticationToken
@@ -56,7 +57,6 @@ public class JwtAuthConverter implements Converter<Jwt, Mono<AbstractAuthenticat
     private Set<GrantedAuthority> extractAuthorities(Jwt jwt) {
         return Stream.concat(jwtGrantedAuthoritiesConverter.convert(jwt).stream(), extractResourceRoles(jwt).stream())
                 .collect(Collectors.toSet());
-
     }
 
     /**

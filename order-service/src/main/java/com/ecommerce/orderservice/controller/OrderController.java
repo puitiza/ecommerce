@@ -51,4 +51,9 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
         log.info("DELETING ORDER WITH ID {}", orderId);
         orderService.cancelOrder(orderId);
     }
+
+    @GetMapping("/orders/search")
+    public String testBoolean(@RequestParam boolean active) {
+        return "Active: " + active;
+    }
 }

@@ -1,11 +1,13 @@
 package com.ecommerce.shared.exception;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -32,6 +34,22 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
                 ))
                 .toList();
         return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, validationErrors);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(@NonNull TypeMismatchException ex,
+                                                        @NonNull HttpHeaders headers,
+                                                        @NonNull HttpStatusCode status,
+                                                        @NonNull WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, null, ex.getMessage());
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(@NonNull MissingServletRequestParameterException ex,
+                                                                          @NonNull HttpHeaders headers,
+                                                                          @NonNull HttpStatusCode status,
+                                                                          @NonNull WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, null, ex.getMessage());
     }
 
     @ExceptionHandler(ServiceException.class)

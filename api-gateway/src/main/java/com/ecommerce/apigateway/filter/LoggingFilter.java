@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -29,8 +30,9 @@ public class LoggingFilter implements WebFilter {
     @Value("${spring.profiles.active}")
     private String activeProfile;
 
+    @NonNull
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    public Mono<Void> filter(@NonNull ServerWebExchange exchange, WebFilterChain chain) {
         return chain.filter(exchange)
                 .doOnEach(signal -> {
                     if (signal.isOnComplete() || signal.isOnError()) {
@@ -68,7 +70,8 @@ public class LoggingFilter implements WebFilter {
      */
     private HttpHeaders maskAuthorizationHeader(HttpHeaders headers) {
         HttpHeaders maskedHeaders = new HttpHeaders();
-        headers.forEach((key, value) -> maskedHeaders.addAll(key, AUTH_HEADER.equalsIgnoreCase(key) ? List.of(MASKED_AUTH_VALUE) : value));
+        headers.forEach((key, value) ->
+                maskedHeaders.addAll(key, AUTH_HEADER.equalsIgnoreCase(key) ? List.of(MASKED_AUTH_VALUE) : value));
         return maskedHeaders;
     }
 
