@@ -42,97 +42,153 @@ For detailed multi-module setup, see [docs/multi-module.md](config/docs/multi-mo
 
 For details on the order state machine, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
-## Setup and Installation
+## Quick Start
 
-### Prerequisites
-- Java 17 (planned upgrade to Java 21)
-- Gradle 8.0+
-- Docker and Docker Compose
-- Docker Desktop with Kubernetes enabled
-- Postman (optional for testing)
+Get the project running locally in a few steps:
 
-### Local Setup
-1. Clone the repository:
+1. **Clone the Repository**:
    ```bash
    git clone https://github.com/puitiza/ecommerce.git
    cd ecommerce
    ```
-2. Build and run services:
+
+2. **Start the Services**:
    ```bash
    docker-compose up --build -d
    ```
-3. Access the API Gateway at `http://localhost:8090`.
-4. Use Swagger UI (`http://localhost:8090/swagger-ui.html`) or Postman to test endpoints.
-5. Import the Postman collection from `postman/ecommerce-collection.json`.
 
-#### Useful Docker Compose Commands
-- Build and start services: `docker-compose up --build -d`
-- Stop and remove services: `docker-compose down`
-- Remove volumes (clean up): `docker-compose down -v`
-- View logs: `docker-compose logs <service-name>`
-
-### Setting Up Keycloak for Local Development
-
-This project uses Keycloak for authentication, configured to allow HTTP access in development. Follow these steps to
-ensure the Keycloak server runs correctly:
-
-1. **Access the Keycloak Admin Console**:
-   Open your browser and navigate to:
-   ```
-   http://localhost:9090/admin
-   ```
-   Log in with:
-    - Username: `admin`
-    - Password: `admin`
-   ![success-keycloak](config/images/sign-https-keycloak.png)
-
-   This starts the Keycloak server and PostgreSQL database, importing the `ecommerce` realm from
-   `config/imports/realm-export.json`.
-
-2. **Configure the `master` Realm for HTTP Access**:
-   The Keycloak admin console uses the `master` realm, which requires an additional configuration to allow HTTP access:
+3. **Configure Keycloak for HTTP Access**:
+   The Keycloak `master` realm requires configuration to allow HTTP in development:
    ```bash
    docker exec -it keycloak-server /bin/bash
    /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin
    /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
    exit
    ```
-   ![success-keycloak](config/images/keycloak-server-docker.png)
 
-3. **Test the `ecommerce` Realm**:
-   The `ecommerce` realm is pre-configured to allow HTTP access. Test it with a client like `api-gateway-client` using:
+4. **Access the Keycloak Admin Console**:
+   Open `http://localhost:9090/admin` and log in with:
+    - Username: `admin`
+    - Password: `admin`
+
+5. **Test the API Gateway**:
+   Access Swagger UI at `http://localhost:8090/swagger-ui.html` to test endpoints.
+
+For detailed setup, see [Setup and Installation](#setup-and-installation).
+
+## Setup and Installation
+
+**Important**: The local setup uses HTTP for development. In production, enable HTTPS and configure Keycloak’s `sslRequired` to `external` or `all`. See [docs/production-setup.md](config/docs/production-setup.md).
+
+### Prerequisites
+- Java 21
+- Gradle 8.0+
+- Docker and Docker Compose
+- Docker Desktop with Kubernetes enabled
+- Postman (optional for testing)
+
+### Local Setup
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/puitiza/ecommerce.git
+   cd ecommerce
+   ```
+
+2. **Running the Application**:
+    - Build and start all services:
+      ```bash
+      docker-compose up --build -d
+      ```
+    - Stop and remove services:
+      ```bash
+      docker-compose down
+      ```
+    - Remove volumes (clean up):
+      ```bash
+      docker-compose down -v
+      ```
+    - View logs for a specific service:
+      ```bash
+      docker-compose logs <service-name>
+      ```
+
+3. **Access Services**:
+    - API Gateway: `http://localhost:8090`
+    - Swagger UI: `http://localhost:8090/swagger-ui.html`
+    - Keycloak Admin Console: `http://localhost:9090/admin`
+    - Eureka Dashboard: `http://localhost:8761`
+
+4. **Test Endpoints**:
+   Import the Postman collection from `postman/ecommerce-collection.json` or use Swagger UI.
+
+### Setting Up Keycloak for Local Development
+
+Keycloak provides OAuth2-based authentication for the `user-service` and API Gateway. The `ecommerce` realm is imported from `config/imports/realm-export.json` with `sslRequired: "none"` for HTTP access. The `master` realm (used for the admin console) requires manual configuration to allow HTTP.
+
+**Note**: This HTTP setup is for **development only**. In production, configure HTTPS and set `sslRequired` to `external` or `all`.
+
+1. **Start the Keycloak Server**:
+   Ensure the Keycloak server and PostgreSQL database are running:
+   ```bash
+   docker-compose up --build -d
+   ```
+   This imports the `ecommerce` realm, configured for HTTP access.
+
+2. **Configure the `master` Realm for HTTP Access**:
+   The `master` realm defaults to requiring HTTPS. To allow HTTP:
+   ```bash
+   docker exec -it keycloak-server /bin/bash
+   /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin
+   /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
+   exit
+   ```
+   ![Keycloak Terminal Configuration](config/images/keycloak-server-docker.png)
+   *Caption*: Configuring the `master` realm to allow HTTP access in the Keycloak container.
+
+3. **Access the Keycloak Admin Console**:
+   Open `http://localhost:9090/admin` and log in with:
+    - Username: `admin`
+    - Password: `admin`
+      ![Keycloak Admin Console](config/images/success-keycloak.png)
+      *Caption*: Successful login to the Keycloak admin console.
+
+4. **Test the `ecommerce` Realm**:
+   The `ecommerce` realm is pre-configured for HTTP access. Test it with the `api-gateway-client`:
    ```
    http://localhost:9090/realms/ecommerce/protocol/openid-connect/auth?client_id=api-gateway-client&response_type=code&redirect_uri=http://localhost:8090
    ```
+   ![Keycloak E-commerce Realm](config/images/sign-https-keycloak.png)
+   *Caption*: Testing the `ecommerce` realm login flow.
 
-    ![success-keycloak](config/images/success-keycloak.png)
+For Keycloak integration with the `user-service`, see [user-service/README.md](user-service/README.md).
 
-**Note**: This setup is for **development only**. In production, configure HTTPS and set `sslRequired` to `external` or
-`all` for security.
-
+### Troubleshooting Keycloak
+- **HTTPS Required Error**: Ensure the `kcadm.sh` commands in step 2 were executed. Verify the `master` realm’s `sslRequired` setting in the admin console (Realm Settings > Login) is `None`.
+- **Client ID Null Error**: Check the `security-admin-console` client in the `master` realm (Clients > security-admin-console) has valid redirect URIs (`http://localhost:9090/admin/master/console/*`).
+- **External IP Issues**: If logs show an external IP (e.g., `140.82.112.4`), ensure you’re accessing `http://localhost:9090` directly, not via a proxy or VPN. Clear browser cache or use incognito mode.
 
 ### Kubernetes Setup
 See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes and Azure deployment instructions.
 
 ## Roles and Permissions
 - **ADMIN**:
-  - **User Service**: View all user details, update/delete users.
-  - **Product Service**: Create, update, and delete products.
-  - **Order Service**: View all orders, cancel any order.
-  - **Shipment Service**: View all shipments, update shipment status.
+    - **User Service**: View all user details, update/delete users.
+    - **Product Service**: Create, update, and delete products.
+    - **Order Service**: View all orders, cancel any order.
+    - **Shipment Service**: View all shipments, update shipment status.
 - **USER**:
-  - **User Service**: View/update own profile.
-  - **Product Service**: Browse products.
-  - **Cart Service**: Manage own cart.
-  - **Order Service**: Create/view/cancel own orders.
-  - **Shipment Service**: View own shipment status.
+    - **User Service**: View/update own profile.
+    - **Product Service**: Browse products.
+    - **Cart Service**: Manage own cart.
+    - **Order Service**: Create/view/cancel own orders.
+    - **Shipment Service**: View own shipment status.
 - **Internal (Service-to-Service)**:
-  - **Payment Service**: Invoked by `order-service` via internal API calls.
-  - **Shipment Service**: Invoked by `order-service` for shipment creation.
-  - **Notification Service**: Triggered by Kafka events, no direct client access.
+    - **Payment Service**: Invoked by `order-service` via internal API calls.
+    - **Shipment Service**: Invoked by `order-service` for shipment creation.
+    - **Notification Service**: Triggered by Kafka events, no direct client access.
 - **Authentication**:
-  - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
-  - Service-to-service communication uses API keys or Kubernetes network policies.
+    - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
+    - Service-to-service communication uses API keys or Kubernetes network policies.
 
 ## Business Logic
 See individual service READMEs for detailed business logic. For the order lifecycle, refer to [docs/order-state-machine.md](config/docs/order-state-machine.md).
@@ -145,23 +201,29 @@ See individual service READMEs for detailed business logic. For the order lifecy
 
 ## Monitoring and Tracing
 - **Local**:
-  - **Zipkin**: Distributed tracing (`http://localhost:9411`).
-  - **Prometheus**: Metrics collection (`http://localhost:9090`).
-  - **Grafana**: Metrics visualization (`http://localhost:3000`).
-  - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
+    - **Zipkin**: Distributed tracing (`http://localhost:9411`).
+    - **Prometheus**: Metrics collection (`http://localhost:9090`).
+    - **Grafana**: Metrics visualization (`http://localhost:3000`).
+    - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
 - **Dev/Prod**:
-  - **Azure Application Insights**: Tracing.
-  - **Azure Monitor**: Metrics and logs.
+    - **Azure Application Insights**: Tracing.
+    - **Azure Monitor**: Metrics and logs.
 
 For production monitoring, see [docs/production-setup.md](config/docs/production-setup.md).
+
+## Troubleshooting
+- **Keycloak Issues**: See [Troubleshooting Keycloak](#troubleshooting-keycloak).
+- **Service Discovery**: If services fail to register with Eureka, check logs (`docker-compose logs service-registry`) and ensure the Eureka server is running at `http://localhost:8761`.
+- **Database Connection Errors**: Verify PostgreSQL/MySQL/Redis containers are running (`docker ps`) and check credentials in `docker-compose.yml`.
+- **API Gateway Errors**: Ensure the API Gateway is configured with Keycloak’s token endpoint and client credentials (see [api-gateway/README.md](api-gateway/README.md)).
 
 ## CI/CD
 - **Pipeline**: GitHub Actions for building, testing, and deploying.
 - **Steps**:
-  - Run unit and integration tests with Gradle and Testcontainers.
-  - Perform code quality analysis with SonarQube.
-  - Build and push Docker images to Docker Hub.
-  - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
+    - Run unit and integration tests with Gradle and Testcontainers.
+    - Perform code quality analysis with SonarQube.
+    - Build and push Docker images to Docker Hub.
+    - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
 - **Configuration**: See `.github/workflows/build.yml`.
 
 ## Security
@@ -188,11 +250,11 @@ For production setup with Azure, Kubernetes, and Application Insights, see [docs
 4. Submit a pull request with a clear description of changes.
 
 ## Resources
-- **Spring Cloud Config**: [Docker’s health check and Spring Boot apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
+- **Spring Cloud Config**: [Docker’s Health Check and Spring Boot Apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
 - **Keycloak**:
-  - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
-  - [Keycloak in Docker #5](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
+    - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
+    - [Keycloak in Docker #5: Export a Realm with Users and Secrets](https://keepgrowing.in/tools/keycloak-in-docker-5-how-to-export-a-realm-with-users-and-secrets/)
 - **Kubernetes Metrics Server**: [Enable Kubernetes Metrics Server on Docker Desktop](https://dev.to/docker/enable-kubernetes-metrics-server-on-docker-desktop-5434)
 - **Example Projects**:
-  - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
-  - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)
+    - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
+    - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)

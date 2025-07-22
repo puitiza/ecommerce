@@ -265,7 +265,7 @@ services:
   keycloak-server:
     container_name: keycloak-server
     hostname: keycloak
-    image: quay.io/keycloak/keycloak:23.0
+    image: quay.io/keycloak/keycloak:23.0.6
     volumes:
       - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
@@ -285,6 +285,9 @@ services:
       KC_DB_PASSWORD: password
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_ENABLED: true
+      KC_PROXY: none
+      KC_HOSTNAME_STRICT_HTTPS: false
 
   redis:
     container_name: redis
