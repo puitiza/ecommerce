@@ -71,6 +71,46 @@ For details on the order state machine, see [docs/order-state-machine.md](config
 - Remove volumes (clean up): `docker-compose down -v`
 - View logs: `docker-compose logs <service-name>`
 
+### Setting Up Keycloak for Local Development
+
+This project uses Keycloak for authentication, configured to allow HTTP access in development. Follow these steps to
+ensure the Keycloak server runs correctly:
+
+1. **Access the Keycloak Admin Console**:
+   Open your browser and navigate to:
+   ```
+   http://localhost:9090/admin
+   ```
+   Log in with:
+    - Username: `admin`
+    - Password: `admin`
+   ![success-keycloak](config/images/sign-https-keycloak.png)
+
+   This starts the Keycloak server and PostgreSQL database, importing the `ecommerce` realm from
+   `config/imports/realm-export.json`.
+
+2. **Configure the `master` Realm for HTTP Access**:
+   The Keycloak admin console uses the `master` realm, which requires an additional configuration to allow HTTP access:
+   ```bash
+   docker exec -it keycloak-server /bin/bash
+   /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin
+   /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
+   exit
+   ```
+   ![success-keycloak](config/images/keycloak-server-docker.png)
+
+3. **Test the `ecommerce` Realm**:
+   The `ecommerce` realm is pre-configured to allow HTTP access. Test it with a client like `api-gateway-client` using:
+   ```
+   http://localhost:9090/realms/ecommerce/protocol/openid-connect/auth?client_id=api-gateway-client&response_type=code&redirect_uri=http://localhost:8090
+   ```
+
+    ![success-keycloak](config/images/success-keycloak.png)
+
+**Note**: This setup is for **development only**. In production, configure HTTPS and set `sslRequired` to `external` or
+`all` for security.
+
+
 ### Kubernetes Setup
 See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes and Azure deployment instructions.
 
