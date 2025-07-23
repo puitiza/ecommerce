@@ -12,8 +12,19 @@ x-environment: &default-environment
   CONFIG_SERVER_URL: http://config-server:8885
   KEYCLOAK_SERVER_URL: http://keycloak:8080
 
+x-default-service: &default-service
+  restart: unless-stopped
+  networks:
+    - ecommerce-network
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
   config-server:
+    <<: *default-service
     container_name: config-server
     build:
       context: .
@@ -22,15 +33,13 @@ services:
         MODULE: config-server
         PORT: 8885
     ports:
-      - "8885:8885"
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
+      - "8885:8885" # Only for dev, eliminate in prod
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8885/actuator/health" ]
 
   service-registry:
+    <<: *default-service
     container_name: service-registry
     build:
       context: .
@@ -39,15 +48,13 @@ services:
         MODULE: service-registry
         PORT: 8761
     ports:
-      - "8761:8761"
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
+      - "8761:8761" # Only for dev, eliminate in prod
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
 
   api-gateway:
+    <<: *default-service
     container_name: api-gateway
     build:
       context: .
@@ -56,10 +63,7 @@ services:
         MODULE: api-gateway
         PORT: 8090
     ports:
-      - "8090:8090"
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
+      - "8090:8090" # Only for dev, eliminate in prod
     depends_on:
       config-server:
         condition: service_healthy
@@ -68,43 +72,38 @@ services:
     environment:
       <<: *default-environment
       CORS_ALLOWED_ORIGINS: http://localhost:9090,http://example.com
-      KEYCLOAK_CLIENT_SECRET: fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       REDIS_HOST: redis
       REDIS_PORT: 6379
 
-  # Distributed Tracing (Zipkin)
-  zipkin:
+  zipkin: # Distributed Tracing (Zipkin)
+    <<: *default-service
     container_name: zipkin
-    image: openzipkin/zipkin:latest
-    restart: unless-stopped
+    image: openzipkin/zipkin:2.24.0
     ports:
-      - "9411:9411"
-    networks:
-      - ecommerce-network
+      - "9411:9411" # Only for dev, eliminate in prod
 
   mysql-product-db:
+    <<: *default-service
     container_name: mysql-product-db
     image: mysql:8.0
-    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: product_db
-      MYSQL_USER: user
-      MYSQL_PASSWORD: test
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "3306:3306" # Only for dev, eliminate in prod
     volumes:
       - mysql_product_data:/var/lib/mysql
-    networks:
-      - ecommerce-network
     healthcheck:
       <<: *default-healthcheck
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}" ]
 
   mysql-order-db:
+    <<: *default-service
     container_name: mysql-order-db
     image: mysql:8.0
-    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root_db  # Use a different root password
       MYSQL_DATABASE: order_db
@@ -114,22 +113,18 @@ services:
       - "3307:3306"  # Map to a different port to avoid conflict
     volumes:
       - mysql_order_data:/var/lib/mysql
-    networks:
-      - ecommerce-network
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
 
   order-service: #This service hasn't container_name because it has 2 replicas
+    <<: *default-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE: order-service
         PORT: 8080
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
@@ -152,6 +147,7 @@ services:
       KAFKA_SERVER_URL: kafka:29092
 
   product-service:
+    <<: *default-service
     container_name: product-service
     build:
       context: .
@@ -160,10 +156,7 @@ services:
         MODULE: product-service
         PORT: 4005
     ports:
-      - "8002:4005"
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
+      - "8002:4005" # Only for dev, eliminate in prod
     depends_on:
       config-server:
         condition: service_healthy
@@ -181,6 +174,7 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
   user-service:
+    <<: *default-service
     container_name: user-service
     build:
       context: .
@@ -189,10 +183,7 @@ services:
         MODULE: user-service
         PORT: 8082
     ports:
-      - "8082:8082"
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
+      - "8082:8082" # Only for dev, eliminate in prod
     depends_on:
       config-server:
         condition: service_healthy
@@ -204,29 +195,26 @@ services:
       <<: *default-environment
 
   postgres-keycloak-db:
+    <<: *default-service
     container_name: postgres-keycloak-db
     image: postgres:15
     ports:
-      - "5432:5432"
+      - "5432:5432" # Only for dev, eliminate in prod
     volumes:
       - postgres_keycloak_data:/var/lib/postgresql/data
-    networks:
-      - ecommerce-network
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: password
 
   postgres-payment-db:
+    <<: *default-service
     container_name: postgres-payment-db
     image: postgres:15
-    restart: unless-stopped
     ports:
-      - "5430:5432"
+      - "5430:5432" # Only for dev, eliminate in prod
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
-    networks:
-      - ecommerce-network
     environment:
       POSTGRES_DB: payment_db
       POSTGRES_USER: payment_user
@@ -236,6 +224,7 @@ services:
       test: [ "CMD-SHELL", "pg_isready -U payment_user -d payment_db" ]
 
   payment-service:
+    <<: *default-service
     container_name: payment-service
     build:
       context: .
@@ -243,9 +232,6 @@ services:
       args:
         MODULE: payment-service
         PORT: 8080
-    restart: unless-stopped
-    networks:
-      - ecommerce-network
     depends_on:
       config-server:
         condition: service_healthy
@@ -263,55 +249,57 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
   keycloak-server:
+    <<: *default-service
     container_name: keycloak-server
     hostname: keycloak
     image: quay.io/keycloak/keycloak:23.0.6
     volumes:
       - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
-      - "9090:8080"
+      - "9090:8080" # Only for dev, eliminate in prod
     command:
       - start-dev
       - --transaction-xa-enabled=false
       - --import-realm
     depends_on:
       - postgres-keycloak-db
-    networks:
-      - ecommerce-network
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres-keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: true
       KC_PROXY: none
       KC_HOSTNAME_STRICT_HTTPS: false
 
   redis:
+    <<: *default-service
     container_name: redis
-    image: bitnami/redis:latest
+    image: bitnami/redis:8.0
     ports:
-      - "6379:6379"
-    networks:
-      - ecommerce-network
+      - "6379:6379" # Only for dev, eliminate in prod
     environment:
+      #      REDIS_PASSWORD: ${REDIS_PASSWORD}
       ALLOW_EMPTY_PASSWORD: yes
 
   zookeeper:
+    <<: *default-service
     container_name: zookeeper
     image: confluentinc/cp-zookeeper:7.2.0
     hostname: zookeeper
     ports:
-      - "2181:2181"
-    networks:
-      - ecommerce-network
+      - "2181:2181" # Only for dev, eliminate in prod
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "bash", "-c", "echo 'ruok' | nc -w 2 zookeeper 2181 | grep imok" ]
 
   kafka:
+    <<: *default-service
     image: confluentinc/cp-kafka:7.2.0
     hostname: kafka
     container_name: kafka
@@ -319,15 +307,13 @@ services:
       - zookeeper
     ports:
       - "29092:29092"
-      - "9092:9092"
+      - "9092:9092" # Only for dev, eliminate in prod
       - "9101:9101"
-    networks:
-      - ecommerce-network
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://${KAFKA_HOST:-localhost}:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -336,7 +322,7 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
     healthcheck:
       <<: *default-healthcheck
-      test: [ "CMD", "nc", "-vz", "localhost", "9092" ]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list" ]
 
 networks:
   ecommerce-network:
