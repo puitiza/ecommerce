@@ -72,6 +72,8 @@ services:
         condition: service_healthy
       service-registry:
         condition: service_healthy
+      keycloak-server:
+        condition: service_healthy
     environment:
       <<: *default-environment
       CORS_ALLOWED_ORIGINS: http://localhost:9090,http://example.com

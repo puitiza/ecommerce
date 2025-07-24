@@ -28,30 +28,33 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:redis_password}  # Agrega la contraseña
+      password: ${REDIS_PASSWORD:redis_password}
   cloud:
     gateway:
-      default-filters:
-        - TokenRelay= # Relays the OAuth2 token to downstream services
-      routes:
-        - id: PRODUCT-SERVICE
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/products/**
-        - id: ORDER-SERVICE
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/orders/**
-        - id: USER-SERVICE
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/users/**
-          filters:
-            - name: RequestRateLimitFilter
-              args:
-                key-resolver: "#{@hostAddressKeyResolver}"
-                redis-rate-limiter.replenishRate: 1 # Tokens added per second
-                redis-rate-limiter.burstCapacity: 2 # Max burst of tokens allowed
+      server:
+        webflux:
+          default-filters:
+            - TokenRelay= # Relays the OAuth2 token to downstream services
+          routes:
+            - id: PRODUCT-SERVICE
+              uri: lb://PRODUCT-SERVICE
+              predicates:
+                - Path=/products/**
+            - id: ORDER-SERVICE
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/orders/**
+            - id: USER-SERVICE
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/users/**
+              filters:
+                - name: RequestRateLimitFilter
+                  args:
+                    key-resolver: "#{@hostAddressKeyResolver}"
+                    redis-rate-limiter:
+                      replenishRate: 1  # Tokens added per second
+                      burstCapacity: 2  # Max burst of tokens allowed
 
 # Publicly accessible URLs (Swagger and user endpoints)
 permit-urls:
