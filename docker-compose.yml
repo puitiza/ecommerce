@@ -34,6 +34,13 @@ services:
         PORT: 8885
     ports:
       - "8885:8885" # Only for dev, eliminate in prod
+    volumes:
+      - ./config-server/src/main/resources/config:/config
+      - ./config-server/src/main/resources/config/shared:/config/shared
+    environment:
+      SPRING_PROFILE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config/,file:/config/shared/
+
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8885/actuator/health" ]
