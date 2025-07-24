@@ -2,7 +2,7 @@ spring:
   application:
     name: config-server
   profiles:
-    active: native
+    active: ${SPRING_PROFILE:native}
   cloud:
     config:
       server:

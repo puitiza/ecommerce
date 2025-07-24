@@ -7,8 +7,8 @@ x-healthcheck: &default-healthcheck
 
 x-environment: &default-environment
   SPRING_PROFILE: dev
-  MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin:9411/api/v2/spans
-  EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
   CONFIG_SERVER_URL: http://config-server:8885
   KEYCLOAK_SERVER_URL: http://keycloak:8080
 
@@ -34,13 +34,9 @@ services:
         PORT: 8885
     ports:
       - "8885:8885" # Only for dev, eliminate in prod
-    volumes:
-      - ./config-server/src/main/resources/config:/config
-      - ./config-server/src/main/resources/config/shared:/config/shared
     environment:
       SPRING_PROFILE: native
-      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config/,file:/config/shared/
-
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: classpath:/config/,classpath:/config/shared/
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8885/actuator/health" ]

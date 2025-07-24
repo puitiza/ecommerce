@@ -6,7 +6,6 @@ eureka:
     service-url: # This information must be given to which Eureka Server address the application will connect.
       defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
 
-
 # Fetch configuration from Spring Cloud Config Server
 spring:
   cloud:
@@ -24,4 +23,7 @@ management:
   zipkin:
     tracing: # Send tracing data to Zipkin server at this address
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
-
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env,configprops
