@@ -273,10 +273,11 @@ services:
       - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "9090:8080" # Only for dev, eliminate in prod
-    command:
-      - start-dev
-      - --transaction-xa-enabled=false
-      - --import-realm
+    entrypoint: [ "/bin/bash", "-c" ]
+    command: >
+      "/opt/keycloak/bin/kc.sh start-dev --transaction-xa-enabled=false --import-realm & sleep 60 &&
+       /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password ${KEYCLOAK_ADMIN_PASSWORD} &&
+       /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE"
     depends_on:
       postgres-keycloak-db:
         condition: service_healthy
@@ -290,12 +291,13 @@ services:
       KC_HTTP_ENABLED: true
       KC_PROXY: none
       KC_HOSTNAME_STRICT_HTTPS: false
-      KC_HEALTH_ENABLED:  true
+      KC_HEALTH_ENABLED: true
     healthcheck:
-      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'" ]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'" ]
       interval: 30s
       timeout: 5s
       retries: 20
+      start_period: 60s
 
   redis:
     <<: *default-service
