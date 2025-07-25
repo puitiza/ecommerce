@@ -15,7 +15,7 @@ spring:
         max-attempts: 30 # Retry retrieving config up to 30 times
         max-interval: 8000 # Wait up to 8 seconds between retries
 
-# Send all requests to Zipkin for tracing (adjust probability for production)
+# Send all requests to Zipkin for tracing
 management:
   tracing:
     sampling:
@@ -27,3 +27,8 @@ management:
     web:
       exposure:
         include: health,info,env,configprops
+
+# Requests curl http://localhost:/products?trace=true
+configuration:
+  trace: true
+  stacktrace-depth: 14

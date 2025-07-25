@@ -30,8 +30,6 @@ logging:
   level:
     org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR
 
-configuration:
-  trace: true
 
 permit-urls:
   swagger:

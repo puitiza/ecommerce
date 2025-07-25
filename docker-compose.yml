@@ -239,7 +239,8 @@ services:
       service-registry:
         condition: service_healthy
       zipkin:
-        condition: service_healthy
+        condition: service_started
+        restart: true
       postgres-payment-db:
         condition: service_healthy
     environment:
