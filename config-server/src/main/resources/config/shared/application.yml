@@ -28,7 +28,7 @@ management:
       exposure:
         include: health,info,env,configprops
 
-# Requests curl http://localhost:/products?trace=true
+# Enable tracing for distributed logging
 configuration:
   trace: true
   stacktrace-depth: 14

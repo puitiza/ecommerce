@@ -72,11 +72,6 @@ permit-urls:
 server:
   port: 8090
 
-# Enable tracing for distributed logging
-configuration:
-  trace: true
-  stacktrace-depth: 10
-
 # CORS configuration
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:9090}

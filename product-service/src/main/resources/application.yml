@@ -38,3 +38,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: ${springdoc.base-path}/swagger-ui.html
+#    oauth:
+#      client-id: product-service
+#      client-secret: ${KEYCLOAK_CLIENT_SECRET}
+#      use-pkce: true
