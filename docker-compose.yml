@@ -1,4 +1,4 @@
-# Define a reusable Healthcheck
+# Define reusable configurations
 x-healthcheck: &default-healthcheck
   interval: 10s
   timeout: 10s
@@ -6,7 +6,7 @@ x-healthcheck: &default-healthcheck
   start_period: 20s
 
 x-environment: &default-environment
-  SPRING_PROFILE: dev
+  SPRING_PROFILES_ACTIVE: dev
   MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
   EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
   CONFIG_SERVER_URL: http://config-server:8885
@@ -33,9 +33,9 @@ services:
         MODULE: config-server
         PORT: 8885
     ports:
-      - "8885:8885" # Only for dev, eliminate in prod
+      - "8885:8885" # Remove in prod
     environment:
-      SPRING_PROFILE: native
+      SPRING_PROFILES_ACTIVE: native
       SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: classpath:/config/,classpath:/config/shared/
     healthcheck:
       <<: *default-healthcheck
@@ -51,7 +51,7 @@ services:
         MODULE: service-registry
         PORT: 8761
     ports:
-      - "8761:8761" # Only for dev, eliminate in prod
+      - "8761:8761" # Remove in prod
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
@@ -66,13 +66,15 @@ services:
         MODULE: api-gateway
         PORT: 8090
     ports:
-      - "8090:8090" # Only for dev, eliminate in prod
+      - "8090:8090" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
       keycloak-server:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       <<: *default-environment
@@ -81,13 +83,16 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
 
-  zipkin: # Distributed Tracing (Zipkin)
+  zipkin:
     <<: *default-service
     container_name: zipkin
     image: openzipkin/zipkin:2.24.0
     ports:
-      - "9411:9411" # Only for dev, eliminate in prod
+      - "9411:9411" # Remove in prod
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:9411/actuator/health" ]
@@ -102,7 +107,7 @@ services:
       MYSQL_USER: ${MYSQL_PRODUCT_USER}
       MYSQL_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
     ports:
-      - "3306:3306" # Only for dev, eliminate in prod
+      - "3306:3306" # Remove in prod
     volumes:
       - mysql_product_data:/var/lib/mysql
     healthcheck:
@@ -119,14 +124,14 @@ services:
       MYSQL_USER: ${MYSQL_ORDER_USER}
       MYSQL_PASSWORD: ${MYSQL_ORDER_PASSWORD}
     ports:
-      - "3307:3306"  # Map to a different port to avoid conflict
+      - "3307:3306" # Remove in prod
     volumes:
       - mysql_order_data:/var/lib/mysql
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_ORDER_USER}", "-p${MYSQL_ORDER_PASSWORD}" ]
 
-  order-service: #This service hasn't container_name because it has 2 replicas
+  order-service:
     <<: *default-service
     build:
       context: .
@@ -155,6 +160,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ORDER_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       KAFKA_SERVER_URL: kafka:29092
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
 
   product-service:
     <<: *default-service
@@ -166,7 +174,7 @@ services:
         MODULE: product-service
         PORT: 4005
     ports:
-      - "8002:4005" # Only for dev, eliminate in prod
+      - "8002:4005" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
@@ -183,6 +191,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${MYSQL_PRODUCT_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:4005/actuator/health" ]
 
   user-service:
     <<: *default-service
@@ -194,7 +205,7 @@ services:
         MODULE: user-service
         PORT: 8082
     ports:
-      - "8082:8082" # Only for dev, eliminate in prod
+      - "8082:8082" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
@@ -207,38 +218,9 @@ services:
         condition: service_healthy
     environment:
       <<: *default-environment
-
-  postgres-keycloak-db:
-    <<: *default-service
-    container_name: postgres-keycloak-db
-    image: postgres:15
-    ports:
-      - "5432:5432" # Only for dev, eliminate in prod
-    volumes:
-      - postgres_keycloak_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: ${KEYCLOAK_DB_USER}
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-    healthcheck:
-      <<: *default-healthcheck
-      test: [ "CMD", "pg_isready", "-U", "postgres" ]
-
-  postgres-payment-db:
-    <<: *default-service
-    container_name: postgres-payment-db
-    image: postgres:15
-    ports:
-      - "5430:5432" # Only for dev, eliminate in prod
-    volumes:
-      - postgres_payment_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: payment_db
-      POSTGRES_USER: ${POSTGRES_PAYMENT_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
-    healthcheck:
-      <<: *default-healthcheck
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_PAYMENT_USER} -d payment_db" ]
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
 
   payment-service:
     <<: *default-service
@@ -248,15 +230,16 @@ services:
       dockerfile: Dockerfile
       args:
         MODULE: payment-service
-        PORT: 8080
+        PORT: 8087
+    ports:
+      - "8087:8087" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
       zipkin:
-        condition: service_started
-        restart: true
+        condition: service_healthy
       postgres-payment-db:
         condition: service_healthy
     environment:
@@ -265,6 +248,41 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PAYMENT_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
+
+  postgres-keycloak-db:
+    <<: *default-service
+    container_name: postgres-keycloak-db
+    image: postgres:15
+    ports:
+      - "5432:5432" # Remove in prod
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "pg_isready", "-U", "${KEYCLOAK_DB_USER}", "-d", "keycloak" ]
+
+  postgres-payment-db:
+    <<: *default-service
+    container_name: postgres-payment-db
+    image: postgres:15
+    ports:
+      - "5430:5432" # Remove in prod
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: ${POSTGRES_PAYMENT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_PAYMENT_USER}", "-d", "payment_db" ]
 
   keycloak-server:
     <<: *default-service
@@ -274,12 +292,11 @@ services:
     volumes:
       - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
-      - "9090:8080" # Only for dev, eliminate in prod
-    entrypoint: [ "/bin/bash", "-c" ]
-    command: >
-      "/opt/keycloak/bin/kc.sh start-dev --transaction-xa-enabled=false --import-realm & sleep 60 &&
-       /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password ${KEYCLOAK_ADMIN_PASSWORD} &&
-       /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE"
+      - "9090:8080" # Remove in prod
+    command:
+      - start-dev
+      - --transaction-xa-enabled=false
+      - --import-realm
     depends_on:
       postgres-keycloak-db:
         condition: service_healthy
@@ -304,11 +321,12 @@ services:
   redis:
     <<: *default-service
     container_name: redis
-    image: bitnami/redis:8.0
+    image: redis:8.0
     ports:
-      - "6379:6379" # Only for dev, eliminate in prod
+      - "6379:6379" # Remove in prod
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     healthcheck:
       <<: *default-healthcheck
       test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
@@ -319,7 +337,7 @@ services:
     image: confluentinc/cp-zookeeper:7.2.0
     hostname: zookeeper
     ports:
-      - "2181:2181" # Only for dev, eliminate in prod
+      - "2181:2181" # Remove in prod
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -329,19 +347,19 @@ services:
 
   kafka:
     <<: *default-service
+    container_name: kafka
     image: confluentinc/cp-kafka:7.2.0
     hostname: kafka
-    container_name: kafka
     depends_on:
       zookeeper:
         condition: service_healthy
     ports:
+      - "9092:9092" # Remove in prod
       - "29092:29092"
-      - "9092:9092" # Only for dev, eliminate in prod
       - "9101:9101"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
