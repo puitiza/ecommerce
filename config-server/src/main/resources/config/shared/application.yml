@@ -25,7 +25,7 @@ management:
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   endpoints:
     web:
-      exposure:
+      exposure: # Exposes management endpoints for monitoring
         include: health,info,env,configprops
 
 # Enable tracing for distributed logging
