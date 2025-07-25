@@ -61,7 +61,9 @@ permit-urls:
   swagger: >
     /webjars/**,
     /v3/api-docs/**,
+    /swagger-ui/**,
     /swagger-ui.html,
+    /favicon.ico,
     /products/v3/api-docs/**,
     /users/v3/api-docs/**,
     /orders/v3/api-docs/**
