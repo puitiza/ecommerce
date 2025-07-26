@@ -11,11 +11,11 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+          issuer-uri: ${keycloak.realm.url}
       client:
         provider:
           keycloak:
-            issuer-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce
+            issuer-uri: ${keycloak.realm.url}
             user-name-attribute: preferred_username
         registration:
           ecommerce:

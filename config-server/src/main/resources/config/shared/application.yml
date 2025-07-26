@@ -33,7 +33,7 @@ configuration:
   trace: true
   stacktrace-depth: 14
 
-# keycloak.yml (o en application.yml del Config Server)
+# Keycloak Central Configuration
 keycloak:
   server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
   realm:

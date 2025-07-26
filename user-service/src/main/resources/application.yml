@@ -9,7 +9,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
+          jwk-set-uri: ${keycloak.realm.url}/protocol/openid-connect/certs
 
 server:
   port: 8082
@@ -29,7 +29,6 @@ keycloak:
 logging:
   level:
     org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR
-
 
 permit-urls:
   swagger:

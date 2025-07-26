@@ -19,10 +19,6 @@ spring:
 server:
   port: 8087
 
-openapi:
-  oAuthFlow:
-    tokenUrl: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/token
-
 springdoc:
   base-path: /payments
   api-docs:
