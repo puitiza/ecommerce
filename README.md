@@ -11,7 +11,7 @@ This is a personal project to explore microservices architecture, built with **S
 ## About the Project
 
 This project demonstrates a microservices-based e-commerce platform using modern technologies:
-- **Spring Boot 3.0**: Framework for building microservices with Java 17 (planned upgrade to Java 21).
+- **Spring Boot 3.0**: Framework for building microservices with Java 21.
 - **Gradle**: Build tool for dependency management and multi-module project structure.
 - **Spring Cloud Config**: Centralized configuration management (see [config-server/README.md](config-server/README.md)).
 - **Eureka Server**: Service discovery for dynamic routing (see [service-registry/README.md](service-registry/README.md)).
@@ -235,7 +235,7 @@ For production setup with Azure, Kubernetes, and Application Insights, see [docs
 - **Analytics Service**: Analyze user and product data (Kafka Streams or Spark).
 - **Internationalization**: Support multiple languages and currencies.
 - **Fraud Detection**: Integrate Stripe Radar or custom rules for payment validation.
-- **Multi-Module Enhancements**: Shared DTOs, exceptions, and utilities in the `common` module (see [docs/multi-module.md](config/docs/multi-module.md)).
+- **Multi-Module Enhancements**: Shared DTOs, exceptions, and utilities in the `share-library` module (see [docs/multi-module.md](config/docs/multi-module.md)).
 
 ## Contributing
 1. Fork the repository.

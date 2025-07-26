@@ -1,17 +1,25 @@
 # Payment Service
 
-The Payment Service handles payment processing for orders in the e-commerce platform, integrating with external payment
-gateways (e.g., Stripe) and communicating with the `order-service` via Kafka events. It uses PostgreSQL for persistent
-storage and Keycloak for authentication.
+The Payment Service is a dedicated microservice responsible for handling payment processing within the e-commerce
+platform. It integrates with external payment gateways and securely manages payment-related transactions.
 
 ## Key Features
 
-- **Payment Processing**: Processes payments for orders, integrating with external gateways.
-- **Authentication & Authorization**: Secured with Keycloak OAuth2 and JWT, requiring authentication for all endpoints
-  except public Swagger routes.
-- **Event-Driven Integration**: Consumes order events from Kafka to trigger payment processing.
-- **Database**: Uses PostgreSQL for storing payment data, with automatic JPA configuration by Spring Boot.
-- **Monitoring**: Supports distributed tracing with Zipkin and metrics with Prometheus.
+- **Payment Processing**: Processes payment requests from the Order Service.
+- **Transaction Management**: Records and manages payment transactions.
+- **External Gateway Integration**: Designed to integrate with external payment gateways (e.g., Stripe, PayPal).
+- **RESTful API**: Exposes a clear API for payment operations.
+- **Security**: Secured with JWT authentication via Keycloak.
+
+## Technologies
+
+- **Spring Boot 3.0**: Framework for building robust microservices.
+- **PostgreSQL**: Relational database for persistent storage of payment data.
+- **Spring Data JPA / Hibernate**: For data persistence and ORM.
+- **Spring Security**: For authentication and authorization using OAuth2 Resource Server.
+- **Spring Cloud Config Client**: To fetch centralized configurations.
+- **Eureka Client**: For service registration and discovery.
+- **Springdoc OpenAPI**: For API documentation and Swagger UI.
 
 ## Configuration
 
@@ -44,43 +52,39 @@ The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically c
 
 ## Local Setup
 
-1. **Start Dependencies**:
-   Ensure Config Server, Eureka Server, Keycloak, PostgreSQL, and Kafka are running via Docker Compose:
-   ```bash
-   docker-compose up --build -d
-   ```
+To run the Payment Service locally:
 
-2. **Run the Service**:
-   Build and start the Payment Service:
-   ```bash
-   ./gradlew :payment-service:bootRun
-   ```
+1. Ensure [Config Server](https://www.google.com/search?q=config-server/README.md)
+   and [Eureka Server](https://www.google.com/search?q=service-registry/README.md) are running.
+2. Start the PostgreSQL container (if not using `docker-compose up`).
+3. Navigate to the `payment-service` directory.
+4. Run the application: `./gradlew bootRun` or use your IDE.
+5. Alternatively, use `docker-compose up -d payment-service` from the root directory to start it as part of the overall
+   microservices stack.
 
-3. **Access Endpoints**:
-    - Swagger UI: `http://localhost:8090/payments/swagger-ui.html` (via API Gateway).
-    - Example endpoint: `POST /payments` (requires JWT token).
+## Testing
+
+- **Unit Tests**: Implemented using JUnit 5 and Mockito for isolated component testing.
+- **Integration Tests**: Utilizes Testcontainers for database integration testing.
+- Run tests with `./gradlew test`.
 
 ## Production Considerations
 
-- **HTTPS**: Configure Keycloak to require HTTPS and set `sslRequired` to `external` or `all`.
-- **Secrets**: Use Azure Key Vault for sensitive data like database passwords and Keycloak client secrets.
-- **Monitoring**: Replace Zipkin with Azure Application Insights for tracing.
-- **Database**: Use a managed PostgreSQL instance (e.g., Azure Database for PostgreSQL).
-- **Payment Gateway**: Ensure secure integration with production-ready gateways like Stripe.
+- Ensure database credentials and external payment gateway API keys are securely managed using environment variables or
+  a secrets management solution (e.g., Azure Key Vault).
+- Configure `spring.jpa.hibernate.ddl-auto` to `none` or `validate` in production for schema stability.
+- Utilize distributed tracing (Azure Application Insights) and metrics (Azure Monitor) for production monitoring.
+- Implement robust error handling and retry mechanisms for external payment gateway calls.
 
-## Troubleshooting
+## Multi-Module Integration
 
-- **JWT Validation Errors**: Verify `keycloak.realm.url` in the Config Server and ensure Keycloak is running at
-  `http://localhost:9090`.
-- **Database Connection Issues**: Check PostgreSQL container logs (`docker-compose logs postgres`) and credentials in
-  `application.yml`.
-- **Kafka Errors**: Ensure Kafka is running (`docker-compose logs kafka`) and topics are created (use AKHQ at
-  `http://localhost:8081`).
+The Payment Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring
+consistency across the microservices' ecosystem.
 
 ## Resources
 
-- [Spring Boot OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
-- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
-- [Spring Kafka](https://docs.spring.io/spring-kafka/reference/html/)
-- [Stripe API](https://stripe.com/docs/api)
+- [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
+- [Spring Boot Data JPA Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/data.html)
+- [Spring Security OAuth2 Documentation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 

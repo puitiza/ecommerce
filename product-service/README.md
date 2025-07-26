@@ -1,51 +1,82 @@
 # Product Service
 
-The Product Service manages the product catalog and inventory for the e-commerce platform, providing CRUD operations for
-products. It integrates with Keycloak for authentication, MySQL for persistent storage, and the Spring Cloud Config
-Server for centralized configuration.
+The Product Service is a core business microservice responsible for managing product information and inventory within
+the e-commerce platform. It provides functionalities for creating, reading, updating, and deleting products.
 
 ## Key Features
 
-- **Product Management**: Create, read, update, and delete products and manage inventory.
-- **Authentication & Authorization**: Secured with Keycloak OAuth2 and JWT, with role-based access (`ADMIN` for
-  create/update/delete, `USER` for browsing).
-- **Database**: Uses MySQL for storing product data, with automatic JPA configuration by Spring Boot.
-- **Monitoring**: Supports distributed tracing with Zipkin and metrics with Prometheus.
+- **Product Management (CRUD)**: Full support for managing product details (name, description, price, etc.).
+- **Inventory Management**: Tracks product stock levels.
+- **RESTFUL API**: Exposes a comprehensive REST API for product-related operations.
+- **Security**: Secured with JWT authentication via Keycloak.
+
+## Technologies
+
+- **Spring Boot 3.0**: Framework for building robust microservices.
+- **MySQL**: Relational database for persistent storage of product data.
+- **Spring Data JPA / Hibernate**: For data persistence and ORM.
+- **Spring Security**: For authentication and authorization using OAuth2 Resource Server.
+- **Spring Cloud Config Client**: To fetch centralized configurations.
+- **Eureka Client**: For service registration and discovery.
+- **Springdoc OpenAPI**: For API documentation and Swagger UI.
 
 ## Configuration
 
-The Product Service retrieves its configuration from the Spring Cloud Config Server and uses Spring Boot's
-autoconfiguration for JPA and OAuth2.
+The Product Service consumes its configuration from the [Spring Cloud Config Server](../config-server/README.md).
 
-### application.yml
+### Application Name and Profile
 
 ```yaml
 spring:
   application:
-    name: product-service
+    name: product-service # Unique name for Eureka registration
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: dev # Active profile (e.g., dev, prod)
   config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885} # Connects to Config Server
+````
+
+### Database Connection (Managed by Config Server)
+
+The database configuration is managed via the [Config Server](https://www.google.com/search?q=config-server/README.md)
+to centralize sensitive credentials.
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: ${PRODUCT_DB_USERNAME:user} # Injected via environment variable or Vault
+    password: ${PRODUCT_DB_PASSWORD:test} # Injected via environment variable or Vault
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update # Configured based on environment (e.g., 'none' for production)
+```
+
+**Note:** Database credentials should be provided via environment variables or a secure secrets management system like
+HashiCorp Vault in production environments.
+
+### Security (OAuth2 Resource Server)
+
+The Product Service acts as an OAuth2 Resource Server, validating JWTs issued by [Keycloak](https://www.keycloak.org/)
+for secure access to its endpoints.
+
+```yaml
+spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${keycloak.realm.url}
-  datasource:
-    url: ${db.product-service.url:jdbc:mysql://localhost:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${db.product-service.username:user}
-    password: ${db.product-service.password}
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: update
+          jwk-set-uri: ${keycloak.realm.url}/protocol/openid-connect/certs # JWK Set URI from Keycloak realm
+```
 
-server:
-  port: 8080
+### Swagger/OpenAPI Documentation
 
+API documentation is generated using Springdoc OpenAPI and exposed via Swagger UI.
+
+```yaml
 springdoc:
-  base-path: /products
+  base-path: /products # Base path for API endpoints and Swagger UI
   api-docs:
     enabled: true
     path: ${springdoc.base-path}/v3/api-docs
@@ -54,18 +85,12 @@ springdoc:
     path: ${springdoc.base-path}/swagger-ui.html
 
 permit-urls:
-  swagger: >
-    /products/v3/api-docs/**,
-    /products/swagger-ui/**,
-    /products/swagger-ui.html,
-    /favicon.ico
+  swagger:
+    - ${springdoc.base-path}/v3/api-docs/**
+    - ${springdoc.base-path}/swagger-ui/**
+    - ${springdoc.base-path}/swagger-ui.html
+    - /favicon.ico
 ```
-
-### Security Configuration
-
-The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically configures a `JwtDecoder` using the
-`issuer-uri` to validate tokens. Public endpoints (e.g., Swagger) are accessible without authentication, while
-`/admin/**` and `/user/**` require specific roles.
 
 ### Dependencies
 
@@ -76,25 +101,28 @@ The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically c
 - `spring-cloud-starter-config`: Connects to Config Server.
 - `spring-cloud-starter-netflix-eureka-client`: Registers with Eureka.
 
+## API Endpoints
+
+All API endpoints are prefixed with `/products`. You can explore the available endpoints via the Swagger UI:
+`http://localhost:8090/products/swagger-ui.html` (via API Gateway).
+
 ## Local Setup
 
-1. **Start Dependencies**:
-   Ensure Config Server, Eureka Server, Keycloak, and MySQL are running via Docker Compose:
-   ```bash
-   docker-compose up --build -d
-   ```
+To run the Product Service locally:
 
-2. **Run the Service**:
-   Build and start the Product Service:
-   ```bash
-   ./gradlew :product-service:bootRun
-   ```
+1. Ensure [Config Server](https://www.google.com/search?q=config-server/README.md)
+   and [Eureka Server](https://www.google.com/search?q=service-registry/README.md) are running.
+2. Start the MySQL container (if not using `docker-compose up`).
+3. Navigate to the `product-service` directory.
+4. Run the application: `./gradlew bootRun` or use your IDE.
+5. Alternatively, use `docker-compose up -d product-service` from the root directory to start it as part of the overall
+   microservices stack.
 
-3. **Access Endpoints**:
-    - Swagger UI: `http://localhost:8090/products/swagger-ui.html` (via API Gateway).
-    - Example endpoints:
-        - `GET /products` (public, no authentication).
-        - `POST /admin/products` (requires `ADMIN` role).
+## Testing
+
+- **Unit Tests**: Implemented using JUnit 5 and Mockito for isolated component testing.
+- **Integration Tests**: Utilizes Testcontainers for database integration testing.
+- Run tests with `./gradlew test`.
 
 ## Production Considerations
 
@@ -103,17 +131,13 @@ The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically c
 - **Monitoring**: Replace Zipkin with Azure Application Insights for tracing.
 - **Database**: Use a managed MySQL instance (e.g., Azure Database for MySQL).
 
-## Troubleshooting
+## Multi-Module Integration
 
-- **JWT Validation Errors**: Verify `keycloak.realm.url` in the Config Server and ensure Keycloak is running at
-  `http://localhost:9090`.
-- **Database Connection Issues**: Check MySQL container logs (`docker-compose logs mysql`) and credentials in
-  `application.yml`.
-- **Role Mapping Issues**: Ensure `ADMIN` and `USER` roles are configured in Keycloak’s `ecommerce` realm for the
-  `product-service` client.
+The Product Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes,
+ensuring consistency across the microservices' ecosystem.
 
 ## Resources
 
-- [Spring Boot OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
-- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
-- [Spring Cloud Config](https://cloud.spring.io/spring-cloud-config/)
+- [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
+- [Spring Boot Data JPA Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/data.html)
+- [Spring Security OAuth2 Documentation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)

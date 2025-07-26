@@ -1,19 +1,33 @@
 # Order Service
 
-The Order Service is a core component of the e-commerce platform, responsible for managing order creation, processing,
-and state transitions. It integrates with Keycloak for authentication, MySQL for persistent storage, Kafka for
-event-driven communication, and the Spring Cloud Config Server for centralized configuration.
+The Order Service is a critical core business microservice responsible for managing the entire lifecycle of customer
+orders within the e-commerce platform. It handles order creation, validation, state transitions, and integration with
+other services like Payment and Shipment.
 
 ## Key Features
 
-- **Order Management**: Create, retrieve, update, and cancel orders with a state machine for lifecycle management (
-  see [docs/order-state-machine.md](../config/docs/order-state-machine.md)).
-- **Authentication & Authorization**: Secured with Keycloak OAuth2 and JWT, requiring authentication for all endpoints
-  except public Swagger routes.
-- **Event-Driven Integration**: Publishes order events to Kafka for consumption by `payment-service`,
-  `shipment-service`, and `notification-service`.
-- **Database**: Uses MySQL for storing order data, with automatic JPA configuration by Spring Boot.
-- **Monitoring**: Supports distributed tracing with Zipkin and metrics with Prometheus.
+- **Order Lifecycle Management**: Manages orders through various states (e.g., PENDING, PROCESSING, SHIPPED, DELIVERED,
+  CANCELLED) using a state machine.
+- **Order Validation**: Ensures order integrity before processing.
+- **Integration with Payment Service**: Initiates payment processing for new orders.
+- **Integration with Product Service**: Interacts for product availability and inventory updates.
+- **Integration with Shipment Service**: Triggers shipment creation upon successful payment.
+- **Event-Driven Communication**: Utilizes Kafka for asynchronous communication and event publishing (e.g., order
+  created, order paid).
+- **RESTful API**: Provides endpoints for order creation, retrieval, and updates.
+- **Security**: Secured with JWT authentication via Keycloak.
+
+## Technologies
+
+- **Spring Boot 3.0**: Framework for building robust microservices.
+- **MySQL**: Relational database for persistent storage of order data.
+- **Spring Data JPA / Hibernate**: For data persistence and ORM.
+- **Apache Kafka**: For asynchronous, event-driven communication.
+- **CloudEvents**: Used as the messaging format over Kafka for structured event data.
+- **Spring Security**: For authentication and authorization using OAuth2 Resource Server.
+- **Spring Cloud Config Client**: To fetch centralized configurations.
+- **Eureka Client**: For service registration and discovery.
+- **Springdoc OpenAPI**: For API documentation and Swagger UI.
 
 ## Configuration
 
@@ -47,42 +61,39 @@ The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically c
 
 ## Local Setup
 
-1. **Start Dependencies**:
-   Ensure Config Server, Eureka Server, Keycloak, MySQL, and Kafka are running via Docker Compose:
-   ```bash
-   docker-compose up --build -d
-   ```
+To run the Order Service locally:
 
-2. **Run the Service**:
-   Build and start the Order Service:
-   ```bash
-   ./gradlew :order-service:bootRun
-   ```
+1. Ensure [Config Server](https://www.google.com/search?q=config-server/README.md), [Eureka Server](https://www.google.com/search?q=service-registry/README.md),
+MySQL, and Kafka are running.
+2. Navigate to the `order-service` directory.
+3. Run the application: `./gradlew bootRun` or use your IDE.
+4. Alternatively, use `docker-compose up -d order-service` from the root directory to start it as part of the overall
+   microservices stack.
 
-3. **Access Endpoints**:
-    - Swagger UI: `http://localhost:8090/orders/swagger-ui.html` (via API Gateway).
-    - Example endpoint: `GET /orders` (requires JWT token).
+## Testing
+
+- **Unit Tests**: Implemented using JUnit 5 and Mockito for isolated component testing.
+- **Integration Tests**: Utilizes Testcontainers for database and Kafka integration testing.
+- Run tests with `./gradlew test`.
 
 ## Production Considerations
 
-- **HTTPS**: Configure Keycloak to require HTTPS and set `sslRequired` to `external` or `all`.
-- **Secrets**: Use Azure Key Vault for sensitive data like database passwords and Keycloak client secrets.
-- **Monitoring**: Replace Zipkin with Azure Application Insights for tracing.
-- **Database**: Use a managed MySQL instance (e.g., Azure Database for MySQL).
-- **Kafka**: Deploy a managed Kafka cluster (e.g., Confluent Cloud or Azure Event Hubs).
+- Ensure database credentials and Kafka broker URLs are securely managed using environment variables or a secrets
+  management solution.
+- Configure `spring.jpa.hibernate.ddl-auto` to `none` or `validate` in production for schema stability.
+- Utilize distributed tracing (Azure Application Insights) and metrics (Azure Monitor) for production monitoring.
+- Consider Kafka best practices for production, including replication factors, topic configurations, and consumer
+  groups.
 
-## Troubleshooting
+## Multi-Module Integration
 
-- **JWT Validation Errors**: Verify `keycloak.realm.url` in the Config Server and ensure Keycloak is running at
-  `http://localhost:9090`.
-- **Database Connection Issues**: Check MySQL container logs (`docker-compose logs mysql`) and credentials in
-  `application.yml`.
-- **Kafka Errors**: Ensure Kafka is running (`docker-compose logs kafka`) and topics are created (use AKHQ at
-  `http://localhost:8081`).
+The Order Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring
+consistency across the microservices' ecosystem.
 
 ## Resources
 
-- [Spring Boot OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
-- [Spring Kafka](https://docs.spring.io/spring-kafka/reference/html/)
-- [Spring Cloud Config](https://cloud.spring.io/spring-cloud-config/)
-- [Keycloak OAuth2](https://www.keycloak.org/docs/latest/securing_apps/)
+- [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
+- [Spring Boot Data JPA Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/data.html)
+- [Spring Security OAuth2 Documentation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
+- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
+- [CloudEvents Specification](https://cloudevents.io/)
