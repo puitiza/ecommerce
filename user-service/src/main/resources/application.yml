@@ -9,7 +9,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${keycloak.realm.url}/protocol/openid-connect/certs
+          issuer-uri: ${keycloak.realm.url}
 
 server:
   port: 8082
