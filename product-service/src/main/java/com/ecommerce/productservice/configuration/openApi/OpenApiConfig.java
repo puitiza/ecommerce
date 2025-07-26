@@ -17,12 +17,12 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${openapi.oAuthFlow.tokenUrl}")
-    private String tokenUrl;
+    @Value("${keycloak.realm.url}")
+    private String keycloakRealmUrl;
 
     @Bean
     public OpenAPI openApi() {
-        final String securitySchemeName = "security_auth";
+        final String securitySchemeName = "security_auth"; // A unique name for this scheme
 
         return new OpenAPI()
                 .info(new Info()
@@ -38,7 +38,7 @@ public class OpenApiConfig {
                                                 .type(SecurityScheme.Type.OAUTH2)
                                                 .flows(new OAuthFlows()
                                                         .clientCredentials(new OAuthFlow()
-                                                                .tokenUrl(tokenUrl)
+                                                                .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
                                                                 .scopes(new Scopes()
                                                                         .addString("openid", "openid scope"))
                                                         )
