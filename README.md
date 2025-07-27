@@ -183,7 +183,7 @@ See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes a
     - Service-to-service communication uses API keys or Kubernetes network policies.
 
 ## Business Logic
-See individual service READMEs for detailed business logic:
+See individual service READMES for detailed business logic:
 - [order-service/README.md](order-service/README.md)
 - [payment-service/README.md](payment-service/README.md)
 - [product-service/README.md](product-service/README.md)
