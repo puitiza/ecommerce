@@ -11,7 +11,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${keycloak.realm.url}
+          issuer-uri: ${keycloak.realm.url} #tells Spring Security where to validate JWTs
       client:
         provider:
           keycloak:
