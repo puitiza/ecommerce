@@ -73,7 +73,7 @@ server:
 Check environment variables of a running service:
 
 ```bash
-docker exec -it user-service env
+  docker exec -it user-service env
 ```
 
 ## Production Considerations
