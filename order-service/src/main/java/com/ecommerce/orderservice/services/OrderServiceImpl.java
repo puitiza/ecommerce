@@ -145,7 +145,7 @@ public class OrderServiceImpl implements OrderService {
                 throw new OrderValidationException(
                         ExceptionError.ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED,
                         String.format("Failed to check product availability for productId %d: %s", item.getProductId(), e.getMessage()),
-                        e, item.getProductId(), e.getMessage());
+                        e, item.getProductId());
             }
         }
 
