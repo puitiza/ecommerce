@@ -35,6 +35,13 @@ spring:
         webflux:
           default-filters:
             - TokenRelay= # Relays the OAuth2 token to downstream services
+          globalcors:
+            cors-configurations: #Enables Swagger UI and Keycloak
+              '[/**]':
+                allowedOrigins: "${CORS_ALLOWED_ORIGINS:http://localhost:9090}"
+                allowedMethods: [ GET, POST, PUT, DELETE, OPTIONS ]
+                allowedHeaders: "*"
+                allowCredentials: true
           routes:
             - id: PRODUCT-SERVICE
               uri: lb://PRODUCT-SERVICE
@@ -56,27 +63,8 @@ spring:
                       replenishRate: 1  # Tokens added per second
                       burstCapacity: 2  # Max burst of tokens allowed
 
-# Publicly accessible URLs (Swagger and user endpoints)
-permit-urls:
-  swagger: >
-    /webjars/**,
-    /v3/api-docs/**,
-    /swagger-ui/**,
-    /swagger-ui.html,
-    /favicon.ico,
-    /products/v3/api-docs/**,
-    /users/v3/api-docs/**,
-    /orders/v3/api-docs/**
-  users: >
-    /users/signup,
-    /users/login
-
 server:
   port: 8090
-
-# CORS configuration
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:9090}
 
 # Springdoc OpenAPI and Swagger UI configuration
 springdoc:
