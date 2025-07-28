@@ -1,0 +1,41 @@
+# Publicly accessible URLs (Swagger and user endpoints)
+security:
+  endpoint-roles:
+    user-service:
+      - path: /users/data
+        method: GET
+        role: user
+      - path: /admin/**
+        method: GET
+        role: admin
+    product-service:
+      - path: /products/**
+        method: GET
+        role: user
+  permit-urls:
+    user-service:
+      - path: /users/v3/api-docs/**
+        methods: [GET]
+      - path: /users/signup
+        methods: [POST]
+      - path: /users/login
+        methods: [POST]
+    product-service:
+      - path: /products/v3/api-docs/**
+        methods: [GET]
+      - path: /products/**
+        methods: [GET]
+    order-service:
+      - path: /orders/v3/api-docs/**
+        methods: [ GET ]
+    global:
+      - path: /webjars/**
+        methods: [GET]
+      - path: /v3/api-docs/**
+        methods: [GET]
+      - path: /swagger-ui/**
+        methods: [GET]
+      - path: /swagger-ui.html
+        methods: [GET]
+      - path: /favicon.ico
+        methods: [GET]

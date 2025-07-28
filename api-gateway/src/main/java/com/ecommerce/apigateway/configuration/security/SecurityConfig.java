@@ -1,7 +1,7 @@
 package com.ecommerce.apigateway.configuration.security;
 
 import com.ecommerce.apigateway.configuration.exception.ExceptionHandlerConfig;
-import com.ecommerce.apigateway.model.properties.PermitUrlsProperties;
+import com.ecommerce.apigateway.properties.SecurityProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthConverter jwtAuthConverter;
-    private final PermitUrlsProperties permitUrls;
+    private final SecurityProperties securityProperties;
 
     @Value("${cors.allowed-origins:http://localhost:9090}")
     private List<String> allowedOrigins;
@@ -48,12 +48,24 @@ public class SecurityConfig {
                                                             ExceptionHandlerConfig exceptionHandlerConfig) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for API Gateway (stateless)
-                .authorizeExchange(
-                        (authz) -> authz
-                                .pathMatchers(HttpMethod.GET, permitUrls.getSwagger()).permitAll()
-                                .pathMatchers(permitUrls.getUsers()).permitAll()
-                                .pathMatchers(HttpMethod.GET, "/users/data").hasRole("user")
-                                .anyExchange().authenticated())
+                .authorizeExchange(authz -> {
+                    // Configure permit-all URLs dynamically
+                    securityProperties.permitUrls().forEach((service, urls) ->
+                            urls.forEach(url ->
+                                    url.methods().forEach(method ->
+                                            authz.pathMatchers(HttpMethod.valueOf(method), url.path()).permitAll()
+                                    )
+                            )
+                    );
+                    // Configure role-based endpoints
+                    securityProperties.endpointRoles().forEach((service, endpoints) ->
+                            endpoints.forEach(endpoint ->
+                                    authz.pathMatchers(HttpMethod.valueOf(endpoint.method()), endpoint.path())
+                                            .hasRole(endpoint.role())
+                            )
+                    );
+                    authz.anyExchange().authenticated(); // Require authentication for all other requests
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
                         .authenticationEntryPoint(unauthorizedEntryPoint(exceptionHandlerConfig))
