@@ -9,7 +9,9 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.Components;
+
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 
 public abstract class OpenApiConfigBase {
@@ -31,7 +33,18 @@ public abstract class OpenApiConfigBase {
                 .servers(getServers());
 
         if (serviceConfig.securityEnabled()) {
-            openAPI.components(getComponents())
+            openAPI.components(new Components()
+                            .addSecuritySchemes(SECURITY_SCHEME_NAME,
+                                    new SecurityScheme()
+                                            .name(SECURITY_SCHEME_NAME)
+                                            .type(SecurityScheme.Type.OAUTH2)
+                                            .flows(new OAuthFlows()
+                                                    .clientCredentials(new OAuthFlow()
+                                                            .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
+                                                            .scopes(new Scopes().addString("openid", "openid scope"))
+                                                    )
+                                            )
+                            ))
                     .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
         }
 
@@ -42,18 +55,4 @@ public abstract class OpenApiConfigBase {
 
     protected abstract List<Server> getServers();
 
-    private Components getComponents() {
-        return new Components()
-                .addSecuritySchemes(SECURITY_SCHEME_NAME,
-                        new SecurityScheme()
-                                .name(SECURITY_SCHEME_NAME)
-                                .type(SecurityScheme.Type.OAUTH2)
-                                .flows(new OAuthFlows()
-                                        .clientCredentials(new OAuthFlow()
-                                                .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
-                                                .scopes(new Scopes().addString("openid", "openid scope"))
-                                        )
-                                )
-                );
-    }
 }

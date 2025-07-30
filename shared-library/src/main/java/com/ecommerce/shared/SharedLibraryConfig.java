@@ -8,9 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
-
-@EnableConfigurationProperties(ServiceConfig.class)
 @Configuration
+@EnableConfigurationProperties(ServiceConfig.class)
 public class SharedLibraryConfig {
     @Bean
     public ErrorResponseBuilder buildErrorResponse(MessageSource messageSource) {

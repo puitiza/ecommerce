@@ -27,7 +27,7 @@ security:
         methods: [GET]
     order-service:
       - path: /orders/v3/api-docs/**
-        methods: [ GET ]
+        methods: [GET]
     global:
       - path: /webjars/**
         methods: [GET]

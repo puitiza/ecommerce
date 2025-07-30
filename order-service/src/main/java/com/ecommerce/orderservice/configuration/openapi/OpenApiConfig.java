@@ -1,4 +1,4 @@
-package com.ecommerce.userservice.configuration.openApi;
+package com.ecommerce.orderservice.configuration.openapi;
 
 import com.ecommerce.shared.openapi.OpenApiConfigBase;
 import com.ecommerce.shared.openapi.ServiceConfig;

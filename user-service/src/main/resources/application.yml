@@ -49,6 +49,17 @@ springdoc:
     enabled: true
     path: ${springdoc.base-path}/swagger-ui.html
 
+openapi:
+  title: User Service APIs
+  description: This lists all the User Service API Calls. Some endpoints require OAuth2 authentication.
+  version: v1.0
+  securityEnabled: true
+  servers:
+    - description: gateway
+      url: ${GATEWAY_URL:http://localhost:8090}
+    - description: local
+      url: ${USER_SERVICE_URL:http://localhost:8082}
+
 resilience4j.circuitbreaker:
   instances:
     keycloak:

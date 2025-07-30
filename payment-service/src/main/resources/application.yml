@@ -27,3 +27,14 @@ springdoc:
   swagger-ui:
     enabled: true
     path: ${springdoc.base-path}/swagger-ui.html
+
+openapi:
+  title: Payment Service APIs
+  description: This lists all the Payment Service API Calls. Some endpoints require OAuth2 authentication.
+  version: v1.0
+  securityEnabled: false
+  servers:
+    - description: gateway
+      url: ${GATEWAY_URL:http://localhost:8090}
+    - description: local
+      url: ${PAYMENT_SERVICE_URL:http://localhost:8087}
