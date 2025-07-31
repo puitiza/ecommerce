@@ -1,12 +1,15 @@
 package com.ecommerce.shared;
 
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.openapi.ServiceConfig;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 
 @Configuration
+@EnableConfigurationProperties(ServiceConfig.class)
 public class SharedLibraryConfig {
     @Bean
     public ErrorResponseBuilder buildErrorResponse(MessageSource messageSource) {

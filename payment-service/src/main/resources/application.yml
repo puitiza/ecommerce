@@ -30,11 +30,9 @@ springdoc:
 
 openapi:
   title: Payment Service APIs
-  description: This lists all the Payment Service API Calls. Some endpoints require OAuth2 authentication.
+  description: Internal APIs for processing payments. Not exposed publicly.
   version: v1.0
-  securityEnabled: false
+  securityEnabled: true
   servers:
-    - description: gateway
-      url: ${GATEWAY_URL:http://localhost:8090}
     - description: local
       url: ${PAYMENT_SERVICE_URL:http://localhost:8087}
