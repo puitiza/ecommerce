@@ -4,6 +4,7 @@ bootJar {
 }
 
 dependencies {
+	applyOpenApiDependencies(dependencies)
 	// Common dependencies needed for the shared library
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -17,7 +18,4 @@ dependencies {
 
 	// Validation API for @Valid and MethodArgumentNotValidException
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-	implementation "io.swagger.core.v3:swagger-models:${swaggerModelsVersion}" // Swagger Models
-
 }

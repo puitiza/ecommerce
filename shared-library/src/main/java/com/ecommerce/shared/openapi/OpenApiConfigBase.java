@@ -13,7 +13,6 @@ import io.swagger.v3.oas.models.Components;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 public abstract class OpenApiConfigBase {
 
