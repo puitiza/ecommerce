@@ -1,9 +1,9 @@
 package com.ecommerce.orderservice.controller.openApi;
 
 import com.ecommerce.orderservice.model.dto.OrderDto;
-import com.ecommerce.orderservice.model.exception.ResponseApiTemplate;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
+import com.ecommerce.shared.openapi.ResponseApiTemplate;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,11 +16,10 @@ import org.springframework.data.domain.Page;
 
 import java.util.UUID;
 
-@SuppressWarnings("ALL")
+@SuppressWarnings("unused")
 public interface OrderOpenApi {
 
-    @Operation(summary = "Create Order", description = "Creates a new order",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Create Order", description = "Creates a new order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Order created successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))}),
@@ -33,16 +32,14 @@ public interface OrderOpenApi {
     })
     OrderDto createOrder(CreateOrderRequest request);
 
-    @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
                     content = {@Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = OrderDto.class)))})
     })
     Page<OrderDto> getOrders(int page, int size);
 
-    @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))}),
@@ -52,8 +49,7 @@ public interface OrderOpenApi {
     })
     OrderDto getOrderById(UUID id);
 
-    @Operation(summary = "Update Order", description = "Updates an existing order",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Update Order", description = "Updates an existing order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Order updated successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))}),
@@ -64,8 +60,7 @@ public interface OrderOpenApi {
     })
     OrderDto updateOrder(UUID id, UpdateOrderRequest request);
 
-    @Operation(summary = "Delete Order", description = "Delete an order",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Delete Order", description = "Delete an order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Order deleted successfully"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
