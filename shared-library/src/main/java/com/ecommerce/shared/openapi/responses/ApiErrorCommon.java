@@ -21,5 +21,5 @@ import java.lang.annotation.Target;
         @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN)))
 })
-public @interface ApiErrorCommonResponses {
+public @interface ApiErrorCommon {
 }

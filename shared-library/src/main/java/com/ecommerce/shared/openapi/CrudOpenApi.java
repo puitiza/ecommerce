@@ -1,6 +1,6 @@
 package com.ecommerce.shared.openapi;
 
-import com.ecommerce.shared.openapi.responses.ApiErrorCommonResponses;
+import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
 import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
 import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.util.List;
 
+@SuppressWarnings("unused")
 public interface CrudOpenApi<T, ID> {
     @Operation(summary = "Create Resource", description = "Creates a new resource",
             security = @SecurityRequirement(name = "security_auth"))
@@ -22,7 +23,7 @@ public interface CrudOpenApi<T, ID> {
 
     @Operation(summary = "Retrieve All Resources", description = "Retrieves all resources",
             security = @SecurityRequirement(name = "security_auth"))
-    @ApiErrorCommonResponses
+    @ApiErrorCommon
     @ApiResponse(responseCode = "200", description = "Resources retrieved successfully",
             content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Object.class))))
     List<T> getAll();
