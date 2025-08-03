@@ -11,10 +11,14 @@ import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.Components;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-public abstract class OpenApiConfigBase {
+@Configuration
+public class OpenApiConfigBase {
 
     private static final String SECURITY_SCHEME_NAME = "security_auth";
 
@@ -27,6 +31,7 @@ public abstract class OpenApiConfigBase {
         this.serviceConfig = serviceConfig;
     }
 
+    @Bean
     public OpenAPI openApi() {
         OpenAPI openAPI = new OpenAPI()
                 .info(getInfo())
@@ -51,8 +56,17 @@ public abstract class OpenApiConfigBase {
         return openAPI;
     }
 
-    protected abstract Info getInfo();
+    private Info getInfo() {
+        return new Info()
+                .title(serviceConfig.title())
+                .description(serviceConfig.description())
+                .version(serviceConfig.version());
+    }
 
-    protected abstract List<Server> getServers();
+    private List<Server> getServers() {
+        return serviceConfig.servers().stream()
+                .map(ServiceConfig.ServerConfig::toServer)
+                .collect(Collectors.toList());
+    }
 
 }

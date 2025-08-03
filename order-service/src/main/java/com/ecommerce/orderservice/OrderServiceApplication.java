@@ -1,6 +1,7 @@
 package com.ecommerce.orderservice;
 
 import com.ecommerce.shared.SharedLibraryConfig;
+import com.ecommerce.shared.openapi.OpenApiConfigBase;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.config.Configuration;
 import org.modelmapper.convention.MatchingStrategies;
@@ -13,8 +14,8 @@ import org.springframework.context.annotation.Import;
 
 @EnableFeignClients
 @EnableDiscoveryClient
-@Import(SharedLibraryConfig.class) // Import only the needed bean
 @SpringBootApplication
+@Import({SharedLibraryConfig.class, OpenApiConfigBase.class})
 public class OrderServiceApplication {
 
     public static void main(String[] args) {
