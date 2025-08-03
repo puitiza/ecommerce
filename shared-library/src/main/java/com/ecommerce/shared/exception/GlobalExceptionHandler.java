@@ -72,7 +72,7 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {
+    public ResponseEntity<Object> handleUnexpectedExceptions(Exception ex, WebRequest request) {
         return errorResponseBuilder.build(ex, request, ExceptionError.INTERNAL_SERVER_ERROR, null, ex.getMessage());
     }
 }
