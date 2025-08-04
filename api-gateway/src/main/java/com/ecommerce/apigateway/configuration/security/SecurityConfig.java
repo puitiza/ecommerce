@@ -11,6 +11,8 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
+import java.util.List;
+
 /**
  * Security configuration for the API Gateway.
  * Configures OAuth2 resource server with JWT, public endpoints, and CORS.
@@ -39,13 +41,13 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for API Gateway (stateless)
                 .authorizeExchange(authz -> {
                     // Configure permit-all URLs dynamically
-                    securityProperties.permitUrls().forEach((service, urls) ->
-                            urls.forEach(url ->
+                    securityProperties.permitUrls().values().stream()
+                            .flatMap(List::stream)
+                            .forEach(url ->
                                     url.methods().forEach(method ->
                                             authz.pathMatchers(HttpMethod.valueOf(method), url.path()).permitAll()
                                     )
-                            )
-                    );
+                            );
                     // Configure role-based endpoints
                     securityProperties.endpointRoles().forEach((service, endpoints) ->
                             endpoints.forEach(endpoint ->

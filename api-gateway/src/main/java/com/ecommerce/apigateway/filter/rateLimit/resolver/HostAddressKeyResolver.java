@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
+import java.net.InetSocketAddress;
 
 /**
  * Key resolver for rate limiting based on the client's IP address.
@@ -20,11 +20,10 @@ public class HostAddressKeyResolver implements KeyResolver {
 
     @Override
     public Mono<String> resolve(ServerWebExchange exchange) {
-        String remoteAddress = Objects.requireNonNull(exchange.getRequest().getRemoteAddress())
-                .getAddress()
-                .getHostAddress();
-        log.debug("Resolved rate limit key: {}", remoteAddress);
-        return Mono.just(remoteAddress);
+        return Mono.justOrEmpty(exchange.getRequest().getRemoteAddress())
+                .map(InetSocketAddress::getHostString)
+                .doOnNext(ip -> log.debug("Resolved rate limit key by IP: {}", ip))
+                .switchIfEmpty(Mono.error(new IllegalStateException("Remote address is null")));
     }
 
 }

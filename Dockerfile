@@ -1,15 +1,22 @@
 # Build stage
 FROM gradle:jdk21 AS builder
-
 WORKDIR /app
+ARG MODULE=default
 
+# 1. Copy only the gradle configuration files
 COPY build.gradle settings.gradle gradle.properties /app/
 COPY gradle /app/gradle
+COPY shared-library/build.gradle /app/shared-library/
+COPY ${MODULE}/build.gradle /app/${MODULE}/
+
+# 2. Download units to take advantage of the cache
+RUN gradle --no-daemon :${MODULE}:dependencies
+
+# 3. Copy the source code
 COPY shared-library /app/shared-library
-ARG MODULE=default
 COPY ${MODULE} /app/${MODULE}
 
-RUN gradle --no-daemon :${MODULE}:dependencies
+# 4. Build the application
 RUN gradle --no-daemon :${MODULE}:build -x test
 
 # Runtime stage

@@ -47,10 +47,24 @@ spring:
               uri: lb://PRODUCT-SERVICE
               predicates:
                 - Path=/products/**
+              filters:
+                - name: RequestRateLimitFilter
+                  args:
+                    key-resolver: "#{@userOrIpKeyResolver}"
+                    replenishRate: 1
+                    burstCapacity: 2
+
             - id: ORDER-SERVICE
               uri: lb://ORDER-SERVICE
               predicates:
                 - Path=/orders/**
+              filters:
+                - name: RequestRateLimitFilter
+                  args:
+                    key-resolver: "#{@userOrIpKeyResolver}"
+                    replenishRate: 1
+                    burstCapacity: 2
+
             - id: USER-SERVICE
               uri: lb://USER-SERVICE
               predicates:
@@ -61,7 +75,7 @@ spring:
                     key-resolver: "#{@hostAddressKeyResolver}"
                     redis-rate-limiter:
                       replenishRate: 1  # Tokens added per second
-                      burstCapacity: 2  # Max burst of tokens allowed
+                      burstCapacity: 3  # Max burst of tokens allowed
 
 server:
   port: 8090
