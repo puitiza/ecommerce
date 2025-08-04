@@ -3,19 +3,18 @@ package com.ecommerce.orderservice.controller.openApi;
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.model.response.OrderPageResponse;
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
 import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
 import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
 import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.data.domain.Page;
 
 import java.util.UUID;
 
@@ -29,12 +28,10 @@ public interface OrderOpenApi {
     OrderDto createOrder(CreateOrderRequest request);
 
     @ApiErrorCommon
-    @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
-                    content = {@Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = OrderDto.class)))})
-    })
-    Page<OrderDto> getOrders(int page, int size);
+    @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders with pagination", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderPageResponse.class)))
+    OrderPageResponse getOrders(int page, int size);
 
     @ApiErrorGetResponses
     @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID", security = @SecurityRequirement(name = "security_auth"))

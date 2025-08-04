@@ -4,6 +4,7 @@ import com.ecommerce.orderservice.controller.openApi.OrderOpenApi;
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.model.response.OrderPageResponse;
 import com.ecommerce.orderservice.services.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -29,10 +30,12 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public Page<OrderDto> getOrders(@RequestParam(defaultValue = "0") @Min(0) int page,
-                                    @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
+    public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") @Min(0) int page,
+                                       @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
         log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
-        return orderService.getAllOrders(page, size);
+         orderService.getAllOrders(page, size);
+        Page<OrderDto> ordersPage = orderService.getAllOrders(page, size);
+        return new OrderPageResponse(ordersPage);
     }
 
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
