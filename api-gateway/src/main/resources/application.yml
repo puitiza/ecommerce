@@ -51,8 +51,9 @@ spring:
                 - name: RequestRateLimitFilter
                   args:
                     key-resolver: "#{@userOrIpKeyResolver}"
-                    replenishRate: 1
-                    burstCapacity: 2
+                    redis-rate-limiter:
+                      replenishRate: 1
+                      burstCapacity: 2
 
             - id: ORDER-SERVICE
               uri: lb://ORDER-SERVICE
@@ -62,8 +63,9 @@ spring:
                 - name: RequestRateLimitFilter
                   args:
                     key-resolver: "#{@userOrIpKeyResolver}"
-                    replenishRate: 1
-                    burstCapacity: 2
+                    redis-rate-limiter:
+                      replenishRate: 1
+                      burstCapacity: 2
 
             - id: USER-SERVICE
               uri: lb://USER-SERVICE
