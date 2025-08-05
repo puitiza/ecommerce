@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.configuration.exception.handler;
+package com.ecommerce.orderservice.infrastructure.configuration.exception;
 
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ServiceException;

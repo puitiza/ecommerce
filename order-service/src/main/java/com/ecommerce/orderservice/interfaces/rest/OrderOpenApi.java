@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.controller.openApi;
+package com.ecommerce.orderservice.interfaces.rest;
 
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;

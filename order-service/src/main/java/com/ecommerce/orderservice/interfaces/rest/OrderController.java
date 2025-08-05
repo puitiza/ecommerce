@@ -1,6 +1,5 @@
-package com.ecommerce.orderservice.controller;
+package com.ecommerce.orderservice.interfaces.rest;
 
-import com.ecommerce.orderservice.controller.openApi.OrderOpenApi;
 import com.ecommerce.orderservice.model.dto.OrderDto;
 import com.ecommerce.orderservice.model.request.CreateOrderRequest;
 import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
@@ -10,7 +9,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -33,9 +31,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") @Min(0) int page,
                                        @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
         log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
-        orderService.getAllOrders(page, size);
-        Page<OrderDto> ordersPage = orderService.getAllOrders(page, size);
-        return new OrderPageResponse(ordersPage);
+        return new OrderPageResponse(orderService.getAllOrders(page, size));
     }
 
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
