@@ -1,7 +1,7 @@
-package com.ecommerce.orderservice.publisher;
+package com.ecommerce.orderservice.infrastructure.kafka;
 
 import com.ecommerce.orderservice.model.dto.OrderDto;
-import com.ecommerce.orderservice.model.entity.OrderEntity;
+import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.model.event.OrderEventData;
 import com.ecommerce.orderservice.model.event.OrderEventType;
 import io.cloudevents.CloudEvent;

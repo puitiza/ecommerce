@@ -1,6 +1,6 @@
 package com.ecommerce.orderservice.services.component;
 
-import com.ecommerce.orderservice.model.entity.OrderEntity;
+import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.model.entity.OrderStatus;
 import org.springframework.stereotype.Component;
 
