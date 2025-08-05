@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: payment-service
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  datasource:
+    url: jdbc:postgresql://localhost:5430/payment_db
+    username: payment_user
+    password: payment_password
+    driverClassName: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8087
+
+springdoc:
+  base-path: /payments
+  api-docs:
+    enabled: true
+    path: ${springdoc.base-path}/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: ${springdoc.base-path}/swagger-ui.html
+
+openapi:
+  title: Payment Service APIs
+  description: Internal APIs for processing payments. Not exposed publicly.
+  version: v1.0
+  securityEnabled: true
+  servers:
+    - description: local
+      url: ${PAYMENT_SERVICE_URL:http://localhost:8087}

@@ -1,55 +1,94 @@
-## Spring Cloud Config Server - README.md
+# Spring Cloud Config Server
 
-**Welcome to the Spring Cloud Config Server for your Ecommerce Platform!**
+The Spring Cloud Config Server serves as the central hub for managing application configurations across microservices.
+It supports storing, versioning, and dynamically delivering configuration settings, enabling seamless
+environment-specific setups.
 
-This server acts as the central hub for managing application configurations used across your microservices. It allows you to store, version control, and dynamically deliver configuration settings to your applications, facilitating flexibility and easier maintenance.
+## Key Features
 
-**Key features:**
+- **Centralized Configuration**: Manage all configurations in one place.
+- **Version Control**: Track changes using Git or local filesystem backends.
+- **Environment-Specific Configurations**: Support for profiles like `dev` and `prod`.
+- **Multiple Sources**: Integrates with Git, local filesystem, or custom providers.
 
-* **Centralized configuration:** Manage all configuration in one place, eliminating redundancy and inconsistencies.
-* **Version control:** Track changes and revert to previous versions if needed.
-* **Environment-specific configurations:** Tailor configurations for different environments (dev, staging, prod).
-* **Multiple sources:** Leverage multiple sources like Git repositories, Vault, or custom providers.
+## Configuration Profiles
 
-**Accessing configurations:**
+- **Native Profile**: Activates the local filesystem backend. Configuration files (e.g., `application.yml`,
+  `order-service-dev.yml`) are sourced from paths specified in `spring.cloud.config.server.native.search-locations` (
+  e.g., `classpath:config/shared/`, `classpath:config/`). Ideal for local development.
+- **Git Profile**: Activates the Git backend. Configuration files are retrieved from a Git repository specified in
+  `spring.cloud.config.server.git.uri` (e.g., `https://github.com/puitiza/ecommerce-configurations.git`). Suitable for
+  production.
 
-You can access configuration data through several methods:
+**Note**: Profiles like `dev` and `prod` are used by client microservices to request specific configuration files (e.g.,
+`order-service-dev.yml` for `dev`, `order-service-prod.yml` for `prod`) from the config server.
 
-* **REST API:** Use `/application/{applicationName}/{profile}` or `/application/{applicationName}/{label}` endpoints to retrieve configurations for specific applications and profiles or labels.
-* **Environment variables:** Spring Cloud Config Server automatically injects configuration values as environment variables into your applications.
+## Accessing Configurations
 
-**Examples:**
+- **REST API**: Use endpoints like `/{application}/{profile}` to fetch configurations.
+- **Environment Variables**: Automatically injects configuration values into applications.
 
-1. Retrieve the default configuration for the `application` service:
+### Examples
 
+1. Retrieve default configuration for `application`:
+   ```bash
+   curl http://localhost:8885/application/default
+   ```
+2. Retrieve `dev` configuration for `order-service`:
+   ```bash
+   curl http://localhost:8885/order-service/dev
+   ```
+
+## Setup Recommendations
+
+- **Local Development**:
+    - Use the `native` profile with volumes (e.g., `./config/shared`, `./config`) for editing configurations without
+      rebuilding.
+    - Alternatively, include configuration files in the JAR (`src/main/resources/config/shared`,
+      `src/main/resources/config`) and skip volumes.
+- **Production**:
+    - Use the `git` profile with a remote Git repository (e.g.,
+      `https://github.com/puitiza/ecommerce-configurations.git`).
+    - No local volumes are needed, as configurations are fetched from the Git repository.
+
+### Example Configuration (`application.yml`)
+
+```yaml
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: ${SPRING_PROFILE:native}
+  cloud:
+    config:
+      server:
+        git: # Get files from Git repository
+          uri: ${CONFIG_SERVER_GIT_URI:https://github.com/puitiza/ecommerce-configurations.git}
+        native: # Get files from local filesystem
+          search-locations: classpath:config/shared/,classpath:config/
+server:
+  port: 8885
 ```
-curl --location 'http://localhost:8885/application/default'
+
+Check environment variables of a running service:
+
+```bash
+  docker exec -it user-service env
 ```
 
-2. Retrieve the dev configuration for the product-service service:
+## Production Considerations
 
-```
-curl --location 'http://localhost:8885/product-service/dev'
-```
+- **Security**: Secure access with OAuth2 or Keycloak. Use Azure Key Vault for sensitive data (
+  see [docs/production-setup.md](../config/docs/production-setup.md)).
+- **Kubernetes**: Deploy with Kubernetes manifests and secrets management (see example
+  in [docs/production-setup.md](../config/docs/production-setup.md)).
 
+## Multi-Module Integration
 
-**Further exploration:**
+Configuration for shared DTOs and utilities in the `shared-library` module is managed here.
+See [docs/multi-module.md](../config/docs/multi-module.md) for details.
 
-* Explore the Spring Cloud Config Server documentation for detailed configuration and usage options: [https://cloud.spring.io/spring-cloud-config/](https://cloud.spring.io/spring-cloud-config/)
-* Read the provided documentation for your specific implementation of Spring Cloud Config Server (e.g., Spring Boot).
+## Resources
 
-**Security considerations:**
-
-* Secure the access to your Config Server using authentication and authorization mechanisms like basic authentication, OAuth2, or Keycloak.
-* Only store sensitive configuration values in secure locations like encrypted files or external secrets management tools.
-* Avoid exposing unnecessary configuration details through the REST API endpoints.
-
-**Feel free to submit any questions or suggestions!**
-
-**Note:** Update URLs and port numbers according to your configuration.
-
-
-
-
-
-
+- [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
+- [Docker Health Checks for Spring Boot](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)

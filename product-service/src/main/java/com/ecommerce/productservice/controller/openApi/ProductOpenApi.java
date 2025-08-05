@@ -1,60 +1,54 @@
 package com.ecommerce.productservice.controller.openApi;
 
+import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
+import com.ecommerce.productservice.model.request.OrderItemRequest;
+import com.ecommerce.shared.openapi.CrudOpenApi;
+import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.util.List;
 
-@SuppressWarnings("ALL")
-public interface ProductOpenApi {
+@SuppressWarnings("unused")
+public interface ProductOpenApi extends CrudOpenApi<ProductDto, Long> {
 
+    @Override
+    @Operation(summary = "Create Product", description = "Creates a new product", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "201", description = "Product created successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
+    ProductDto create(ProductDto resource);
 
-    @Operation(summary = "Create Product", description = "Creates a new product",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Product created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid product data"),
-            @ApiResponse(responseCode = "403", description = "Access denied")
-    })
-    ProductDto createProduct(ProductDto product);
+    @Override
+    @Operation(summary = "Retrieve All Products", description = "Retrieves all products", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Products retrieved successfully", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductDto.class))))
+    List<ProductDto> getAll();
 
-    @Operation(summary = "Retrieve all Products", description = "Retrieve all products",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
-    })
-    List<ProductDto> getProducts();
+    @Override
+    @Operation(summary = "Retrieve Product by ID", description = "Retrieves a product by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Product retrieved successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
+    ProductDto getById(Long id);
 
-    @Operation(summary = "Product Details", description = "Retrieves the details of a Product by ProductId",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "404", description = "Product not found"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-    })
-    ProductDto getProductById(Long id);
+    @Override
+    @Operation(summary = "Update Product", description = "Updates an existing product", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Product updated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
+    ProductDto update(Long id, ProductDto resource);
 
+    @Override
+    @Operation(summary = "Delete Product", description = "Deletes a product by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "204", description = "Product deleted successfully")
+    void delete(Long id);
 
-    @Operation(summary = "Update Product", description = "Updates an existing product",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Product updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid product update data"),
-            @ApiResponse(responseCode = "403", description = "Access denied"),
-            @ApiResponse(responseCode = "404", description = "Product not found")
-    })
-    ProductDto updateProduct(Long id, ProductDto product);
+    @ApiErrorPostResponses
+    @Operation(summary = "Verify Product Availability", description = "Verifies if a product is available for an order", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Availability verified successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductAvailabilityDto.class)))
+    ProductAvailabilityDto verifyProductAvailability(OrderItemRequest orderItemRequest);
 
-    @Operation(summary = "Delete Product", description = "Deletes a product",
-            security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Product deleted successfully"),
-            @ApiResponse(responseCode = "403", description = "Access denied"),
-            @ApiResponse(responseCode = "404", description = "Product not found")
-    })
-    void deleteProduct(Long id);
+    @ApiErrorPostResponses
+    @Operation(summary = "Update Product Inventory", description = "Updates the inventory of a product", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "204", description = "Inventory updated successfully")
+    void updateProductInventory(Long id, Integer updatedInventory);
 }

@@ -15,6 +15,13 @@ public class KeycloakConfig {
 
     private final KeycloakProperties configProperties;
 
+    /**
+     * Creates and configures the Keycloak Admin Client instance.
+     * This client is used to manage users, realms, and other Keycloak entities.
+     * It authenticates against the Keycloak master realm using admin credentials.
+     *
+     * @return A configured Keycloak client instance.
+     */
     @Bean
     protected Keycloak keycloak() {
         return KeycloakBuilder.builder()

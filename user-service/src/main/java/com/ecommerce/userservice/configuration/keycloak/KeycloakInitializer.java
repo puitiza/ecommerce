@@ -14,13 +14,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Component that initializes default Keycloak users upon application startup.
+ * It reads user data from a JSON file and registers users if they do not already exist in Keycloak.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class KeycloakInitializer implements InitializingBean {
 
     private final ObjectMapper mapper;
-
     private final UserService userService;
 
     private static final String INIT_KEYCLOAK_USERS_PATH = "initializer/init-keycloak-users.json";
@@ -30,6 +33,12 @@ public class KeycloakInitializer implements InitializingBean {
         initKeycloakUsers();
     }
 
+    /**
+     * Reads user data from the `init-keycloak-users.json` file and
+     * attempts to register each user in Keycloak if they don't already exist.
+     *
+     * @throws RuntimeException If the JSON file cannot be read or parsed.
+     */
     private void initKeycloakUsers() {
         List<UserDto> users;
         try {
@@ -46,16 +55,21 @@ public class KeycloakInitializer implements InitializingBean {
         users.forEach(this::initKeycloakUser);
     }
 
+    /**
+     * Checks if a user already exists in Keycloak by username. If not, registers the user.
+     *
+     * @param user The UserDto representing the user to initialize.
+     */
     private void initKeycloakUser(UserDto user) {
-        log.info("user detected from json: {}", user.toString());
+        log.info("Processing user from initializer JSON: {}", user.getUsername());
 
         var userRepresentation = userService.findUserRepresentationByUsername(user.getUsername())
                 .orElse(null);
         if (userRepresentation == null) {
             userService.signUp(user);
-            log.info("user registered: {}", user.getUsername());
+            log.info("Successfully registered new user: {}", user.getUsername());
         } else {
-            log.info("user already registered: {}", userRepresentation.getUsername());
+            log.info("User already registered in Keycloak, skipping: {}", userRepresentation.getUsername());
         }
     }
 }

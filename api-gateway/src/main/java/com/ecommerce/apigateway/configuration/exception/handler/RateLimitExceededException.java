@@ -1,13 +1,11 @@
 package com.ecommerce.apigateway.configuration.exception.handler;
 
-public class RateLimitExceededException extends HandledException {
+import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ServiceException;
 
-    public RateLimitExceededException(String message) {
-        super(message);
-    }
+public class RateLimitExceededException extends ServiceException {
 
-    @Override
-    public String getErrorCode() {
-        return null;
+    public RateLimitExceededException(String message, Object... messageArgs) {
+        super(ExceptionError.GATEWAY_RATE_LIMIT, message, messageArgs);
     }
 }

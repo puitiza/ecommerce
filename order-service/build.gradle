@@ -1,54 +1,21 @@
-plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.2.0'
-	id 'io.spring.dependency-management' version '1.1.4'
-}
-
-group = 'com.ecommerce'
-version = '0.0.1-SNAPSHOT'
-
-java {
-	sourceCompatibility = '17'
-}
-
-configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
-}
-
-repositories {
-	mavenCentral()
-}
-
-ext {
-	set('springCloudVersion', "2023.0.0")
-}
-
 dependencies {
+	// Apply shared dependency sets
+	applyCommonDependencies(dependencies)
+	applyTracingDependencies(dependencies)
+	applySecurityDependencies(dependencies)
+	applyOpenApiDependencies(dependencies)
+	applyModelMapperDependencies(dependencies)
+
+	// Service-specific dependencies
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	//	<!------------------------- Dependency for Spring Cloud Config ------------------------->
-	implementation 'org.springframework.cloud:spring-cloud-starter-config'
-	//	<!--------------------- Dependency for Spring Cloud Netflix Eureka --------------------->
-	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-	//	<!----------------------- Dependency for Spring Cloud OpenFeign ------------------------>
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-	//	<!------------- Dependency for Spring Cloud Distributed Tracing for Zipkin ------------->
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'io.micrometer:micrometer-tracing-bridge-brave'
-	implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
-	implementation 'io.github.openfeign:feign-micrometer'
-	//	<!------------------------------ Dependency for OpenApi 3 ------------------------------>
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+	implementation 'org.springframework.kafka:spring-kafka' // Kafka
+	implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Kafka
+	runtimeOnly 'com.mysql:mysql-connector-j'
+	implementation 'io.github.openfeign:feign-micrometer' // Zipkin for feign
 
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-}
-
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-	}
+	// Add this line to depend on the shared-library module
+	implementation project(':shared-library')
 }

@@ -11,12 +11,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "keycloak")
 public class KeycloakProperties {
 
-    private String authServerUrl;
-    private String realm;
-    private String resource;
-    private String clientKeyPassword;
-    private Credentials credentials = new Credentials();
+    private String authServerUrl;     // Keycloak authentication server URL.
+    private String realm;             // Keycloak realm name for this application.
+    private String resource;          // Keycloak client ID for this application.
+    private String clientKeyPassword; // Client secret for confidential clients.
+    private Credentials credentials = new Credentials(); // Nested class for credentials.
 
+    // Constants for Keycloak master realm and admin client used for Keycloak Admin Client setup.
     public static String masterRealm = "master";
     public static String clientId = "admin-cli";
     public static String username = "admin";
@@ -25,7 +26,7 @@ public class KeycloakProperties {
     @Getter
     @Setter
     public static class Credentials {
-        private String provider;
+        private String provider; // Credential provider type (e.g., "secret").
     }
 
 }

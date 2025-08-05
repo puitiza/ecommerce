@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+/**
+ * Gateway filter for rate limiting requests based on a key resolver.
+ * Uses Redis to enforce rate limits and throws a RateLimitExceededException if the limit is exceeded.
+ */
 @Slf4j
 @Component
 public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<RequestRateLimitFilter.Config> {
@@ -27,28 +31,52 @@ public class RequestRateLimitFilter extends AbstractGatewayFilterFactory<Request
 
     @Override
     public GatewayFilter apply(Config config) {
-        return (exchange, chain) -> resolver(exchange, config)
-                .flatMap(key -> rateLimiter.isAllowed(config.getRouteId(), key))
-                .flatMap(rateLimitResponse -> rateLimitResponse.isAllowed()
-                        ? chain.filter(exchange)
-                        .doOnSuccess(aVoid -> addHeadersToResponse(exchange, rateLimitResponse))
-                        : handleTooManyRequests(exchange, rateLimitResponse));
+        return (exchange, chain) -> {
+            log.info("Applying rate limit for route: {}, path: {}", config.getRouteId(), exchange.getRequest().getPath());
+            return config.getKeyResolver().resolve(exchange)
+                    .flatMap(key -> {
+                        log.debug("Rate limit key: {}", key);
+                        return rateLimiter.isAllowed(config.getRouteId(), key);
+                    })
+                    .flatMap(rateLimitResponse -> {
+                        log.debug("Rate limit response: allowed={}, remaining={}",
+                                rateLimitResponse.isAllowed(),
+                                rateLimitResponse.getHeaders().get("X-RateLimit-Remaining"));
+                        if (rateLimitResponse.isAllowed()) {
+                            addHeadersToResponse(exchange, rateLimitResponse);
+                            return chain.filter(exchange);
+                        }
+                        return handleTooManyRequests(exchange, rateLimitResponse);
+                    });
+        };
     }
 
-    private Mono<String> resolver(ServerWebExchange exchange, Config config) {
-        return config.getKeyResolver().resolve(exchange);
-    }
-
+    /**
+     * Adds rate limit headers to the response.
+     *
+     * @param exchange the server web exchange
+     * @param response the rate limiter response
+     */
     private void addHeadersToResponse(ServerWebExchange exchange, RateLimiter.Response response) {
         response.getHeaders().forEach(exchange.getResponse().getHeaders()::add);
     }
 
+    /**
+     * Handles requests that exceed the rate limit.
+     *
+     * @param exchange the server web exchange
+     * @param response the rate limiter response
+     * @return a Mono signaling the error
+     */
     private Mono<Void> handleTooManyRequests(ServerWebExchange exchange, RateLimiter.Response response) {
         addHeadersToResponse(exchange, response);
+        log.error("Rate limit exceeded for request: {}", exchange.getRequest().getPath());
         return Mono.error(new RateLimitExceededException("You have exceeded the rate limit. Please try later."));
     }
 
-
+    /**
+     * Configuration for the rate limit filter.
+     */
     public static class Config implements HasRouteId {
 
         @Getter

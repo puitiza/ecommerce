@@ -1,0 +1,277 @@
+openapi: 3.0.1
+info:
+  title: Payment Service API
+  version: 1.1.0
+servers:
+  - url: http://localhost:8083
+
+security:
+  - Auth-JWT: [ ]
+
+paths:
+  /payments:
+    post:
+      summary: Processes a payment for an order.
+      security:
+        - Auth-JWT: [ ORDER ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        200:
+          description: Payment processed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        400:
+          description: Invalid payment request.
+          content:
+            application/json:
+              example:
+                message: "Missing required field: orderId"
+        401:
+          description: Unauthorized access. Invalid or expired JWT token.
+          content:
+            application/json:
+              example:
+                message: "The provided JWT token is invalid or expired."
+        403:
+          description: Forbidden access. User does not have the required permissions.
+          content:
+            application/json:
+              example:
+                message: "You are not authorized to access this resource."
+        429:
+          description: "Rate limit exceeded. Please try again later."
+
+  /payments/{paymentId}:
+    get:
+      summary: Gets details of a specific payment.
+      security:
+        - Auth-JWT: [ ADMIN, ORDER ]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: ID of the payment transaction.
+      responses:
+        200:
+          description: Payment details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentTransactionDetails'
+        404:
+          description: Payment not found.
+        401:
+          description: Unauthorized access. Invalid or expired JWT token.
+          content:
+            application/json:
+              example:
+                message: "The provided JWT token is invalid or expired."
+        403:
+          description: Forbidden access. User does not have the required permissions.
+          content:
+            application/json:
+              example:
+                message: "You are not authorized to access this resource."
+
+  /payments/authorize:
+    post:
+      summary: Authorizes a payment for an order.
+      security:
+        - Auth-JWT: [ ORDER ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentAuthorizationRequest'
+      responses:
+        200:
+          description: Payment authorization successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAuthorizationResponse'
+        400:
+          description: Invalid payment authorization request.
+          content:
+            application/json:
+              example:
+                message: "Missing required field: amount"
+
+  /payments/refund/{paymentId}:
+    post:
+      summary: Initiates a refund for a payment.
+      security:
+        - Auth-JWT: [ ORDER ]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: ID of the payment to refund.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        200:
+          description: Refund initiated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
+        400:
+          description: Invalid refund request.
+          content:
+            application/json:
+              example:
+                message: "Missing required field: refundAmount"
+
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID of the order for which payment is being processed.
+          example: "f4321b56-7890-abcd-ef01-234567890123"
+        paymentMethod:
+          type: string
+          description: Payment method used by the customer (e.g., credit card, PayPal).
+          example: "CREDIT_CARD"
+        paymentMethodDetails:
+          $ref: '#/components/schemas/paymentMethodDetails'
+        amount:
+          type: number
+          description: Total amount to be paid.
+          example: 100.00
+    PaymentResponse:
+      type: object
+      properties:
+        paymentId:
+          type: integer
+          description: Unique identifier for the payment transaction.
+          example: "98765432-1098-cdef-0123-456789012345"
+        orderId:
+          type: string
+          description: ID of the order associated with the payment.
+          example: "f4321b56-7890-abcd-ef01-234567890123"
+        status:
+          type: string
+          description: Payment status. (e.g., SUCCESS, FAILED).
+          example: "SUCCESS"
+        message:
+          type: string
+          description: Optional message describing the payment outcome.
+          example: "Payment completed successfully."
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time the payment was processed.
+          example: "2023-12-11T10:50:00Z"
+    PaymentTransactionDetails:
+      type: object
+      properties:
+        paymentId:
+          type: string
+          description: Unique identifier for the payment transaction.
+          example: "98765432-1098-cdef-0123-456789012345"
+        orderId:
+          type: string
+          description: ID of the order associated with the payment.
+          example: "f4321b56-7890-abcd-ef01-234567890123"
+        paymentMethod:
+          type: string
+          description: Payment method used by the customer.
+          example: "CREDIT_CARD"
+        amount:
+          type: number
+          description: Total amount paid.
+          example: 100.00
+        status:
+          type: string
+          description: Payment status.
+          example: "SUCCESS"
+        message:
+          type: string
+          description: Optional message describing the payment outcome.
+          example: "Payment completed successfully."
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time the payment was processed.
+          example: "2023-12-11T10:50:00Z"
+    paymentMethodDetails:
+      type: object
+      properties:
+        cardNumber:
+          type: string
+          description: Unique identifier for card.
+          example: "1234567890123456"
+        expiryMonth:
+          type: integer
+          description: Month of expiry your card.
+          example: 12
+        expiryYear:
+          type: integer
+          description: Year of expiry your card.
+          example: 2025
+        cvv:
+          type: integer
+          description: Unique identifier for card.
+          example: 123
+    PaymentAuthorizationRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID of the order to authorize payment for.
+        amount:
+          type: number
+          description: Total amount to be authorized.
+          example: 100.00
+    PaymentAuthorizationResponse:
+      type: object
+      properties:
+        authorized:
+          type: boolean
+          description: Indicates whether payment was authorized.
+          # ... (other relevant details)
+    RefundResponse:
+      type: object
+      properties:
+        refundId:
+          type: string
+          description: ID of the initiated refund.
+        status:
+          type: string
+          description: Status of the refund (e.g., PENDING, COMPLETED).
+    RefundRequest:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID of the order to refund.
+        refundAmount:
+          type: number
+          description: Amount to be refunded.
+          example: 50.00
+        # ... (potentially other refund details)
+  securitySchemes:
+    Auth-JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

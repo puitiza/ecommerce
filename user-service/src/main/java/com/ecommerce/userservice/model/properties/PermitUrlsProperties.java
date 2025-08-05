@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix="permit-urls")
+@ConfigurationProperties(prefix = "permit-urls")
 public class PermitUrlsProperties {
 
     private String[] swagger;

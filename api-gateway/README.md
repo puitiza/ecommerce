@@ -1,48 +1,161 @@
-# Api-Gateway
+# API Gateway
 
-Spring Cloud Gateway provides a powerful way to handle HTTP traffic between microservices. It also provides several
-mechanisms for securing the gateway, including JWT.
+The API Gateway, built with **Spring Cloud Gateway**, handles HTTP traffic between microservices, providing security
+features like JWT authentication, CORS, rate limiting, and token relay.
 
-**JSON Web Tokens (JWT)** are a popular way of securely transmitting information between parties. A JWT is a string that
-consists of three parts: a header, a payload, and a signature
+## Key Features
 
-Therefore, your approach is correct. You've utilized both mechanisms to enable CORS for different scenarios:
-- **Keycloak token:** Enables internal API gateway calls to other resources on behalf of the user.
-  `"allowed-origins": ["http://localhost:8090"]`
-- **CorsWebFilter:** Enables Swagger UI on `localhost:9090` to access the API gateway directly.
+- **JSON Web Tokens (JWT)**: Securely transmits information using a signed token (header, payload, signature), used for
+  authentication and authorization.
+- **CORS (Cross-Origin Resource Sharing)**: Enables cross-origin requests from authorized domains to allow front-end
+  applications to interact with the API.
+- **Rate Limiting**: Controls incoming request rates to prevent overload and protect backend services.
+- **Token Relay**: Forwards authentication tokens received by the Gateway to downstream services, allowing them to use
+  the same security context.
+- **Dynamic Routing**: Routes incoming requests to the appropriate microservice based on defined predicates.
 
-This approach provides flexibility and ensures both internal and external communication is handled correctly with respect to CORS.
+## Configuration
 
-The rate limiter defines the following properties:
-- redis-rate-limiter.replenishRate: Defines how many requests per second to allow (without any dropped requests). This is the rate at which the token bucket is filled.
-- redis-rate-limiter.burstCapacity: The maximum number of requests a user is allowed in a single second (without any dropped requests). This is the number of tokens the token bucket can hold. Setting this value to zero blocks all requests.
-- redis-rate-limiter.requestedTokens: Defines how many tokens a request costs. This is the number of tokens taken from the bucket for each request and defaults to 1.
-- rate-limiter: You can also define your own (optional) implementation of the rate limiter as spring bean.
-- key-resolver: An (optional) key resolver defines the key for limiting requests.
+The API Gateway fetches its core configuration from the [Spring Cloud Config Server](../config-server/README.md).
 
+### CORS
 
-## Resources for documentation
+Configures `globalcors` to enable cross-origin requests for authorized domains. This is particularly important for
+Swagger UI (e.g., `http://localhost:8090`) and any front-end applications.
 
-* **Learn the basics of Spring Cloud Gateway:**
-  * [Spring Cloud Gateway Security with JWT](https://medium.com/@rajithgama/spring-cloud-gateway-security-with-jwt-23045ba59b8a): Explore JWT implementation for Gateway security.
-  * [API Gateway in Spring Boot](https://medium.com/@ankithahjpgowda/api-gateway-in-spring-boot-3ea804003021): Understand the basics of building an API gateway with Spring Boot.
-* **Integrate OpenAPI for documentation:**
-  * [Central Swagger in Spring Cloud Gateway](https://medium.com/@oguz.topal/central-swagger-in-spring-cloud-gateway-697a1c37b03d): Manage Swagger documentation centrally for your gateway.
-  * [Swagger(OpenAPI Specification 3) Integration with Spring Cloud Gateway — Part 2](https://medium.com/@pubuduc.14/swagger-openapi-specification-3-integration-with-spring-cloud-gateway-part-2-1d670d4ab69a): Part 2 of a detailed guide on Swagger integration with the gateway.
-  * [Microservices with Spring Boot 3 and Spring Cloud](https://piotrminkowski.com/2023/03/13/microservices-with-spring-boot-3-and-spring-cloud/)
-* **Integrate Oauth2 for secure access:**
-  * [Spring Cloud Gateway OAuth2 Security with Keycloak, JWT Tokens and securing it with HTTPS (SSL)](https://blog.devops.dev/spring-cloud-gateway-oauth2-security-with-keycloak-jwt-tokens-and-securing-it-with-https-ssl-2166d8009531): Secure your gateway using Keycloak, JWT, and HTTPS.
-  * [Documenting OAuth2 secured Spring Boot Microservices with Swagger 3 (OpenAPI 3.0)](https://medium.com/@tobintom/documenting-oauth2-secured-spring-boot-microservices-with-swagger-3-openapi-3-0-166618ea1f5): Learn how to document Oauth2-secured microservices with Swagger.
-* **Integrate Keycloak for authorization server:**
-  * [Connecting Keycloak with Postgres database](https://stackoverflow.com/questions/75410699/connecting-keycloak-with-postgres-database): list complete of set env for docker-compose.yml
-  * [Configure Keycloak to use a Postgres database](https://www.youtube.com/watch?v=7404ir5oq4Q&t=335s): This video you could help
-  * [All Configuration](https://www.keycloak.org/server/all-config?options-filter=all): all configuration according official website
-* **Logging Spring Cloud Gateway**
-  * [Log All response and request spring webflux](https://stackoverflow.com/questions/76045158/log-all-response-and-request-spring-webflux)
-* **Rate Limit**
-  * [Resilience Retry, Circuit Breaking and Rate Limiting](https://andifalk.gitbook.io/spring-cloud-gateway-workshop/hands-on-labs/lab2)
-  * [Implement Rate Limiting in Spring Cloud Gateway with Redis](https://medium.com/@htyesilyurt/implement-rate-limiting-in-spring-cloud-gateway-with-redis-7b71c8dd53a3) Rate limiting is a technique used to control the rate at which requests are made to a network
-  * [Rate Limiter using Spring Cloud Gateway and Redis](https://www.youtube.com/watch?v=0LoqPg6h6wc&ab_channel=TechPrimers) Example from YouTube
-* **Examples projects:**
-  * [Spring Cloud Gateway with OpenID Connect and Token Relay](https://github.com/timtebeek/spring-security-samples/blob/main/spring-cloud-gateway-oidc-tokenrelay/README.adoc): When combined with Spring Security 5.2+ and an OpenID Provider such as Keycloak, one can rapidly set up a secure gateway for OAuth2 resource servers.
-  * [Spring-cloud-gateway-request-rate-limiting](https://github.com/ivvve/code-examples/tree/master/spring-cloud-gateway-request-rate-limiting) Api Server + Gateway Server
+```yaml
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "${CORS_ALLOWED_ORIGINS:http://localhost:8090}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+````
+
+### Rate Limiting
+
+Utilizes Redis for request rate limiting in local and development environments. In production, it's recommended to
+offload this to a cloud-managed API Gateway solution like Azure API Gateway.
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@hostAddressKeyResolver}"
+                redis-rate-limiter:
+                  replenishRate: 1
+                  burstCapacity: 2
+```
+
+### Token Relay
+
+The `TokenRelay` filter is crucial for propagating the OAuth2 token received by the API Gateway to downstream
+microservices, ensuring a consistent security context across the call chain.
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters:
+        - TokenRelay=
+```
+
+### OAuth2 Client Configuration
+
+The API Gateway integrates with [Keycloak](https://www.keycloak.org/) for OAuth2-based authentication and authorization.
+It acts as an OAuth2 client, handling the authentication flow and validating JWTs.
+
+```groovy
+// build.gradle (dependencies)
+implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+```
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.realm.url} # e.g., http://localhost:9090/realms/ecommerce
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${keycloak.realm.url} # The Keycloak server's issuer URI
+            user-name-attribute: preferred_username # Attribute to extract username from JWT
+        registration:
+          ecommerce: # Registration ID for the API Gateway client
+            provider: keycloak
+            client-id: api-gateway-client # The client ID registered in Keycloak
+            client-secret: ${keycloak.client-secrets.api-gateway-client} # Sensitive secret from Config Server/environment
+            authorization-grant-type: authorization_code # Standard OAuth2 flow
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}" # Redirect URI after successful authentication
+```
+
+### Routing
+
+The Gateway dynamically routes requests to appropriate microservices registered
+with [Eureka Server](https://www.google.com/search?q=service-registry/README.md).
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: PRODUCT-SERVICE # Route ID
+          uri: lb://PRODUCT-SERVICE # Load-balanced URI to Eureka-registered service
+          predicates:
+            - Path=/products/** # Matches requests starting with /products/
+        - id: ORDER-SERVICE
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/orders/**
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
+```
+
+## Production Considerations
+
+- **Azure API Gateway**: For production deployments, consider replacing Spring Cloud Gateway's rate limiting and
+  potentially other features with Azure API Gateway policies for better scalability and management.
+- **Disable Redis**: If Azure API Gateway handles rate limiting, Redis dependency for rate limiting can be removed in
+  production environments.
+- **Tracing**: Transition from Zipkin to Azure Application Insights for comprehensive distributed tracing in production.
+- **HTTPS**: **Crucial for production deployments.** Ensure HTTPS is enforced for all traffic to the API Gateway and
+  between the Gateway and downstream services. Configure Keycloak for `sslRequired: external` or `all`.
+
+## Multi-Module Integration
+
+The API Gateway leverages shared DTOs, exceptions, and utility classes from the `common` module to ensure consistent
+data models and error handling across all microservices. Refer
+to [docs/multi-module.md](https://www.google.com/search?q=../config/docs/multi-module.md) for further details.
+
+## Resources
+
+- [Spring Cloud Gateway Security with JWT](https://medium.com/@rajithgama/spring-cloud-gateway-security-with-jwt-23045ba59b8a)
+- [API Gateway in Spring Boot](https://medium.com/@ankithahjpgowda/api-gateway-in-spring-boot-3ea804003021)
+- [Central Swagger in Spring Cloud Gateway](https://medium.com/@oguz.topal/central-swagger-in-spring-cloud-gateway-697a1c37b03d)
+- [Swagger Integration with Spring Cloud Gateway](https://medium.com/@pubuduc.14/swagger-openapi-specification-3-integration-with-spring-cloud-gateway-part-2-1d670d4ab69a)
+- [Spring Cloud Gateway OAuth2 with Keycloak](https://blog.devops.dev/spring-cloud-gateway-oauth2-security-with-keycloak-jwt-tokens-and-securing-it-with-https-ssl-2166d8009531)
+- [Rate Limiting with Redis](https://medium.com/@htyesilyurt/implement-rate-limiting-in-spring-cloud-gateway-with-redis-7b71c8dd53a3)
+- [Official Token Relay](https://cloud.spring.io/spring-cloud-static/spring-cloud-security/2.1.3.RELEASE/single/spring-cloud-security.html#_token_relay)

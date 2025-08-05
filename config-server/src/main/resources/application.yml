@@ -1,12 +1,14 @@
-# Spring Cloud Config Server Repository
 spring:
   application:
     name: config-server
+  profiles:
+    active: ${SPRING_PROFILE:native}
   cloud:
     config:
       server:
-        git:
-          uri: https://github.com/puitiza/ecommerce-configurations.git
-
+        git:    #Get files yml from git uri
+          uri: ${CONFIG_SERVER_GIT_URI:https://github.com/puitiza/ecommerce-configurations.git}
+        native: #Get files yml from local
+          search-locations: classpath:config/shared/,classpath:config/
 server:
   port: 8885

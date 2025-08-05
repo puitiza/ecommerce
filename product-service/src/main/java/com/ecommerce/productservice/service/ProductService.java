@@ -1,5 +1,6 @@
 package com.ecommerce.productservice.service;
 
+import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 
 import java.util.List;
@@ -15,4 +16,7 @@ public interface ProductService {
 
     void deleteProduct(Long id);
 
+    ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity);
+
+    void updateProductInventory(Long id, Integer updatedInventory);
 }

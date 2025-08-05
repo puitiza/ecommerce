@@ -1,13 +1,11 @@
 package com.ecommerce.userservice.configuration.exception.handler;
 
-public class InvalidUserException extends HandledException {
+import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ServiceException;
 
-    public InvalidUserException(String message) {
-        super(message);
-    }
+public class InvalidUserException extends ServiceException {
 
-    @Override
-    public String getErrorCode() {
-        return null;
+    public InvalidUserException(String message, Object... messageArgs) {
+        super(ExceptionError.USER_USERNAME_FOUND, message, messageArgs);
     }
 }

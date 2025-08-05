@@ -1,208 +1,390 @@
-version: '3.8'
+# Define reusable configurations
+x-healthcheck: &default-healthcheck
+  interval: 10s
+  timeout: 10s
+  retries: 10
+  start_period: 20s
+
+x-environment: &default-environment
+  SPRING_PROFILES_ACTIVE: dev
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://service-registry:8761/eureka/
+  CONFIG_SERVER_URL: http://config-server:8885
+  KEYCLOAK_SERVER_URL: http://keycloak:8080
+
+x-default-service: &default-service
+  restart: unless-stopped
+  networks:
+    - ecommerce-network
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
   config-server:
+    <<: *default-service
     container_name: config-server
-    build: #Configuration options that are applied at build time that we defined in the Dockerfile with relative path
-      context: ./config-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: config-server
+        PORT: 8885
     ports:
-      - "8885:8885"
-    restart: always
-    networks:
-      - springCloud
+      - "8885:8885" # Remove in prod
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: classpath:/config/,classpath:/config/shared/
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8885/product-service/dev" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      <<: *default-healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:8885/actuator/health" ]
 
   service-registry:
+    <<: *default-service
     container_name: service-registry
     build:
-      context: ./service-registry
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: service-registry
+        PORT: 8761
     ports:
-      - "8761:8761"
-    restart: always
-    networks:
-      - springCloud
+      - "8761:8761" # Remove in prod
     healthcheck:
+      <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   api-gateway:
+    <<: *default-service
     container_name: api-gateway
     build:
-      context: ./api-gateway
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: api-gateway
+        PORT: 8090
     ports:
-      - "8090:8090"
-    restart: always
-    networks:
-      - springCloud
-    depends_on:
-      - config-server
-      - service-registry
-      - order-service
-      - product-service
-      - user-service
-    environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
-      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
-
-  zipkin-all-in-one:
-    container_name: zipkin-all-in-one
-    image: openzipkin/zipkin:latest
-    restart: always
-    ports:
-      - "9411:9411"
-    networks:
-      - springCloud
-
-  mysql-db:
-    container_name: mysql-db
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: product_db
-      MYSQL_USER: user
-      MYSQL_PASSWORD: test
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - springCloud
-    healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
-      timeout: 10s
-      retries: 5
-
-  order-service: #this service hasn't container_name because it has 3 replica
-    build:
-      context: ./order-service
-    restart: always
-    networks:
-      - springCloud
+      - "8090:8090" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      keycloak-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *default-environment
+      CORS_ALLOWED_ORIGINS: http://localhost:9090,http://example.com
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
+
+  zipkin:
+    <<: *default-service
+    container_name: zipkin
+    image: openzipkin/zipkin:2.24.0
+    ports:
+      - "9411:9411" # Remove in prod
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "curl", "-f", "http://localhost:9411/actuator/health" ]
+
+  mysql-product-db:
+    <<: *default-service
+    container_name: mysql-product-db
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PRODUCT_ROOT_PASSWORD}
+      MYSQL_DATABASE: product_db
+      MYSQL_USER: ${MYSQL_PRODUCT_USER}
+      MYSQL_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
+    ports:
+      - "3306:3306" # Remove in prod
+    volumes:
+      - mysql_product_data:/var/lib/mysql
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_PRODUCT_USER}", "-p${MYSQL_PRODUCT_PASSWORD}" ]
+
+  mysql-order-db:
+    <<: *default-service
+    container_name: mysql-order-db
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ORDER_ROOT_PASSWORD}
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: ${MYSQL_ORDER_USER}
+      MYSQL_PASSWORD: ${MYSQL_ORDER_PASSWORD}
+    ports:
+      - "3307:3306" # Remove in prod
+    volumes:
+      - mysql_order_data:/var/lib/mysql
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_ORDER_USER}", "-p${MYSQL_ORDER_PASSWORD}" ]
+
+  order-service:
+    <<: *default-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: order-service
+        PORT: 8080
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+        restart: true
+      mysql-order-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     deploy:
-      replicas: 3
+      replicas: 2
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
-      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8885
+      <<: *default-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-order-db:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_ORDER_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ORDER_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      KAFKA_SERVER_URL: kafka:29092
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
 
   product-service:
+    <<: *default-service
     container_name: product-service
     build:
-      context: ./product-service
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: product-service
+        PORT: 4005
     ports:
-      - "8002:4005"
-    restart: always
-    networks:
-      - springCloud
+      - "8002:4005" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
-        condition: service_healthy
-      mysql-db:
+      zipkin:
+        condition: service_started
+        restart: true
+      mysql-product-db:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
-      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: test
+      <<: *default-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-product-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_PRODUCT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:4005/actuator/health" ]
 
   user-service:
+    <<: *default-service
     container_name: user-service
     build:
-      context: ./user-service
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: user-service
+        PORT: 8082
     ports:
-      - "8082:8082"
-    restart: always
-    networks:
-      - springCloud
+      - "8082:8082" # Remove in prod
     depends_on:
       config-server:
         condition: service_healthy
       service-registry:
         condition: service_healthy
-      zipkin-all-in-one:
+      zipkin:
+        condition: service_started
+        restart: true
+      keycloak-server:
         condition: service_healthy
     environment:
-      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-all-in-one:9411/api/v2/spans
-      EUREKA.CLIENT.SERVICE-URL.DEFAULTZONE: http://service-registry:8761/eureka/
-      CONFIG_SERVER_URL: http://config-server:8885
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      <<: *default-environment
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
 
-  postgres-db:
-    container_name: postgres-db
+  payment-service:
+    <<: *default-service
+    container_name: payment-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: payment-service
+        PORT: 8087
+    ports:
+      - "8087:8087" # Remove in prod
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+        restart: true
+      postgres-payment-db:
+        condition: service_healthy
+    environment:
+      <<: *default-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment-db:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_PAYMENT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    healthcheck:
+#      <<: *default-healthcheck
+#      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
+
+  postgres-keycloak-db:
+    <<: *default-service
+    container_name: postgres-keycloak-db
     image: postgres:15
     ports:
-      - "5432:5432"
+      - "5432:5432" # Remove in prod
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - springCloud
+      - postgres_keycloak_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "pg_isready", "-U", "${KEYCLOAK_DB_USER}", "-d", "keycloak" ]
+
+  postgres-payment-db:
+    <<: *default-service
+    container_name: postgres-payment-db
+    image: postgres:15
+    ports:
+      - "5430:5432" # Remove in prod
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: ${POSTGRES_PAYMENT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_PAYMENT_USER}", "-d", "payment_db" ]
 
   keycloak-server:
+    <<: *default-service
     container_name: keycloak-server
     hostname: keycloak
-    image: quay.io/keycloak/keycloak:23.0
+    image: quay.io/keycloak/keycloak:23.0.6
     volumes:
-      - ./imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./config/imports/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
-      - "9090:8080"
+      - "9090:8080" # Remove in prod
     command:
       - start-dev
       - --transaction-xa-enabled=false
       - --import-realm
     depends_on:
-      - postgres-db
-    networks:
-      - springCloud
+      postgres-keycloak-db:
+        condition: service_healthy
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-db:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak-db:5432/keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_ENABLED: true
+      KC_PROXY: none
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'" ]
+      interval: 30s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
 
   redis:
+    <<: *default-service
     container_name: redis
-    image: bitnami/redis:latest
+    image: redis:8.0
     ports:
-      - "6379:6379"
+      - "6379:6379" # Remove in prod
     environment:
-      ALLOW_EMPTY_PASSWORD: yes
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+
+  zookeeper:
+    <<: *default-service
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:7.2.0
+    hostname: zookeeper
+    ports:
+      - "2181:2181" # Remove in prod
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181" ]
+
+  kafka:
+    <<: *default-service
+    container_name: kafka
+    image: confluentinc/cp-kafka:7.2.0
+    hostname: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092" # Remove in prod
+      - "29092:29092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+    healthcheck:
+      <<: *default-healthcheck
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list" ]
 
 networks:
-  springCloud:
+  ecommerce-network:
     driver: bridge
-    name: springCloud
+    name: ecommerce-network
 
 volumes:
-  postgres_data:
+  postgres_keycloak_data:
     driver: local
-  mysql_data:
+  postgres_payment_data:
+    driver: local
+  mysql_product_data:
+    driver: local
+  mysql_order_data:
     driver: local

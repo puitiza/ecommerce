@@ -1,0 +1,45 @@
+#Publish Application(Register with Eureka)
+eureka:
+  instance: # Unique ID for this application instance
+    instance-id: ${spring.application.name}:${random.value}
+  client:
+    service-url: # This information must be given to which Eureka Server address the application will connect.
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+# Fetch configuration from Spring Cloud Config Server
+spring:
+  cloud:
+    config:
+      fail-fast: true # Fail startup if config server connection fails (optional)
+      retry:
+        max-attempts: 30 # Retry retrieving config up to 30 times
+        max-interval: 8000 # Wait up to 8 seconds between retries
+
+# Send all requests to Zipkin for tracing
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # Sample ALL requests for traces (high overhead in production)
+  zipkin:
+    tracing: # Send tracing data to Zipkin server at this address
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
+  endpoints:
+    web:
+      exposure: # Exposes management endpoints for monitoring
+        include: health,info,env,configprops
+
+# Enable tracing for distributed logging
+configuration:
+  trace: true
+  stacktrace-depth: 14
+
+# Keycloak Central Configuration
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
+  realm:
+    name: ecommerce
+    url: ${keycloak.server-url}/realms/${keycloak.realm.name}
+  client-secrets: # Map of Secrets per Customer (if they are different)
+    product-service: tu_secreto_product
+    order-service: tu_secreto_order
+    api-gateway-client: ${KEYCLOAK_CLIENT_SECRET:fB6qaEazuI3oZJYHB1lu91Py6FbKP1m6}

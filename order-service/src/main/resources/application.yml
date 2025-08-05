@@ -2,12 +2,54 @@ spring:
   application:
     name: order-service
   profiles:
-    active: dev
+    active: prod
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak.realm.url}
+  datasource:
+    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: order_user
+    password: order_password
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.cloudevents.kafka.CloudEventSerializer
+      properties:
+        retry-backoff-ms: 10000
+        retries: 10
+
+permit-urls:
+  swagger:
+    /orders/v3/api-docs/**,
+    /orders/swagger-ui/**,
+    /orders/swagger-ui.html,
+    /favicon.ico
 
 springdoc:
+  base-path: /orders
   api-docs:
-    path: /order/v3/api-docs
+    enabled: true
+    path: ${springdoc.base-path}/v3/api-docs
   swagger-ui:
-    path: /order/swagger-ui.html
+    enabled: true
+    path: ${springdoc.base-path}/swagger-ui.html
+
+openapi:
+  title: Order Service APIs
+  description: This lists all the Order Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.
+  version: v1.0
+  securityEnabled: true
+  servers:
+    - description: gateway
+      url: ${GATEWAY_URL:http://localhost:8090}
+    - description: local
+      url: ${ORDER_SERVICE_URL:http://localhost:3001}

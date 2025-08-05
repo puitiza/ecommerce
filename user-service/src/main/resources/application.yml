@@ -9,7 +9,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${KEYCLOAK_SERVER_URL:http://localhost:9090}/realms/ecommerce/protocol/openid-connect/certs
+          issuer-uri: ${keycloak.realm.url}
 
 server:
   port: 8082
@@ -25,12 +25,10 @@ keycloak:
   principal-attribute: preferred_username # Configures what principal.getName() will return
   use-resource-role-mappings: true #The application will obtain roles from the Keycloak client configuration instead of user-level role mappings.
 
+# Logging configuration to suppress unnecessary warnings
 logging:
   level:
-    org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR # Suppress warnings
-
-configuration:
-  trace: true
+    org.springframework.web.servlet.handler.HandlerMappingIntrospector: ERROR
 
 permit-urls:
   swagger:
@@ -50,3 +48,22 @@ springdoc:
   swagger-ui:
     enabled: true
     path: ${springdoc.base-path}/swagger-ui.html
+
+openapi:
+  title: User Service APIs
+  description: This lists all the User Service API Calls. Some endpoints require OAuth2 authentication.
+  version: v1.0
+  securityEnabled: true
+  servers:
+    - description: gateway
+      url: ${GATEWAY_URL:http://localhost:8090}
+    - description: local
+      url: ${USER_SERVICE_URL:http://localhost:8082}
+
+resilience4j.circuitbreaker:
+  instances:
+    keycloak:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3

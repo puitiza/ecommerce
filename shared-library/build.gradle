@@ -1,0 +1,20 @@
+// Disable bootJar task since this is a library module
+bootJar {
+    enabled = false
+}
+
+dependencies {
+    applyOpenApiDependencies(dependencies)
+    // Common dependencies needed for the shared library
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Jackson for JSON serialization/deserialization
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Common dependencies required by your shared library
+    implementation 'org.springframework.boot:spring-boot-starter-web' //For WebRequest, ResponseEntity, etc.
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' //If you use WebFlux in API Gateway
+    implementation 'org.springframework.boot:spring-boot-starter-validation'//For @Valid and MethodArgumentNotValidException
+
+}

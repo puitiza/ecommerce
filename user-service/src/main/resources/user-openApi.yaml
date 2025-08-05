@@ -38,7 +38,7 @@ paths:
                   example: 555-555-5555
                 role:
                   type: string
-                  enum: [USER, ADMIN, ORDER]
+                  enum: [ USER, ADMIN, ORDER ]
       responses:
         201:
           description: User created successfully.
@@ -83,7 +83,7 @@ paths:
                   example: 555-123-4567
                 role:
                   type: string
-                  enum: [USER, ADMIN, ORDER]
+                  enum: [ USER, ADMIN, ORDER ]
       responses:
         200:
           description: User details updated successfully.
