@@ -21,7 +21,7 @@ public class OrderEntity {
     @Column(nullable = false)
     private String userId;
 
-    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER,  cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<OrderItemEntity> items;
 
     @Enumerated(EnumType.STRING)

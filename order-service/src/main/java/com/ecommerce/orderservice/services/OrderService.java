@@ -9,8 +9,12 @@ import java.util.UUID;
 
 public interface OrderService {
     OrderDto createOrder(CreateOrderRequest request);
+
     Page<OrderDto> getAllOrders(int page, int size);
+
     OrderDto getOrderById(UUID id);
+
     OrderDto updateOrder(UUID id, UpdateOrderRequest request);
+
     void cancelOrder(UUID id);
 }

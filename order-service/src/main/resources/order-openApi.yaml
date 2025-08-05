@@ -5,13 +5,13 @@ info:
 servers:
   - url: http://localhost:8081
 security:
-  - Auth-JWT: []
+  - Auth-JWT: [ ]
 paths:
   /orders:
     post:
       summary: Creates a new order.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       requestBody:
         required: true
         content:
@@ -61,8 +61,8 @@ paths:
                   timestamp: 28-06-2022 10:37:06 PET
                   errorCode: PC-0002
                   message: "Missing required field: userId"
-                  stackTrace: []
-                  errors: []
+                  stackTrace: [ ]
+                  errors: [ ]
                   debugMessage: null
         409:
           description: Insufficient product availability
@@ -76,14 +76,14 @@ paths:
                   timestamp: 28-06-2022 10:37:06 PET
                   errorCode: PC-0002
                   message: "Product with ID {0} has insufficient stock (only 2 available)"
-                  stackTrace: []
-                  errors: []
+                  stackTrace: [ ]
+                  errors: [ ]
                   debugMessage: null
 
     get:
       summary: Gets all orders.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       responses:
         200:
           description: Orders retrieved successfully.
@@ -98,7 +98,7 @@ paths:
     get:
       summary: Gets details of a specific order.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       parameters:
         - name: id
           in: path
@@ -126,14 +126,14 @@ paths:
                   timestamp: 28-06-2022 10:37:06 PET
                   errorCode: PC-0001
                   message: "Order with id {0} not found"
-                  stackTrace: []
-                  errors: []
+                  stackTrace: [ ]
+                  errors: [ ]
                   debugMessage: null
 
     put:
       summary: Updates an existing order.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       parameters:
         - name: id
           in: path
@@ -193,8 +193,8 @@ paths:
                   timestamp: 28-06-2022 10:37:06 PET
                   errorCode: PC-0001
                   message: "Invalid status value: 'INVALID'"
-                  stackTrace: []
-                  errors: []
+                  stackTrace: [ ]
+                  errors: [ ]
                   debugMessage: null
         404:
           description: Order not found.
@@ -202,7 +202,7 @@ paths:
     delete:
       summary: Cancels an order.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       parameters:
         - name: id
           in: path
@@ -226,14 +226,14 @@ paths:
                   timestamp: 28-06-2022 10:37:06 PET
                   errorCode: PC-0001
                   message: "Order with ID {1} cannot be cancelled as it is already shipped"
-                  stackTrace: []
-                  errors: []
+                  stackTrace: [ ]
+                  errors: [ ]
                   debugMessage: null
   /orders/user/{id}:
     get:
       summary: Gets all orders for a specific user.
       security:
-        - Auth-JWT: []
+        - Auth-JWT: [ ]
       parameters:
         - name: id
           in: path
@@ -288,7 +288,7 @@ components:
           description: Date and time when the order was last updated.
         status:
           type: string
-          enum: [PLACED, PAID, SHIPPED, DELIVERED, CANCELLED]
+          enum: [ PLACED, PAID, SHIPPED, DELIVERED, CANCELLED ]
           description: Current status of the order.
         totalPrice:
           type: number

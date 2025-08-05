@@ -202,7 +202,8 @@ public class OrderServiceImpl implements OrderService {
         var savedOrderDto = modelMapper.map(orderFound, OrderDto.class);
 
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderFound.getItems(),
-                new TypeToken<List<OrderItemRequest>>() {}.getType());
+                new TypeToken<List<OrderItemRequest>>() {
+                }.getType());
         List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         savedOrderDto.setItems(result);
@@ -228,7 +229,8 @@ public class OrderServiceImpl implements OrderService {
         }
         // Fetch product details concurrently
         List<OrderItemRequest> orderItemRequestList = modelMapper.map(orderEntity.getItems(),
-                new TypeToken<List<OrderItemRequest>>() {}.getType());
+                new TypeToken<List<OrderItemRequest>>() {
+                }.getType());
         List<OrderItemDto> result = createOrderItemDtosWithProductDetails(orderItemRequestList, token[0]);
 
         // Calculate updated total price

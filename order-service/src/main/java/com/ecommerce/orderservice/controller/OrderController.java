@@ -33,7 +33,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") @Min(0) int page,
                                        @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
         log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
-         orderService.getAllOrders(page, size);
+        orderService.getAllOrders(page, size);
         Page<OrderDto> ordersPage = orderService.getAllOrders(page, size);
         return new OrderPageResponse(ordersPage);
     }
