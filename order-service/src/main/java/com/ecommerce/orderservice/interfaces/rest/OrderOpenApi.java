@@ -1,9 +1,9 @@
 package com.ecommerce.orderservice.interfaces.rest;
 
-import com.ecommerce.orderservice.model.dto.OrderDto;
-import com.ecommerce.orderservice.model.request.CreateOrderRequest;
-import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
-import com.ecommerce.orderservice.model.response.OrderPageResponse;
+import com.ecommerce.orderservice.application.dto.OrderPageResponse;
+import com.ecommerce.orderservice.application.dto.OrderResponse;
+import com.ecommerce.orderservice.application.request.CreateOrderRequest;
+import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
 import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
 import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
@@ -24,8 +24,8 @@ public interface OrderOpenApi {
     @ApiErrorPostResponses
     @Operation(summary = "Create Order", description = "Creates a new order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "201", description = "Order created successfully",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))})
-    OrderDto createOrder(CreateOrderRequest request);
+            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
+    OrderResponse createOrder(CreateOrderRequest request);
 
     @ApiErrorCommon
     @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders with pagination", security = @SecurityRequirement(name = "security_auth"))
@@ -36,18 +36,18 @@ public interface OrderOpenApi {
     @ApiErrorGetResponses
     @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "200", description = "Success",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))})
-    OrderDto getOrderById(UUID id);
+            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
+    OrderResponse getOrderById(UUID id);
 
     @ApiErrorPostResponses
     @Operation(summary = "Update Order", description = "Updates an existing order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Order updated successfully",
-                    content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderDto.class))}),
+                    content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))}),
             @ApiResponse(responseCode = "404", description = "Payment not found",
                     content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
     })
-    OrderDto updateOrder(UUID id, UpdateOrderRequest request);
+    OrderResponse updateOrder(UUID id, UpdateOrderRequest request);
 
     @ApiErrorGetResponses
     @Operation(summary = "Delete Order", description = "Delete an order", security = @SecurityRequirement(name = "security_auth"))

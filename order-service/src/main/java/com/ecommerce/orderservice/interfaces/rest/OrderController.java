@@ -1,10 +1,10 @@
 package com.ecommerce.orderservice.interfaces.rest;
 
-import com.ecommerce.orderservice.model.dto.OrderDto;
-import com.ecommerce.orderservice.model.request.CreateOrderRequest;
-import com.ecommerce.orderservice.model.request.UpdateOrderRequest;
-import com.ecommerce.orderservice.model.response.OrderPageResponse;
-import com.ecommerce.orderservice.services.OrderService;
+import com.ecommerce.orderservice.application.dto.OrderPageResponse;
+import com.ecommerce.orderservice.application.dto.OrderResponse;
+import com.ecommerce.orderservice.application.request.CreateOrderRequest;
+import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -22,7 +22,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderDto createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public OrderResponse createOrder(@Valid @RequestBody CreateOrderRequest request) {
         log.info("CREATING ORDER: {}", request);
         return orderService.createOrder(request);
     }
@@ -35,13 +35,13 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     }
 
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderDto getOrderById(@PathVariable UUID orderId) {
+    public OrderResponse getOrderById(@PathVariable UUID orderId) {
         log.info("GETTING ORDER WITH ID {}", orderId);
         return orderService.getOrderById(orderId);
     }
 
     @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderDto updateOrder(@PathVariable UUID orderId, @Valid @RequestBody UpdateOrderRequest request) {
+    public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody UpdateOrderRequest request) {
         log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
         return orderService.updateOrder(orderId, request);
     }

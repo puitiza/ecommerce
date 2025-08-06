@@ -1,6 +1,6 @@
 package com.ecommerce.orderservice.infrastructure.persistence.entity;
 
-import com.ecommerce.orderservice.model.entity.OrderStatus;
+import com.ecommerce.orderservice.domain.model.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

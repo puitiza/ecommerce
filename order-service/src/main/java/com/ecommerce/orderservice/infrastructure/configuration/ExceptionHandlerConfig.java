@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.configuration;
 
-import com.ecommerce.orderservice.infrastructure.configuration.exception.OrderCancellationException;
-import com.ecommerce.orderservice.infrastructure.configuration.exception.OrderValidationException;
+import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
+import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.shared.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
