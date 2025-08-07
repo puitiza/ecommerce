@@ -7,6 +7,7 @@ import com.ecommerce.orderservice.application.dto.ProductResponse;
 import com.ecommerce.orderservice.application.publisher.OrderEventPublisher;
 import com.ecommerce.orderservice.application.request.CreateOrderRequest;
 import com.ecommerce.orderservice.application.request.OrderItemRequest;
+import com.ecommerce.orderservice.application.request.PaymentAuthorizationRequest;
 import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
@@ -14,11 +15,12 @@ import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
-import com.ecommerce.orderservice.infrastructure.http.PaymentRestClientAdapter;
-import com.ecommerce.orderservice.infrastructure.http.ProductRestClientAdapter;
+import com.ecommerce.orderservice.infrastructure.feign.PaymentFeignClient;
+import com.ecommerce.orderservice.infrastructure.feign.ProductFeignClient;
 import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderItemEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.repository.OrderRepository;
+import com.ecommerce.shared.exception.ExceptionError;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,8 +40,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
-    private final ProductRestClientAdapter productClient;
-    private final PaymentRestClientAdapter paymentClient;
+    private final ProductFeignClient productClient;
+    private final PaymentFeignClient paymentClient;
     private final OrderEventPublisher orderEventPublisher;
     private final OrderDomainService orderDomainService;
     private final OrderRepository orderRepository;
@@ -52,7 +54,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<OrderItemResponse> items = createOrderItemResponses(request.items(), token[0]);
         Order order = new Order(
-                UUID.randomUUID(),
+                null,
                 token[1],
                 items.stream()
                         .map(item -> new OrderItem(null, item.productId(), item.quantity(), BigDecimal.valueOf(item.unitPrice())))
@@ -176,7 +178,7 @@ public class OrderServiceImpl implements OrderService {
         Set<Long> uniqueProductIds = new HashSet<>();
         for (OrderItemRequest item : request.items()) {
             if (!uniqueProductIds.add(item.productId())) {
-                throw new OrderValidationException("Duplicate product ID: " + item.productId());
+                throw new OrderValidationException(ExceptionError.ORDER_DUPLICATE_PRODUCT, item.productId());
             }
             ProductAvailabilityResponse availability = productClient.verifyProductAvailability(item, token);
             if (!availability.isAvailable()) {
@@ -221,7 +223,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             CompletableFuture.runAsync(() -> {
                 var response = paymentClient.authorizePayment(
-                        new com.ecommerce.orderservice.application.request.PaymentAuthorizationRequest(
+                        new PaymentAuthorizationRequest(
                                 entity.getId().toString(),
                                 entity.getTotalPrice()
                         )
