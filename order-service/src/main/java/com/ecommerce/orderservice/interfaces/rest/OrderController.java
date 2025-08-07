@@ -28,8 +28,8 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") @Min(0) int page,
-                                       @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size) {
+    public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "10") int size) {
         log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
         return new OrderPageResponse(orderService.getAllOrders(page, size));
     }
