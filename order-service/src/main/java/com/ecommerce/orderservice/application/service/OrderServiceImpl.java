@@ -21,6 +21,7 @@ import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderItemEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.repository.OrderRepository;
 import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -69,6 +70,7 @@ public class OrderServiceImpl implements OrderService {
 
         OrderEntity entity = toEntity(order);
         entity = orderRepository.save(entity);
+        log.info("Saved OrderEntity with ID: {}", entity.getId());
         orderEventPublisher.publishOrderCreatedEvent(toDomain(entity));
 
         validateOrderAsync(entity);
@@ -108,8 +110,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse getOrderById(UUID id) {
+        log.info("Retrieving order with ID: {}", id);
         OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
         var token = getRequestHeaderToken();
         List<OrderItemResponse> items = createOrderItemResponses(
                 entity.getItems().stream()
@@ -117,13 +120,15 @@ public class OrderServiceImpl implements OrderService {
                         .toList(),
                 token[0]
         );
+        log.info("Order retrieved successfully: {}", id);
         return toResponse(toDomain(entity), items);
     }
 
     @Override
     public OrderResponse updateOrder(UUID id, UpdateOrderRequest request) {
+        log.info("Updating order with ID: {}", id);
         OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
         var token = getRequestHeaderToken();
         validateAndUpdateOrderItems(request.items(), entity, token[0]);
 
@@ -143,13 +148,15 @@ public class OrderServiceImpl implements OrderService {
         entity.setUpdatedAt(LocalDateTime.now());
         entity = orderRepository.save(entity);
         orderEventPublisher.publishOrderUpdatedEvent(toDomain(entity));
+        log.info("Order successfully updated: {}", id);
         return toResponse(toDomain(entity), items);
     }
 
     @Override
     public void cancelOrder(UUID id) {
+        log.info("Cancelling order with ID: {}", id);
         OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
         Order order = toDomain(entity);
         var token = getRequestHeaderToken();
 
@@ -162,6 +169,7 @@ public class OrderServiceImpl implements OrderService {
         entity.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(entity);
         orderEventPublisher.publishOrderCancelledEvent(toDomain(entity));
+        log.info("Order successfully cancelled: {}", id);
     }
 
     private String[] getRequestHeaderToken() {
@@ -182,10 +190,8 @@ public class OrderServiceImpl implements OrderService {
             }
             ProductAvailabilityResponse availability = productClient.verifyProductAvailability(item, token);
             if (!availability.isAvailable()) {
-                throw new OrderValidationException(
-                        "Insufficient inventory for product ID: %s, available: %d".formatted(
-                                item.productId(), availability.availableUnits()
-                        )
+                throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
+                        item.productId(), availability.availableUnits()
                 );
             }
         }
@@ -222,12 +228,7 @@ public class OrderServiceImpl implements OrderService {
     private void validateOrderAsync(OrderEntity entity) {
         try {
             CompletableFuture.runAsync(() -> {
-                var response = paymentClient.authorizePayment(
-                        new PaymentAuthorizationRequest(
-                                entity.getId().toString(),
-                                entity.getTotalPrice()
-                        )
-                );
+                var response = paymentClient.authorizePayment(new PaymentAuthorizationRequest(entity.getId().toString(), entity.getTotalPrice()));
                 if (response.authorized()) {
                     entity.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
                     entity.setUpdatedAt(LocalDateTime.now());
@@ -243,11 +244,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void handleValidationFailure(OrderEntity entity, String message) {
+        log.info("Handling validation failure for order ID: {}", entity.getId());
         entity.setStatus(OrderStatus.VALIDATION_FAILED);
         entity.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(entity);
         orderEventPublisher.publishValidationFailedEvent(toDomain(entity));
-        throw new OrderValidationException(message);
+        throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, message);
     }
 
     private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity entity, String token) {
@@ -257,11 +259,8 @@ public class OrderServiceImpl implements OrderService {
         for (OrderItemRequest updatedItem : updatedItems) {
             ProductAvailabilityResponse availability = productClient.verifyProductAvailability(updatedItem, token);
             if (!availability.isAvailable()) {
-                throw new OrderValidationException(
-                        "Insufficient inventory for product ID: %s, available: %d".formatted(
-                                updatedItem.productId(), availability.availableUnits()
-                        )
-                );
+                throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
+                        updatedItem.productId(), availability.availableUnits());
             }
 
             OrderItemEntity existingItem = entity.getItems().stream()
