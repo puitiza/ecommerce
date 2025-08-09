@@ -9,6 +9,7 @@ public enum ExceptionError {
     VALIDATION_ERROR("error.validation", HttpStatus.BAD_REQUEST),
     NOT_FOUND("error.not_found", HttpStatus.NOT_FOUND),
     INTERNAL_SERVER_ERROR("error.internal_server", HttpStatus.INTERNAL_SERVER_ERROR),
+    SERVICE_UNAVAILABLE("error.service_unavailable", HttpStatus.SERVICE_UNAVAILABLE),
 
     // Order service errors
     ORDER_VALIDATION("error.order.validation", HttpStatus.BAD_REQUEST),
@@ -16,6 +17,9 @@ public enum ExceptionError {
     ORDER_INSUFFICIENT_INVENTORY("error.order.insufficient_inventory", HttpStatus.BAD_REQUEST),
     ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED("error.order.product_availability_check_failed", HttpStatus.BAD_REQUEST),
     ORDER_CANCELLATION("error.order.cancellation", HttpStatus.BAD_REQUEST),
+    ORDER_PAYMENT_AUTHORIZATION_FAILED("error.order.payment_authorization_failed", HttpStatus.BAD_REQUEST),
+    ORDER_REFUND_FAILED("error.order.refund_failed", HttpStatus.BAD_REQUEST),
+    ORDER_PAYMENT_LOOKUP_FAILED("error.order.payment_lookup_failed", HttpStatus.BAD_REQUEST),
 
     // Product service errors
     PRODUCT_INVALID_INVENTORY("error.product.invalid_inventory", HttpStatus.BAD_REQUEST),
