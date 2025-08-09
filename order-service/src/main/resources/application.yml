@@ -53,3 +53,30 @@ openapi:
       url: ${GATEWAY_URL:http://localhost:8090}
     - description: local
       url: ${ORDER_SERVICE_URL:http://localhost:3001}
+
+resilience4j.circuitbreaker:
+  instances:
+    productServiceCircuit:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3
+      registerHealthIndicator: true
+    paymentAuthorizeCircuit:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3
+      registerHealthIndicator: true
+    paymentRefundCircuit:
+      slidingWindowSize: 5
+      failureRateThreshold: 60
+      waitDurationInOpenState: 15000
+      permittedNumberOfCallsInHalfOpenState: 2
+      registerHealthIndicator: true
+    paymentFindCircuit:
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3
+      registerHealthIndicator: true

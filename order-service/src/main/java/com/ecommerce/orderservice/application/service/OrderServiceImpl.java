@@ -15,8 +15,8 @@ import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
-import com.ecommerce.orderservice.infrastructure.feign.PaymentFeignClient;
-import com.ecommerce.orderservice.infrastructure.feign.ProductFeignClient;
+import com.ecommerce.orderservice.infrastructure.http.PaymentFeignClientAdapter;
+import com.ecommerce.orderservice.infrastructure.http.ProductFeignClientAdapter;
 import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.entity.OrderItemEntity;
 import com.ecommerce.orderservice.infrastructure.persistence.repository.OrderRepository;
@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
-    private final ProductFeignClient productClient;
-    private final PaymentFeignClient paymentClient;
+    private final ProductFeignClientAdapter productClient;
+    private final PaymentFeignClientAdapter paymentClient;
     private final OrderEventPublisher orderEventPublisher;
     private final OrderDomainService orderDomainService;
     private final OrderRepository orderRepository;

@@ -23,11 +23,11 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
 
     @ExceptionHandler(OrderValidationException.class)
     public ResponseEntity<Object> handleOrderValidationException(OrderValidationException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ex.getError(), null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ex.getError(), null, ex.getMessage(), ex.getMessageArgs());
     }
 
     @ExceptionHandler(OrderCancellationException.class)
     public ResponseEntity<Object> handleOrderCancellationException(OrderCancellationException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.ORDER_CANCELLATION, null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.ORDER_CANCELLATION, null, ex.getMessage(), ex.getMessageArgs());
     }
 }

@@ -16,7 +16,7 @@ public class OrderValidationException extends ServiceException {
         super(error, message);
     }
 
-    public OrderValidationException(ExceptionError error, String message, Throwable cause, Object... messageArgs) {
-        super(error, message, cause, messageArgs);
+    public OrderValidationException(ExceptionError error, String message, Object... messageArgs) {
+        super(error, message, messageArgs);
     }
 }
