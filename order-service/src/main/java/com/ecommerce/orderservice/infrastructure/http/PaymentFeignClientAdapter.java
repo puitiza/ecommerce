@@ -10,7 +10,6 @@ import com.ecommerce.orderservice.infrastructure.feign.PaymentFeignClient;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import feign.FeignException;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +19,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class PaymentFeignClientAdapter implements PaymentServicePort {
+    private static final String SERVICE_NAME = "Payment";
     private final PaymentFeignClient paymentFeignClient;
 
     @Override
@@ -40,14 +40,17 @@ public class PaymentFeignClientAdapter implements PaymentServicePort {
         return paymentFeignClient.findPaymentIdByOrderId(orderId);
     }
 
+    @SuppressWarnings("unused")
     private PaymentAuthorizationResponse authorizePaymentFallback(PaymentAuthorizationRequest request, Throwable t) {
         throw handlePaymentError(ExceptionError.ORDER_PAYMENT_AUTHORIZATION_FAILED, request.orderId(), t);
     }
 
+    @SuppressWarnings("unused")
     private RefundResponse initiateRefundFallback(String paymentId, RefundRequest refundRequest, Throwable t) {
         throw handlePaymentError(ExceptionError.ORDER_REFUND_FAILED, paymentId, t);
     }
 
+    @SuppressWarnings("unused")
     private String findPaymentIdFallback(String orderId, Throwable t) {
         throw handlePaymentError(ExceptionError.ORDER_PAYMENT_LOOKUP_FAILED, orderId, t);
     }
@@ -58,14 +61,13 @@ public class PaymentFeignClientAdapter implements PaymentServicePort {
             int status = feignException.status();
             return switch (status) {
                 case 404 -> new ResourceNotFoundException("Payment", id);
-                case 429 -> new OrderValidationException(ExceptionError.GATEWAY_RATE_LIMIT, id, t.getMessage());
-                case 503 -> new OrderValidationException(defaultError, id, t.getMessage());
+                case 429 -> new OrderValidationException(ExceptionError.GATEWAY_RATE_LIMIT,
+                        String.format("Rate limit exceeded for %sId %s", SERVICE_NAME, id));
+                case 503, -1 -> new OrderValidationException(defaultError, id, t.getMessage());
                 default -> status >= 400 && status < 500
                         ? new OrderValidationException(ExceptionError.VALIDATION_ERROR, id, t.getMessage())
                         : new OrderValidationException(defaultError, id, t.getMessage());
             };
-        } else if (t instanceof CallNotPermittedException) {
-            return new OrderValidationException(defaultError, id, "Payment service is currently unavailable");
         }
         return new OrderValidationException(defaultError, id, t.getMessage());
     }

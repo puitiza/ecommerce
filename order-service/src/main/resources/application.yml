@@ -58,8 +58,8 @@ resilience4j.circuitbreaker:
   instances:
     productServiceCircuit:
       slidingWindowSize: 10
-      failureRateThreshold: 50
-      waitDurationInOpenState: 10000
+      failureRateThreshold: 50  # 50% failure
+      waitDurationInOpenState: 10000  # 10 second open state
       permittedNumberOfCallsInHalfOpenState: 3
       registerHealthIndicator: true
     paymentAuthorizeCircuit:
