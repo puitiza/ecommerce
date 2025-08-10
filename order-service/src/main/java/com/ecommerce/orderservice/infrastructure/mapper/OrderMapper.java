@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class OrderMapper {
+
     public Order toDomain(OrderEntity entity) {
         return new Order(
                 entity.getId(),
@@ -68,25 +69,6 @@ public class OrderMapper {
                 order.totalPrice(),
                 order.shippingAddress()
         );
-        /*
-        OrderResponse response = new OrderResponse(
-                order.id().toString(),
-                order.userId(),
-                order.items().stream()
-                        .map(item -> new com.ecommerce.orderservice.application.dto.OrderItemResponse(
-                                item.productId(),
-                                "Unknown", // Name fetched externally if needed
-                                item.quantity(),
-                                item.unitPrice().doubleValue()
-                        ))
-                        .toList(),
-                order.status(),
-                order.createdAt(),
-                order.updatedAt(),
-                order.totalPrice(),
-                order.shippingAddress()
-        );
-         */
     }
 
 

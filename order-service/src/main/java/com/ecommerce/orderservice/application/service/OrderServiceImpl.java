@@ -20,6 +20,7 @@ import com.ecommerce.orderservice.infrastructure.adapter.kafka.OrderEventPublish
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderItemEntity;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.repository.OrderRepository;
+import com.ecommerce.orderservice.infrastructure.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -41,11 +42,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
+
     private final ProductFeignClientAdapter productClient;
     private final PaymentFeignClientAdapter paymentClient;
     private final OrderEventPublisherAdapter orderEventPublisher;
     private final OrderDomainService orderDomainService;
     private final OrderRepository orderRepository;
+    private final OrderMapper mapper;
+
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
     @Override
@@ -68,13 +72,13 @@ public class OrderServiceImpl implements OrderService {
         );
         order = orderDomainService.calculateTotalPrice(order);
 
-        OrderEntity entity = toEntity(order);
+        OrderEntity entity = mapper.toEntity(order);
         entity = orderRepository.save(entity);
         log.info("Saved OrderEntity with ID: {}", entity.getId());
-        orderEventPublisher.publishOrderCreatedEvent(toDomain(entity));
+        orderEventPublisher.publishOrderCreatedEvent(mapper.toDomain(entity));
 
         validateOrderAsync(entity);
-        return toResponse(toDomain(entity), items);
+        return mapper.toResponse(mapper.toDomain(entity), items);
     }
 
     @Override
@@ -102,7 +106,7 @@ public class OrderServiceImpl implements OrderService {
                                 );
                             })
                             .toList();
-                    return toResponse(toDomain(entity), items);
+                    return mapper.toResponse(mapper.toDomain(entity), items);
                 })
                 .toList();
         return new PageImpl<>(responses, pageable, entities.getTotalElements());
@@ -121,7 +125,7 @@ public class OrderServiceImpl implements OrderService {
                 token[0]
         );
         log.info("Order retrieved successfully: {}", id);
-        return toResponse(toDomain(entity), items);
+        return mapper.toResponse(mapper.toDomain(entity), items);
     }
 
     @Override
@@ -142,14 +146,14 @@ public class OrderServiceImpl implements OrderService {
                         .toList(),
                 token[0]
         );
-        Order order = toDomain(entity);
+        Order order = mapper.toDomain(entity);
         order = orderDomainService.calculateTotalPrice(order);
-        entity = toEntity(order);
+        entity = mapper.toEntity(order);
         entity.setUpdatedAt(LocalDateTime.now());
         entity = orderRepository.save(entity);
-        orderEventPublisher.publishOrderUpdatedEvent(toDomain(entity));
+        orderEventPublisher.publishOrderUpdatedEvent(mapper.toDomain(entity));
         log.info("Order successfully updated: {}", id);
-        return toResponse(toDomain(entity), items);
+        return mapper.toResponse(mapper.toDomain(entity), items);
     }
 
     @Override
@@ -157,7 +161,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("Cancelling order with ID: {}", id);
         OrderEntity entity = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
-        Order order = toDomain(entity);
+        Order order = mapper.toDomain(entity);
         var token = getRequestHeaderToken();
 
         if (!orderDomainService.canCancel(order)) {
@@ -168,7 +172,7 @@ public class OrderServiceImpl implements OrderService {
         entity.setStatus(OrderStatus.CANCELLED);
         entity.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(entity);
-        orderEventPublisher.publishOrderCancelledEvent(toDomain(entity));
+        orderEventPublisher.publishOrderCancelledEvent(mapper.toDomain(entity));
         log.info("Order successfully cancelled: {}", id);
     }
 
@@ -233,7 +237,7 @@ public class OrderServiceImpl implements OrderService {
                     entity.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
                     entity.setUpdatedAt(LocalDateTime.now());
                     orderRepository.save(entity);
-                    orderEventPublisher.publishOrderValidatedEvent(toDomain(entity));
+                    orderEventPublisher.publishOrderValidatedEvent(mapper.toDomain(entity));
                 } else {
                     handleValidationFailure(entity, "Payment authorization denied");
                 }
@@ -248,7 +252,7 @@ public class OrderServiceImpl implements OrderService {
         entity.setStatus(OrderStatus.VALIDATION_FAILED);
         entity.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(entity);
-        orderEventPublisher.publishValidationFailedEvent(toDomain(entity));
+        orderEventPublisher.publishValidationFailedEvent(mapper.toDomain(entity));
         throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, message);
     }
 
@@ -307,59 +311,4 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private Order toDomain(OrderEntity entity) {
-        return new Order(
-                entity.getId(),
-                entity.getUserId(),
-                entity.getItems().stream()
-                        .map(item -> new OrderItem(
-                                item.getId(),
-                                item.getProductId(),
-                                item.getQuantity(),
-                                item.getUnitPrice()
-                        ))
-                        .collect(Collectors.toSet()),
-                entity.getStatus(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getTotalPrice(),
-                entity.getShippingAddress()
-        );
-    }
-
-    private OrderEntity toEntity(Order order) {
-        OrderEntity entity = new OrderEntity();
-        entity.setId(order.id());
-        entity.setUserId(order.userId());
-        entity.setItems(order.items().stream()
-                .map(item -> {
-                    OrderItemEntity itemEntity = new OrderItemEntity();
-                    itemEntity.setId(item.id());
-                    itemEntity.setProductId(item.productId());
-                    itemEntity.setQuantity(item.quantity());
-                    itemEntity.setUnitPrice(item.unitPrice());
-                    itemEntity.setOrder(entity);
-                    return itemEntity;
-                })
-                .collect(Collectors.toSet()));
-        entity.setStatus(order.status());
-        entity.setCreatedAt(order.createdAt());
-        entity.setUpdatedAt(order.updatedAt());
-        entity.setTotalPrice(order.totalPrice());
-        entity.setShippingAddress(order.shippingAddress());
-        return entity;
-    }
-
-    private OrderResponse toResponse(Order order, List<OrderItemResponse> items) {
-        return new OrderResponse(
-                order.id().toString(),
-                order.userId(),
-                items,
-                order.status(),
-                order.createdAt(),
-                order.updatedAt(),
-                order.totalPrice(),
-                order.shippingAddress()
-        );
-    }
 }

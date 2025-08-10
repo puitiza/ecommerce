@@ -7,6 +7,8 @@ import com.ecommerce.orderservice.application.request.RefundRequest;
 
 public interface PaymentServicePort {
     PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest request);
+
     RefundResponse initiateRefund(String paymentId, RefundRequest refundRequest);
+
     String findPaymentIdByOrderId(String orderId);
 }
