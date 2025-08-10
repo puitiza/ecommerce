@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.application.event;
+package com.ecommerce.orderservice.domain.event;
 
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;

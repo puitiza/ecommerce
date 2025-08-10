@@ -1,8 +1,8 @@
 package com.ecommerce.orderservice.application.publisher;
 
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.event.OrderEventData;
-import com.ecommerce.orderservice.application.event.OrderEventType;
+import com.ecommerce.orderservice.domain.event.OrderEventData;
+import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;

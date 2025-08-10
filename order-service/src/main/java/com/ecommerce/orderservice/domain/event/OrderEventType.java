@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.application.event;
+package com.ecommerce.orderservice.domain.event;
 
 import lombok.Getter;
 
