@@ -1,11 +1,10 @@
-package com.ecommerce.orderservice.infrastructure.http;
+package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
 import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
 import com.ecommerce.orderservice.application.dto.ProductResponse;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
 import com.ecommerce.orderservice.application.request.OrderItemRequest;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
-import com.ecommerce.orderservice.infrastructure.feign.ProductFeignClient;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import feign.FeignException;

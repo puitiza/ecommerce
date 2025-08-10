@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.infrastructure.feign;
+package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
 import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
 import com.ecommerce.orderservice.application.dto.ProductResponse;

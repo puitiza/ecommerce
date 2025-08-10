@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.infrastructure.http;
+package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
 import com.ecommerce.orderservice.application.dto.PaymentAuthorizationResponse;
 import com.ecommerce.orderservice.application.dto.RefundResponse;
@@ -6,7 +6,6 @@ import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.request.PaymentAuthorizationRequest;
 import com.ecommerce.orderservice.application.request.RefundRequest;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
-import com.ecommerce.orderservice.infrastructure.feign.PaymentFeignClient;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import feign.FeignException;
