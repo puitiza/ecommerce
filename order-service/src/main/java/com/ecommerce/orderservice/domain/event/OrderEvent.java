@@ -1,6 +1,6 @@
 package com.ecommerce.orderservice.domain.event;
 
-import com.ecommerce.orderservice.application.dto.OrderResponse;
+import com.ecommerce.orderservice.domain.model.Order;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
@@ -9,7 +9,7 @@ import io.cloudevents.CloudEventData;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public record OrderEvent(OrderResponse order) implements CloudEventData {
+public record OrderEvent(Order order) implements CloudEventData {
 
     @Override
     public byte[] toBytes() {
