@@ -9,7 +9,7 @@ import io.cloudevents.CloudEventData;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public record OrderEventData(OrderResponse order) implements CloudEventData {
+public record OrderEvent(OrderResponse order) implements CloudEventData {
 
     @Override
     public byte[] toBytes() {

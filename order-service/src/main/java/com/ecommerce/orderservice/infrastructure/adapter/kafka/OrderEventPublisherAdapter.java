@@ -1,6 +1,6 @@
-package com.ecommerce.orderservice.application.publisher;
+package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
-import com.ecommerce.orderservice.application.dto.OrderResponse;
+import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
 import com.ecommerce.orderservice.domain.event.OrderEvent;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
@@ -17,62 +17,44 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OrderEventPublisher {
+public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
 
+    @Override
     public void publishOrderCreatedEvent(Order order) {
         publishEvent(order, OrderEventType.ORDER_CREATED);
     }
 
+    @Override
     public void publishOrderValidatedEvent(Order order) {
         publishEvent(order, OrderEventType.ORDER_VALIDATED_SUCCESS);
     }
 
+    @Override
     public void publishValidationFailedEvent(Order order) {
         publishEvent(order, OrderEventType.ORDER_VALIDATED_FAILED);
     }
 
+    @Override
     public void publishOrderUpdatedEvent(Order order) {
         publishEvent(order, OrderEventType.ORDER_UPDATED);
     }
 
+    @Override
     public void publishOrderCancelledEvent(Order order) {
         publishEvent(order, OrderEventType.ORDER_CANCELLED);
     }
 
     private void publishEvent(Order order, OrderEventType eventType) {
-        OrderResponse response = new OrderResponse(
-                order.id().toString(),
-                order.userId(),
-                order.items().stream()
-                        .map(item -> new com.ecommerce.orderservice.application.dto.OrderItemResponse(
-                                item.productId(),
-                                "Unknown", // Name fetched externally if needed
-                                item.quantity(),
-                                item.unitPrice().doubleValue()
-                        ))
-                        .toList(),
-                order.status(),
-                order.createdAt(),
-                order.updatedAt(),
-                order.totalPrice(),
-                order.shippingAddress()
-        );
-        CloudEvent cloudEvent = createCloudOrderEvent(response, eventType);
-        String kafkaRecordKey = UUID.randomUUID().toString();
-        kafkaTemplate.send(eventType.getTopic(), kafkaRecordKey, cloudEvent);
-        log.info("Sent '{}' event to Kafka for order ID: {}", eventType.getEventType(), order.id());
-    }
-
-    private CloudEvent createCloudOrderEvent(OrderResponse order, OrderEventType eventType) {
-        OrderEvent eventData = new OrderEvent(order);
-        return CloudEventBuilder.v1()
+        CloudEvent cloudEvent = CloudEventBuilder.v1()
                 .withId(UUID.randomUUID().toString())
                 .withType(eventType.getEventType())
                 .withSource(URI.create("/order-service"))
                 .withDataContentType("application/json")
-                .withData(eventData)
+                .withData(new OrderEvent(order))
                 .withSubject("com.ecommerce.event.report." + eventType.getSubject())
                 .build();
+        kafkaTemplate.send(eventType.getTopic(), UUID.randomUUID().toString(), cloudEvent);
+        log.info("Sent '{}' event to Kafka for order ID: {}", eventType.getEventType(), order.id());
     }
 }
