@@ -15,15 +15,13 @@ import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
-import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderEntity;
-import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderItemEntity;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
-import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -78,48 +76,54 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Page<OrderResponse> getAllOrders(int page, int size) {
-        Page<Order> orders = orderRepositoryPort.findAll(page,size);
-        var token = getRequestHeaderToken();
+        PageRequest pageable = PageRequest.of(page, size);
+        String[] tokenAndUserId = getRequestHeaderToken();
+        String token = tokenAndUserId[0];
 
-        Set<Long> productIds = entities.stream()
-                .flatMap(order -> order.getItems().stream())
-                .map(OrderItemEntity::getProductId)
+        Page<Order> orders = orderRepositoryPort.findAll(page, size); // Asume port soporta paginación
+        Set<Long> productIds = orders.getContent().stream()
+                .flatMap(order -> order.items().stream())
+                .map(OrderItem::productId)
                 .collect(Collectors.toSet());
-        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(productIds, token[0]);
 
-        List<OrderResponse> responses = entities.stream()
-                .map(entity -> {
-                    List<OrderItemResponse> items = entity.getItems().stream()
+        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(productIds, token);
+
+        List<OrderResponse> responses = orders.getContent().stream()
+                .map(order -> {
+                    List<OrderItemResponse> items = order.items().stream()
                             .map(item -> {
-                                ProductResponse product = productMap.get(item.getProductId());
+                                ProductResponse product = productMap.get(item.productId());
                                 return new OrderItemResponse(
-                                        item.getProductId(),
+                                        item.productId(),
                                         product.name(),
-                                        item.getQuantity(),
+                                        item.quantity(),
                                         product.price()
                                 );
                             })
                             .toList();
-                    return mapper.toResponse(mapper.toDomain(entity), items);
+                    return mapper.toResponse(order, items);
                 })
                 .toList();
-        return new PageImpl<>(responses, pageable, entities.getTotalElements());
+
+        return new PageImpl<>(responses, pageable, orders.getTotalElements());
     }
 
     @Override
     public OrderResponse getOrderById(UUID id) {
         log.info("Retrieving order with ID: {}", id);
-        OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
-        var token = getRequestHeaderToken();
+        String[] tokenAndUserId = getRequestHeaderToken();
+        String token = tokenAndUserId[0];
+        Order order = orderRepositoryPort.findById(id);
+
         List<OrderItemResponse> items = createOrderItemResponses(
-                entity.getItems().stream()
-                        .map(item -> new OrderItemRequest(item.getProductId(), item.getQuantity()))
+                order.items().stream()
+                        .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                         .toList(),
-                token[0]
+                token
         );
+
         log.info("Order retrieved successfully: {}", id);
-        return mapper.toResponse(mapper.toDomain(entity), items);
+        return mapper.toResponse(order, items);
     }
 
     @Override
@@ -132,42 +136,49 @@ public class OrderServiceImpl implements OrderService {
         validateAndUpdateOrderItems(request.items(), order, token);
 
         if (request.shippingAddress() != null) {
-            entity.setShippingAddress(request.shippingAddress());
+            order = new Order(
+                    order.id(),
+                    order.userId(),
+                    order.items(),
+                    order.status(),
+                    order.createdAt(),
+                    LocalDateTime.now(),
+                    order.totalPrice(),
+                    request.shippingAddress()
+            );
         }
 
-        List<OrderItemResponse> items = createOrderItemResponses(
-                entity.getItems().stream()
-                        .map(item -> new OrderItemRequest(item.getProductId(), item.getQuantity()))
-                        .toList(),
-                token[0]
-        );
-        Order order = mapper.toDomain(entity);
         order = domainService.calculateTotalPrice(order);
-        entity = mapper.toEntity(order);
-        entity.setUpdatedAt(LocalDateTime.now());
-        entity = orderRepository.save(entity);
-        eventPublisherPort.publishOrderUpdatedEvent(mapper.toDomain(entity));
+        order = orderRepositoryPort.save(order);
+        eventPublisherPort.publishOrderUpdatedEvent(order);
+
+        List<OrderItemResponse> items = createOrderItemResponses(
+                order.items().stream()
+                        .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
+                        .toList(),
+                token
+        );
+
         log.info("Order successfully updated: {}", id);
-        return mapper.toResponse(mapper.toDomain(entity), items);
+        return mapper.toResponse(order, items);
     }
 
     @Override
     public void cancelOrder(UUID id) {
         log.info("Cancelling order with ID: {}", id);
-        OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
-        Order order = mapper.toDomain(entity);
-        var token = getRequestHeaderToken();
+        String[] tokenAndUserId = getRequestHeaderToken();
+        String token = tokenAndUserId[0];
+
+        Order order = orderRepositoryPort.findById(id);
 
         if (!domainService.canCancel(order)) {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
 
-        initiateCancellationProcesses(entity, token[0]);
-        entity.setStatus(OrderStatus.CANCELLED);
-        entity.setUpdatedAt(LocalDateTime.now());
-        orderRepository.save(entity);
-        eventPublisherPort.publishOrderCancelledEvent(mapper.toDomain(entity));
+        initiateCancellationProcesses(order, token);
+        Order cancelledOrder = order.withStatus(OrderStatus.CANCELLED);
+        orderRepositoryPort.save(cancelledOrder);
+        eventPublisherPort.publishOrderCancelledEvent(cancelledOrder);
         log.info("Order successfully cancelled: {}", id);
     }
 
@@ -245,9 +256,10 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity entity, String token) {
-        entity.getItems().removeIf(item -> updatedItems.stream()
-                .noneMatch(updated -> updated.productId().equals(item.getProductId())));
+    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, Order order, String token) {
+        Set<OrderItem> currentItems = new HashSet<>(order.items());
+        currentItems.removeIf(item -> updatedItems.stream()
+                .noneMatch(updated -> updated.productId().equals(item.productId())));
 
         for (OrderItemRequest updatedItem : updatedItems) {
             ProductAvailabilityResponse availability = productServicePort.verifyProductAvailability(updatedItem, token);
@@ -256,45 +268,41 @@ public class OrderServiceImpl implements OrderService {
                         updatedItem.productId(), availability.availableUnits());
             }
 
-            OrderItemEntity existingItem = entity.getItems().stream()
-                    .filter(item -> item.getProductId().equals(updatedItem.productId()))
-                    .findFirst()
-                    .orElse(null);
+            Optional<OrderItem> existingItem = currentItems.stream()
+                    .filter(item -> item.productId().equals(updatedItem.productId()))
+                    .findFirst();
 
-            if (existingItem != null) {
-                existingItem.setQuantity(updatedItem.quantity());
+            if (existingItem.isPresent()) {
+                OrderItem item = existingItem.get();
+                currentItems.remove(item);
+                currentItems.add(new OrderItem(item.id(), item.productId(), updatedItem.quantity(), item.unitPrice()));
             } else {
-                OrderItemEntity newItem = new OrderItemEntity();
-                newItem.setProductId(updatedItem.productId());
-                newItem.setQuantity(updatedItem.quantity());
-                newItem.setOrder(entity);
                 ProductResponse product = productServicePort.getProductById(updatedItem.productId(), token);
-                newItem.setUnitPrice(BigDecimal.valueOf(product.price()));
-                entity.getItems().add(newItem);
+                currentItems.add(new OrderItem(null, updatedItem.productId(), updatedItem.quantity(), BigDecimal.valueOf(product.price())));
             }
         }
     }
 
-    private void initiateCancellationProcesses(OrderEntity entity, String token) {
+    private void initiateCancellationProcesses(Order order, String token) {
         try {
-            String paymentId = paymentServicePort.findPaymentIdByOrderId(entity.getId().toString());
-            paymentServicePort.initiateRefund(paymentId, new RefundRequest(entity.getTotalPrice()));
+            String paymentId = paymentServicePort.findPaymentIdByOrderId(order.id().toString());
+            paymentServicePort.initiateRefund(paymentId, new RefundRequest(order.totalPrice()));
         } catch (Exception e) {
             throw new OrderCancellationException("Failed to initiate refund for order: " + e.getMessage(), e);
         }
 
         ExecutorService restockThreadPool = Executors.newFixedThreadPool(5);
         try {
-            var futures = entity.getItems().stream()
+            var futures = order.items().stream()
                     .map(item -> CompletableFuture.runAsync(() -> {
-                        ProductResponse product = productServicePort.getProductById(item.getProductId(), token);
-                        int updatedInventory = product.inventory() + item.getQuantity();
-                        productServicePort.updateProductInventory(item.getProductId(), updatedInventory, token);
+                        ProductResponse product = productServicePort.getProductById(item.productId(), token);
+                        int updatedInventory = product.inventory() + item.quantity();
+                        productServicePort.updateProductInventory(item.productId(), updatedInventory, token);
                     }, restockThreadPool))
                     .toList();
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
-            throw new OrderCancellationException("Failed to restock items for order: " + e.getMessage(), e);
+            throw new OrderCancellationException("Failed to restock items: " + e.getMessage());
         } finally {
             restockThreadPool.shutdown();
         }
