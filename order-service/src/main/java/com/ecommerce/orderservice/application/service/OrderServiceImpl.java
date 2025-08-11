@@ -123,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponse updateOrder(UUID id, UpdateOrderRequest request) {
+    public OrderResponse updateOrder(UUID id, OrderRequest request) {
         log.info("Updating order with ID: {}", id);
         String[] tokenAndUserId = getRequestHeaderToken();
         String token = tokenAndUserId[0];

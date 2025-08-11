@@ -3,7 +3,6 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
-import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import com.ecommerce.orderservice.application.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +38,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     }
 
     @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody UpdateOrderRequest request) {
+    public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody OrderRequest request) {
         log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
         return orderService.updateOrder(orderId, request);
     }

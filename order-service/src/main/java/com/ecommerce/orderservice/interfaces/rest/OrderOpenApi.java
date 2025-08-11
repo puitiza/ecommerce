@@ -3,7 +3,6 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
-import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
 import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
 import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
@@ -47,7 +46,7 @@ public interface OrderOpenApi {
             @ApiResponse(responseCode = "404", description = "Payment not found",
                     content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
     })
-    OrderResponse updateOrder(UUID id, UpdateOrderRequest request);
+    OrderResponse updateOrder(UUID id, OrderRequest request);
 
     @ApiErrorGetResponses
     @Operation(summary = "Delete Order", description = "Delete an order", security = @SecurityRequirement(name = "security_auth"))
