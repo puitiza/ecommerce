@@ -43,7 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
     @Override
-    public OrderResponse createOrder(CreateOrderRequest request) {
+    public OrderResponse createOrder(OrderRequest request) {
         var token = getRequestHeaderToken();
         validateOrderDetails(request, token[0]);
 
@@ -188,7 +188,7 @@ public class OrderServiceImpl implements OrderService {
         return accessToken;
     }
 
-    private void validateOrderDetails(CreateOrderRequest request, String token) {
+    private void validateOrderDetails(OrderRequest request, String token) {
         Set<Long> uniqueProductIds = new HashSet<>();
         for (OrderItemRequest item : request.items()) {
             if (!uniqueProductIds.add(item.productId())) {

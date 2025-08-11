@@ -1,14 +1,14 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.dto.CreateOrderRequest;
+import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import org.springframework.data.domain.Page;
 
 import java.util.UUID;
 
 public interface OrderService {
-    OrderResponse createOrder(CreateOrderRequest request);
+    OrderResponse createOrder(OrderRequest request);
 
     Page<OrderResponse> getAllOrders(int page, int size);
 

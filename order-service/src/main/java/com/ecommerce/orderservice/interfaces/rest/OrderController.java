@@ -2,7 +2,7 @@ package com.ecommerce.orderservice.interfaces.rest;
 
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.dto.CreateOrderRequest;
+import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import com.ecommerce.orderservice.application.service.OrderService;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
         log.info("CREATING ORDER: {}", request);
         return orderService.createOrder(request);
     }
