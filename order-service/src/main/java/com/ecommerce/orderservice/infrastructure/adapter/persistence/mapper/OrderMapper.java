@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.infrastructure.mapper;
+package com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper;
 
 import com.ecommerce.orderservice.application.dto.OrderItemResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
@@ -70,6 +70,5 @@ public class OrderMapper {
                 order.shippingAddress()
         );
     }
-
 
 }

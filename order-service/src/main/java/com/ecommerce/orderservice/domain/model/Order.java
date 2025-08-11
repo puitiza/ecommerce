@@ -19,10 +19,6 @@ public record Order(
         return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
     }
 
-    public Order withUpdatedAt(LocalDateTime updatedAt) {
-        return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
-    }
-
     public Order withItemsAndTotalPrice(Set<OrderItem> items, BigDecimal totalPrice) {
         return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
     }

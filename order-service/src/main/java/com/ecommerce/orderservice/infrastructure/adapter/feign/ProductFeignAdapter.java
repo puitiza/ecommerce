@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ProductFeignClientAdapter implements ProductServicePort {
+public class ProductFeignAdapter implements ProductServicePort {
     private static final String SERVICE_NAME = "Product";
     private final ProductFeignClient productFeignClient;
 

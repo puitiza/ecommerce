@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PaymentFeignClientAdapter implements PaymentServicePort {
+public class PaymentFeignAdapter implements PaymentServicePort {
     private static final String SERVICE_NAME = "Payment";
     private final PaymentFeignClient paymentFeignClient;
 

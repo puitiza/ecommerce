@@ -14,13 +14,13 @@ import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
-import com.ecommerce.orderservice.infrastructure.adapter.feign.PaymentFeignClientAdapter;
-import com.ecommerce.orderservice.infrastructure.adapter.feign.ProductFeignClientAdapter;
+import com.ecommerce.orderservice.infrastructure.adapter.feign.PaymentFeignAdapter;
+import com.ecommerce.orderservice.infrastructure.adapter.feign.ProductFeignAdapter;
 import com.ecommerce.orderservice.infrastructure.adapter.kafka.OrderEventPublisherAdapter;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderItemEntity;
-import com.ecommerce.orderservice.infrastructure.adapter.persistence.repository.OrderRepository;
-import com.ecommerce.orderservice.infrastructure.mapper.OrderMapper;
+import com.ecommerce.orderservice.infrastructure.adapter.persistence.repository.OrderJpaRepository;
+import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -43,11 +43,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    private final ProductFeignClientAdapter productClient;
-    private final PaymentFeignClientAdapter paymentClient;
+    private final ProductFeignAdapter productClient;
+    private final PaymentFeignAdapter paymentClient;
     private final OrderEventPublisherAdapter orderEventPublisher;
     private final OrderDomainService orderDomainService;
-    private final OrderRepository orderRepository;
+    private final OrderJpaRepository orderRepository;
     private final OrderMapper mapper;
 
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
