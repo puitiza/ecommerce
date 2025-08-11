@@ -4,6 +4,7 @@ import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
+import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.model.Order;
@@ -18,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,19 +37,20 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentServicePort paymentServicePort;
     private final OrderEventPublisherPort eventPublisherPort;
     private final OrderDomainService domainService;
+    private final UserAuthenticationPort userAuthenticationPort;
 
     private final OrderMapper mapper;
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
-        var token = getRequestHeaderToken();
-        validateOrderDetails(request, token[0]);
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
+        validateOrderDetails(request, authDetails.token());
 
-        List<OrderItemResponse> items = createOrderItemResponses(request.items(), token[0]);
+        List<OrderItemResponse> items = createOrderItemResponses(request.items(), authDetails.token());
         Order order = new Order(
                 null,
-                token[1],
+                authDetails.userId(),
                 items.stream()
                         .map(item -> new OrderItem(null, item.productId(), item.quantity(), BigDecimal.valueOf(item.unitPrice())))
                         .collect(Collectors.toSet()),
@@ -73,8 +73,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderResponse> getAllOrders(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        String[] tokenAndUserId = getRequestHeaderToken();
-        String token = tokenAndUserId[0];
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Page<Order> orders = orderRepositoryPort.findAll(page, size); // Asume port soporta paginación
         Set<Long> productIds = orders.getContent().stream()
@@ -82,7 +81,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(OrderItem::productId)
                 .collect(Collectors.toSet());
 
-        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(productIds, token);
+        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(productIds, authDetails.token());
 
         List<OrderResponse> responses = orders.getContent().stream()
                 .map(order -> {
@@ -107,15 +106,15 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse getOrderById(UUID id) {
         log.info("Retrieving order with ID: {}", id);
-        String[] tokenAndUserId = getRequestHeaderToken();
-        String token = tokenAndUserId[0];
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
+
         Order order = orderRepositoryPort.findById(id);
 
         List<OrderItemResponse> items = createOrderItemResponses(
                 order.items().stream()
                         .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                         .toList(),
-                token
+                authDetails.token()
         );
 
         log.info("Order retrieved successfully: {}", id);
@@ -125,23 +124,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
         log.info("Updating order with ID: {}", id);
-        String[] tokenAndUserId = getRequestHeaderToken();
-        String token = tokenAndUserId[0];
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
-        validateAndUpdateOrderItems(request.items(), order, token);
+        validateAndUpdateOrderItems(request.items(), order, authDetails.token());
 
         if (request.shippingAddress() != null) {
-            order = new Order(
-                    order.id(),
-                    order.userId(),
-                    order.items(),
-                    order.status(),
-                    order.createdAt(),
-                    LocalDateTime.now(),
-                    order.totalPrice(),
-                    request.shippingAddress()
-            );
+            order = order.withShippingAddress(request.shippingAddress());
         }
 
         order = domainService.calculateTotalPrice(order);
@@ -152,7 +141,7 @@ public class OrderServiceImpl implements OrderService {
                 order.items().stream()
                         .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                         .toList(),
-                token
+                authDetails.token()
         );
 
         log.info("Order successfully updated: {}", id);
@@ -162,8 +151,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void cancelOrder(UUID id) {
         log.info("Cancelling order with ID: {}", id);
-        String[] tokenAndUserId = getRequestHeaderToken();
-        String token = tokenAndUserId[0];
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
 
@@ -171,21 +159,11 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
 
-        initiateCancellationProcesses(order, token);
+        initiateCancellationProcesses(order, authDetails.token());
         Order cancelledOrder = order.withStatus(OrderStatus.CANCELLED);
         orderRepositoryPort.save(cancelledOrder);
         eventPublisherPort.publishOrderCancelledEvent(cancelledOrder);
         log.info("Order successfully cancelled: {}", id);
-    }
-
-    private String[] getRequestHeaderToken() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        final String[] accessToken = {"", ""};
-        if (authentication instanceof JwtAuthenticationToken jwt) {
-            accessToken[0] = "Bearer " + jwt.getToken().getTokenValue();
-            accessToken[1] = jwt.getName();
-        }
-        return accessToken;
     }
 
     private void validateOrderDetails(OrderRequest request, String token) {
@@ -236,7 +214,6 @@ public class OrderServiceImpl implements OrderService {
                 var response = paymentServicePort.authorizePayment(new PaymentAuthorizationRequest(order.id().toString(), order.totalPrice()));
                 if (response.authorized()) {
                     Order validatedOrder = order.withStatus(OrderStatus.VALIDATION_SUCCEEDED);
-                    //validatedOrder.updatedAt(LocalDateTime.now());
                     orderRepositoryPort.save(validatedOrder);
                     eventPublisherPort.publishOrderValidatedEvent(validatedOrder);
                 } else {

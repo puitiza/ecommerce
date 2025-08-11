@@ -22,4 +22,8 @@ public record Order(
     public Order withItemsAndTotalPrice(Set<OrderItem> items, BigDecimal totalPrice) {
         return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
     }
+
+    public Order withShippingAddress(String newShippingAddress) {
+        return new Order(id, userId, items, status, createdAt, LocalDateTime.now(), totalPrice, newShippingAddress);
+    }
 }
