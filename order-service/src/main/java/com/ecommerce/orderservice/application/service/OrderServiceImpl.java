@@ -4,22 +4,19 @@ import com.ecommerce.orderservice.application.dto.OrderItemResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
 import com.ecommerce.orderservice.application.dto.ProductResponse;
-import com.ecommerce.orderservice.application.request.CreateOrderRequest;
-import com.ecommerce.orderservice.application.request.OrderItemRequest;
-import com.ecommerce.orderservice.application.request.PaymentAuthorizationRequest;
-import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
+import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
+import com.ecommerce.orderservice.application.port.out.ProductServicePort;
+import com.ecommerce.orderservice.application.request.*;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
+import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
-import com.ecommerce.orderservice.infrastructure.adapter.feign.PaymentFeignAdapter;
-import com.ecommerce.orderservice.infrastructure.adapter.feign.ProductFeignAdapter;
-import com.ecommerce.orderservice.infrastructure.adapter.kafka.OrderEventPublisherAdapter;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderEntity;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.entity.OrderItemEntity;
-import com.ecommerce.orderservice.infrastructure.adapter.persistence.repository.OrderJpaRepository;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
@@ -27,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -43,13 +39,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    private final ProductFeignAdapter productClient;
-    private final PaymentFeignAdapter paymentClient;
-    private final OrderEventPublisherAdapter orderEventPublisher;
-    private final OrderDomainService orderDomainService;
-    private final OrderJpaRepository orderRepository;
-    private final OrderMapper mapper;
+    private final OrderRepositoryPort orderRepositoryPort;
+    private final ProductServicePort productServicePort;
+    private final PaymentServicePort paymentServicePort;
+    private final OrderEventPublisherPort eventPublisherPort;
+    private final OrderDomainService domainService;
 
+    private final OrderMapper mapper;
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
     @Override
@@ -70,21 +66,19 @@ public class OrderServiceImpl implements OrderService {
                 BigDecimal.ZERO,
                 request.shippingAddress()
         );
-        order = orderDomainService.calculateTotalPrice(order);
+        order = domainService.calculateTotalPrice(order);
 
-        OrderEntity entity = mapper.toEntity(order);
-        entity = orderRepository.save(entity);
-        log.info("Saved OrderEntity with ID: {}", entity.getId());
-        orderEventPublisher.publishOrderCreatedEvent(mapper.toDomain(entity));
+        Order savedOrder = orderRepositoryPort.save(order);
+        log.info("Saved Order with ID: {}", savedOrder.id());
+        eventPublisherPort.publishOrderCreatedEvent(savedOrder);
 
-        validateOrderAsync(entity);
-        return mapper.toResponse(mapper.toDomain(entity), items);
+        validateOrderAsync(savedOrder);
+        return mapper.toResponse(savedOrder, items);
     }
 
     @Override
     public Page<OrderResponse> getAllOrders(int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size);
-        var entities = orderRepository.findAll(pageable);
+        Page<Order> orders = orderRepositoryPort.findAll(page,size);
         var token = getRequestHeaderToken();
 
         Set<Long> productIds = entities.stream()
@@ -131,10 +125,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse updateOrder(UUID id, UpdateOrderRequest request) {
         log.info("Updating order with ID: {}", id);
-        OrderEntity entity = orderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", id.toString()));
-        var token = getRequestHeaderToken();
-        validateAndUpdateOrderItems(request.items(), entity, token[0]);
+        String[] tokenAndUserId = getRequestHeaderToken();
+        String token = tokenAndUserId[0];
+
+        Order order = orderRepositoryPort.findById(id);
+        validateAndUpdateOrderItems(request.items(), order, token);
 
         if (request.shippingAddress() != null) {
             entity.setShippingAddress(request.shippingAddress());
@@ -147,11 +142,11 @@ public class OrderServiceImpl implements OrderService {
                 token[0]
         );
         Order order = mapper.toDomain(entity);
-        order = orderDomainService.calculateTotalPrice(order);
+        order = domainService.calculateTotalPrice(order);
         entity = mapper.toEntity(order);
         entity.setUpdatedAt(LocalDateTime.now());
         entity = orderRepository.save(entity);
-        orderEventPublisher.publishOrderUpdatedEvent(mapper.toDomain(entity));
+        eventPublisherPort.publishOrderUpdatedEvent(mapper.toDomain(entity));
         log.info("Order successfully updated: {}", id);
         return mapper.toResponse(mapper.toDomain(entity), items);
     }
@@ -164,7 +159,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = mapper.toDomain(entity);
         var token = getRequestHeaderToken();
 
-        if (!orderDomainService.canCancel(order)) {
+        if (!domainService.canCancel(order)) {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
 
@@ -172,7 +167,7 @@ public class OrderServiceImpl implements OrderService {
         entity.setStatus(OrderStatus.CANCELLED);
         entity.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(entity);
-        orderEventPublisher.publishOrderCancelledEvent(mapper.toDomain(entity));
+        eventPublisherPort.publishOrderCancelledEvent(mapper.toDomain(entity));
         log.info("Order successfully cancelled: {}", id);
     }
 
@@ -192,11 +187,10 @@ public class OrderServiceImpl implements OrderService {
             if (!uniqueProductIds.add(item.productId())) {
                 throw new OrderValidationException(ExceptionError.ORDER_DUPLICATE_PRODUCT, item.productId());
             }
-            ProductAvailabilityResponse availability = productClient.verifyProductAvailability(item, token);
+            ProductAvailabilityResponse availability = productServicePort.verifyProductAvailability(item, token);
             if (!availability.isAvailable()) {
                 throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
-                        item.productId(), availability.availableUnits()
-                );
+                        item.productId(), availability.availableUnits());
             }
         }
     }
@@ -221,7 +215,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Map<Long, ProductResponse> getProductResponsesConcurrently(Set<Long> productIds, String token) {
         var futures = productIds.stream()
-                .map(id -> CompletableFuture.supplyAsync(() -> productClient.getProductById(id, token)))
+                .map(id -> CompletableFuture.supplyAsync(() -> productServicePort.getProductById(id, token)))
                 .toList();
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         return futures.stream()
@@ -229,31 +223,26 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toMap(ProductResponse::id, p -> p));
     }
 
-    private void validateOrderAsync(OrderEntity entity) {
+    private void validateOrderAsync(Order order) {
         try {
             CompletableFuture.runAsync(() -> {
-                var response = paymentClient.authorizePayment(new PaymentAuthorizationRequest(entity.getId().toString(), entity.getTotalPrice()));
+                var response = paymentServicePort.authorizePayment(new PaymentAuthorizationRequest(order.id().toString(), order.totalPrice()));
                 if (response.authorized()) {
-                    entity.setStatus(OrderStatus.VALIDATION_SUCCEEDED);
-                    entity.setUpdatedAt(LocalDateTime.now());
-                    orderRepository.save(entity);
-                    orderEventPublisher.publishOrderValidatedEvent(mapper.toDomain(entity));
+                    Order validatedOrder = order.withStatus(OrderStatus.VALIDATION_SUCCEEDED);
+                    //validatedOrder.updatedAt(LocalDateTime.now());
+                    orderRepositoryPort.save(validatedOrder);
+                    eventPublisherPort.publishOrderValidatedEvent(validatedOrder);
                 } else {
-                    handleValidationFailure(entity, "Payment authorization denied");
+                    throw new OrderValidationException("Payment Authorization Denied");
                 }
             }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            handleValidationFailure(entity, "Validation failed or timed out: " + e.getMessage());
+            log.info("Handling validation failure for order ID: {}", order.id().toString());
+            Order failedOrder = order.withStatus(OrderStatus.VALIDATION_FAILED);
+            orderRepositoryPort.save(failedOrder);
+            eventPublisherPort.publishValidationFailedEvent(failedOrder);
+            throw new OrderValidationException(e.getMessage());
         }
-    }
-
-    private void handleValidationFailure(OrderEntity entity, String message) {
-        log.info("Handling validation failure for order ID: {}", entity.getId());
-        entity.setStatus(OrderStatus.VALIDATION_FAILED);
-        entity.setUpdatedAt(LocalDateTime.now());
-        orderRepository.save(entity);
-        orderEventPublisher.publishValidationFailedEvent(mapper.toDomain(entity));
-        throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, message);
     }
 
     private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, OrderEntity entity, String token) {
@@ -261,7 +250,7 @@ public class OrderServiceImpl implements OrderService {
                 .noneMatch(updated -> updated.productId().equals(item.getProductId())));
 
         for (OrderItemRequest updatedItem : updatedItems) {
-            ProductAvailabilityResponse availability = productClient.verifyProductAvailability(updatedItem, token);
+            ProductAvailabilityResponse availability = productServicePort.verifyProductAvailability(updatedItem, token);
             if (!availability.isAvailable()) {
                 throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
                         updatedItem.productId(), availability.availableUnits());
@@ -279,7 +268,7 @@ public class OrderServiceImpl implements OrderService {
                 newItem.setProductId(updatedItem.productId());
                 newItem.setQuantity(updatedItem.quantity());
                 newItem.setOrder(entity);
-                ProductResponse product = productClient.getProductById(updatedItem.productId(), token);
+                ProductResponse product = productServicePort.getProductById(updatedItem.productId(), token);
                 newItem.setUnitPrice(BigDecimal.valueOf(product.price()));
                 entity.getItems().add(newItem);
             }
@@ -288,8 +277,8 @@ public class OrderServiceImpl implements OrderService {
 
     private void initiateCancellationProcesses(OrderEntity entity, String token) {
         try {
-            String paymentId = paymentClient.findPaymentIdByOrderId(entity.getId().toString());
-            paymentClient.initiateRefund(paymentId, new com.ecommerce.orderservice.application.request.RefundRequest(entity.getTotalPrice()));
+            String paymentId = paymentServicePort.findPaymentIdByOrderId(entity.getId().toString());
+            paymentServicePort.initiateRefund(paymentId, new RefundRequest(entity.getTotalPrice()));
         } catch (Exception e) {
             throw new OrderCancellationException("Failed to initiate refund for order: " + e.getMessage(), e);
         }
@@ -298,9 +287,9 @@ public class OrderServiceImpl implements OrderService {
         try {
             var futures = entity.getItems().stream()
                     .map(item -> CompletableFuture.runAsync(() -> {
-                        ProductResponse product = productClient.getProductById(item.getProductId(), token);
+                        ProductResponse product = productServicePort.getProductById(item.getProductId(), token);
                         int updatedInventory = product.inventory() + item.getQuantity();
-                        productClient.updateProductInventory(item.getProductId(), updatedInventory, token);
+                        productServicePort.updateProductInventory(item.getProductId(), updatedInventory, token);
                     }, restockThreadPool))
                     .toList();
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
