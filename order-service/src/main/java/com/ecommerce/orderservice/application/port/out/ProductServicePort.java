@@ -2,7 +2,7 @@ package com.ecommerce.orderservice.application.port.out;
 
 import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
 import com.ecommerce.orderservice.application.dto.ProductResponse;
-import com.ecommerce.orderservice.application.request.OrderItemRequest;
+import com.ecommerce.orderservice.application.dto.OrderItemRequest;
 
 public interface ProductServicePort {
     ProductResponse getProductById(Long id, String token);

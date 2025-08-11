@@ -2,8 +2,8 @@ package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
 import com.ecommerce.orderservice.application.dto.PaymentAuthorizationResponse;
 import com.ecommerce.orderservice.application.dto.RefundResponse;
-import com.ecommerce.orderservice.application.request.PaymentAuthorizationRequest;
-import com.ecommerce.orderservice.application.request.RefundRequest;
+import com.ecommerce.orderservice.application.dto.PaymentAuthorizationRequest;
+import com.ecommerce.orderservice.application.dto.RefundRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

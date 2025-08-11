@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.application.request;
+package com.ecommerce.orderservice.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -16,11 +16,6 @@ public record CreateOrderRequest(
 
         @NotBlank(message = "Shipping address is required")
         @Schema(description = "Shipping address for the order", example = "123 Main St, Anytown, CA 12345")
-        String shippingAddress,
-
-        String userId
+        String shippingAddress
 ) {
-    public CreateOrderRequest withUserId(String userId) {
-        return new CreateOrderRequest(items, shippingAddress, userId);
-    }
 }

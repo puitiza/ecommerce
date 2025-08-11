@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.application.port.in;
 
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 
 import java.util.UUID;
 

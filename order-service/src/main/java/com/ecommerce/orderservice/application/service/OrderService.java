@@ -1,8 +1,8 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.request.CreateOrderRequest;
-import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.dto.CreateOrderRequest;
+import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import org.springframework.data.domain.Page;
 
 import java.util.UUID;

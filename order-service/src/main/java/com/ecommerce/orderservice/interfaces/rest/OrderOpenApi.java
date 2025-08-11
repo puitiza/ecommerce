@@ -2,8 +2,8 @@ package com.ecommerce.orderservice.interfaces.rest;
 
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.request.CreateOrderRequest;
-import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.dto.CreateOrderRequest;
+import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
 import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
 import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;

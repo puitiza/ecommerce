@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.application.request;
+package com.ecommerce.orderservice.application.dto;
 
 import java.math.BigDecimal;
 

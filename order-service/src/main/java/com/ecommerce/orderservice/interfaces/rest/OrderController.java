@@ -2,12 +2,10 @@ package com.ecommerce.orderservice.interfaces.rest;
 
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.request.CreateOrderRequest;
-import com.ecommerce.orderservice.application.request.UpdateOrderRequest;
+import com.ecommerce.orderservice.application.dto.CreateOrderRequest;
+import com.ecommerce.orderservice.application.dto.UpdateOrderRequest;
 import com.ecommerce.orderservice.application.service.OrderService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

@@ -1,13 +1,9 @@
 package com.ecommerce.orderservice.application.service;
 
-import com.ecommerce.orderservice.application.dto.OrderItemResponse;
-import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
-import com.ecommerce.orderservice.application.dto.ProductResponse;
+import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
-import com.ecommerce.orderservice.application.request.*;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.model.Order;
