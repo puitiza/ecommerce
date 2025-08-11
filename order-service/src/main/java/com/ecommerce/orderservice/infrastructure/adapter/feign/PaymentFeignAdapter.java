@@ -29,8 +29,8 @@ public class PaymentFeignAdapter implements PaymentServicePort {
 
     @Override
     @CircuitBreaker(name = "paymentRefundCircuit", fallbackMethod = "initiateRefundFallback")
-    public RefundResponse initiateRefund(String paymentId, RefundRequest refundRequest) {
-        return paymentFeignClient.initiateRefund(paymentId, refundRequest);
+    public void initiateRefund(String paymentId, RefundRequest refundRequest) {
+        paymentFeignClient.initiateRefund(paymentId, refundRequest);
     }
 
     @Override
