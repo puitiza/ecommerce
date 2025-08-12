@@ -40,30 +40,29 @@ public class ProductFeignAdapter implements ProductServicePort {
 
     @SuppressWarnings("unused")
     private ProductAvailabilityResponse verifyAvailabilityFallback(OrderItemRequest request, String token, Throwable t) {
-        throw handleProductError(request.productId(), t, "Failed to verify product availability");
+        throw handleError(request.productId(), t, "Failed to verify product availability");
     }
 
     @SuppressWarnings("unused")
     private ProductResponse getProductFallback(Long id, String token, Throwable t) {
-        throw handleProductError(id, t, "Failed to retrieve product");
+        throw handleError(id, t, "Failed to retrieve product");
     }
 
     @SuppressWarnings("unused")
     private void updateInventoryFallback(Long id, int updatedInventory, String token, Throwable t) {
-        throw handleProductError(id, t, "Failed to update product inventory");
+        throw handleError(id, t, "Failed to update product inventory");
     }
 
-    private RuntimeException handleProductError(Long id, Throwable t, String defaultMessage) {
-        log.error("{} for {}Id {}: {}", defaultMessage, SERVICE_NAME, id, t.getMessage());
-        String details = t.getMessage() != null ? t.getMessage() : String.format("%s for %sId %d", defaultMessage, SERVICE_NAME, id);
-        if (t instanceof FeignException feignException) {
-            return switch (feignException.status()) {
+    private RuntimeException handleError(Long id, Throwable t, String msg) {
+        log.error("{} for ID {}: {}", msg, id, t.getMessage(), t);
+        String details = t.getMessage() != null ? t.getMessage() : msg + " for ID " + id;
+        if (t instanceof FeignException feign) {
+            return switch (feign.status()) {
                 case 404 -> new ResourceNotFoundException(SERVICE_NAME, id.toString());
                 case 429 -> new OrderValidationException(ExceptionError.GATEWAY_RATE_LIMIT,
-                        String.format("Rate limit exceeded for %sId %d", SERVICE_NAME, id));
+                        "Rate limit exceeded for ID " + id);
                 case 503, -1 -> new OrderValidationException(ExceptionError.SERVICE_UNAVAILABLE,
-                        details,
-                        SERVICE_NAME, id);
+                        details, SERVICE_NAME, id);
                 default -> new OrderValidationException(ExceptionError.ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED,
                         details, id);
             };

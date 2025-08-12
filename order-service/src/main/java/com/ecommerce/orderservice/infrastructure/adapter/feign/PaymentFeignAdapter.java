@@ -41,28 +41,28 @@ public class PaymentFeignAdapter implements PaymentServicePort {
 
     @SuppressWarnings("unused")
     private PaymentAuthorizationResponse authorizePaymentFallback(PaymentAuthorizationRequest request, Throwable t) {
-        throw handlePaymentError(request.orderId(), t, "Failed to authorize payment", ExceptionError.ORDER_PAYMENT_AUTHORIZATION_FAILED);
+        throw handleError(request.orderId(), t, "Failed to authorize payment", ExceptionError.ORDER_PAYMENT_AUTHORIZATION_FAILED);
     }
 
     @SuppressWarnings("unused")
     private RefundResponse initiateRefundFallback(String paymentId, RefundRequest refundRequest, Throwable t) {
-        throw handlePaymentError(paymentId, t, "Failed to initiate refund", ExceptionError.ORDER_REFUND_FAILED);
+        throw handleError(paymentId, t, "Failed to initiate refund", ExceptionError.ORDER_REFUND_FAILED);
     }
 
     @SuppressWarnings("unused")
     private String findPaymentIdFallback(String orderId, Throwable t) {
-        throw handlePaymentError(orderId, t, "Failed to find payment ID", ExceptionError.ORDER_PAYMENT_LOOKUP_FAILED);
+        throw handleError(orderId, t, "Failed to find payment ID", ExceptionError.ORDER_PAYMENT_LOOKUP_FAILED);
     }
 
-    private RuntimeException handlePaymentError(String id, Throwable t, String defaultMessage, ExceptionError defaultError) {
-        log.error("{} for {}Id {}: {}", defaultMessage, SERVICE_NAME, id, t.getMessage());
-        String details = t.getMessage() != null ? t.getMessage() : String.format("%s for %sId %s", defaultMessage, SERVICE_NAME, id);
+    private RuntimeException handleError(String id, Throwable t, String msg, ExceptionError error) {
+        log.error("{} for ID {}: {}", msg, id, t.getMessage(), t);
+        String details = t.getMessage() != null ? t.getMessage() : String.format("%s for %sId %s", msg, SERVICE_NAME, id);
         if (t instanceof FeignException feignException) {
             return switch (feignException.status()) {
                 case 404 -> new ResourceNotFoundException(SERVICE_NAME, id);
                 case 429 -> new OrderValidationException(ExceptionError.GATEWAY_RATE_LIMIT,
                         String.format("Rate limit exceeded for %sId %s", SERVICE_NAME, id));
-                default -> new OrderValidationException(defaultError, details, SERVICE_NAME, id);
+                default -> new OrderValidationException(error, details, SERVICE_NAME, id);
             };
         }
         return new OrderValidationException(ExceptionError.INTERNAL_SERVER_ERROR, details);
