@@ -187,7 +187,8 @@ See individual service READMES for detailed business logic:
 - [order-service/README.md](order-service/README.md)
 - [payment-service/README.md](payment-service/README.md)
 - [product-service/README.md](product-service/README.md)
-  For the order lifecycle, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
+  
+For the order lifecycle, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
 ## Testing
 - **Unit Tests**: JUnit 5 and Mockito for service logic.

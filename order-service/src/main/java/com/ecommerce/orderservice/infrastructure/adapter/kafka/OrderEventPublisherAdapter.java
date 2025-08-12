@@ -1,6 +1,6 @@
 package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
-import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import com.ecommerce.orderservice.domain.event.OrderEvent;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;

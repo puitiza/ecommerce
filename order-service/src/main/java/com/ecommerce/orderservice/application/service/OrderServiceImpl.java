@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.*;
-import com.ecommerce.orderservice.application.port.out.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
 import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
@@ -38,8 +38,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderEventPublisherPort eventPublisherPort;
     private final OrderDomainService domainService;
     private final UserAuthenticationPort userAuthenticationPort;
-
     private final OrderMapper mapper;
+
     private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
 
     @Override
