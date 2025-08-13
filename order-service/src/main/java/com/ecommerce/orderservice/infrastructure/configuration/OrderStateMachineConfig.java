@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.statemachine.StateContext;
 import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter;
@@ -19,6 +20,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.EnumSet;
+import java.util.Optional;
 
 @Slf4j
 @Configuration
@@ -149,15 +151,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
 
     @Bean
     public Action<OrderStatus, OrderEventType> publishOrderCreatedEvent() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                eventPublisher.publishOrderCreatedEvent(order);
-                log.info("Published OrderCreated event for order ID: {}", order.id());
-            } else {
-                log.warn("Null or invalid order in publishOrderCreatedEvent");
-            }
-        };
+        return context ->
+                Optional.of((Order) context.getMessageHeader("order"))
+                        .ifPresentOrElse(order -> {
+                            eventPublisher.publishOrderCreatedEvent(order);
+                            log.info("Published OrderCreated event for order ID: {}", order.id());
+                        }, () -> log.warn("Null or invalid order in publishOrderCreatedEvent"));
     }
 
     @Bean

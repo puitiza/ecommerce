@@ -9,6 +9,7 @@ import io.cloudevents.CloudEvent;
 import io.cloudevents.core.CloudEventUtils;
 import io.cloudevents.core.data.PojoCloudEventData;
 import io.cloudevents.jackson.PojoCloudEventDataMapper;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -19,6 +20,8 @@ import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -65,14 +68,10 @@ public class OrderEventListener {
      * @param cloudEvent The incoming CloudEvent.
      * @param eventType  The type of the event, which corresponds to the state machine transition.
      */
+    //@Transactional
     private void processEvent(CloudEvent cloudEvent, OrderEventType eventType) {
-        try {
-            Order order = extractOrderFromEvent(cloudEvent);
-            if (order == null) {
-                log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType());
-                return;
-            }
-
+        extractOrderFromEvent(cloudEvent)
+                .ifPresentOrElse(order -> {
             StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
             sm.getExtendedState().getVariables().put("order", order);
 
@@ -89,27 +88,20 @@ public class OrderEventListener {
                     },
                     error -> log.error("Failed to send event {} to state machine for order {}: {}", eventType, order.id(), error.getMessage())
             );
-        } catch (Exception e) {
-            log.error("Error processing CloudEvent of type {}: {}", cloudEvent.getType(), e.getMessage());
-        }
+        }, () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
     }
 
-    private Order extractOrderFromEvent(CloudEvent event) {
+    private Optional<Order> extractOrderFromEvent(CloudEvent event) {
         if (event == null || event.getData() == null) {
             log.warn("Invalid CloudEvent or data is null");
-            return null;
+            return Optional.empty();
         }
         try {
             PojoCloudEventData<Order> deserializedData = CloudEventUtils.mapData(event, PojoCloudEventDataMapper.from(objectMapper, Order.class));
-            if (deserializedData != null) {
-                return deserializedData.getValue();
-            } else {
-                log.warn("Could not deserialize CloudEvent data for event ID: {}", event.getId());
-                return null;
-            }
+            return Optional.ofNullable(deserializedData).map(PojoCloudEventData::getValue);
         } catch (Exception e) {
             log.error("Error deserializing Order from CloudEvent", e);
-            return null;
+            return Optional.empty();
         }
     }
 }
