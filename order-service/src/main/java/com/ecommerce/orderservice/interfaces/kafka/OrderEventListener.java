@@ -29,33 +29,33 @@ public class OrderEventListener {
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
     private final ObjectMapper objectMapper; // Spring will inject the Bean configured
 
-    @KafkaListener(topics = "${kafka.topics.validation-succeeded}")
-    public void handleValidationSucceeded(@Payload CloudEvent event) {
+    @KafkaListener(topics = "validation_succeeded")
+    public void handleValidationSucceeded(CloudEvent event) {
         processEvent(event, OrderEventType.VALIDATION_SUCCEEDED);
     }
 
     @KafkaListener(topics = "validation_failed")
-    public void handleValidationFailed(@Payload CloudEvent event) {
+    public void handleValidationFailed(CloudEvent event) {
         processEvent(event, OrderEventType.VALIDATION_FAILED);
     }
 
     @KafkaListener(topics = "payment_succeeded")
-    public void handlePaymentSucceeded(@Payload CloudEvent event) {
+    public void handlePaymentSucceeded(CloudEvent event) {
         processEvent(event, OrderEventType.PAYMENT_SUCCEEDED);
     }
 
     @KafkaListener(topics = "payment_failed")
-    public void handlePaymentFailed(@Payload CloudEvent event) {
+    public void handlePaymentFailed(CloudEvent event) {
         processEvent(event, OrderEventType.PAYMENT_FAILED);
     }
 
     @KafkaListener(topics = "shipment_succeeded")
-    public void handleShipmentSucceeded(@Payload CloudEvent event) {
+    public void handleShipmentSucceeded(CloudEvent event) {
         processEvent(event, OrderEventType.SHIPMENT_SUCCEEDED);
     }
 
     @KafkaListener(topics = "shipment_failed")
-    public void handleShipmentFailed(@Payload CloudEvent event) {
+    public void handleShipmentFailed(CloudEvent event) {
         processEvent(event, OrderEventType.SHIPMENT_FAILED);
     }
 
