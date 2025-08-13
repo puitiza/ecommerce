@@ -26,6 +26,10 @@ spring:
       properties:
         retry-backoff-ms: 10000
         retries: 10
+    consumer:
+      group-id: order-service-group # A single group name for your service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
 
 permit-urls:
   swagger:

@@ -1,6 +1,7 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.*;
+import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
@@ -19,7 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.statemachine.StateMachine;
+import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,22 +45,23 @@ public class OrderServiceImpl implements OrderService {
     private final OrderDomainService domainService;
     private final UserAuthenticationPort userAuthenticationPort;
     private final OrderMapper mapper;
-
-    private static final int ASYNC_VALIDATION_TIMEOUT_SECONDS = 5;
+    private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
-        validateOrderDetails(request, authDetails.token());
 
-        List<OrderItemResponse> items = createOrderItemResponses(request.items(), authDetails.token());
+        validateNoDuplicates(request.items());
+        validateAvailabilityConcurrently(request.items(), authDetails.token()); //Feign calls en parallel
+
+        List<OrderItemResponse> itemResponses = createOrderItemResponses(request.items(), authDetails.token());
         Order order = new Order(
                 null,
                 authDetails.userId(),
-                items.stream()
+                itemResponses.stream()
                         .map(item -> new OrderItem(null, item.productId(), item.quantity(), BigDecimal.valueOf(item.unitPrice())))
                         .collect(Collectors.toSet()),
-                OrderStatus.VALIDATING,
+                OrderStatus.CREATED,
                 LocalDateTime.now(),
                 null,
                 BigDecimal.ZERO,
@@ -64,10 +71,17 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepositoryPort.save(order);
         log.info("Saved Order with ID: {}", savedOrder.id());
-        eventPublisherPort.publishOrderCreatedEvent(savedOrder);
 
-        validateOrderAsync(savedOrder);
-        return mapper.toResponse(savedOrder, items);
+        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(savedOrder.id().toString());
+        sm.startReactively().subscribe();
+
+        Message<OrderEventType> message = MessageBuilder
+                .withPayload(OrderEventType.ORDER_CREATED)
+                .setHeader("order", savedOrder)
+                .build();
+
+        sm.sendEvent(Mono.just(message)).subscribe();
+        return mapper.toResponse(savedOrder, itemResponses);
     }
 
     @Override
@@ -166,17 +180,28 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order successfully cancelled: {}", id);
     }
 
-    private void validateOrderDetails(OrderRequest request, String token) {
-        Set<Long> uniqueProductIds = new HashSet<>();
-        for (OrderItemRequest item : request.items()) {
-            if (!uniqueProductIds.add(item.productId())) {
+    private void validateNoDuplicates(List<OrderItemRequest> items) {
+        Set<Long> uniqueIds = new HashSet<>();
+        for (OrderItemRequest item : items) {
+            if (!uniqueIds.add(item.productId())) {
                 throw new OrderValidationException(ExceptionError.ORDER_DUPLICATE_PRODUCT, item.productId());
             }
-            ProductAvailabilityResponse availability = productServicePort.verifyProductAvailability(item, token);
-            if (!availability.isAvailable()) {
-                throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
-                        item.productId(), availability.availableUnits());
-            }
+        }
+    }
+
+    private void validateAvailabilityConcurrently(List<OrderItemRequest> items, String token) {
+        List<CompletableFuture<Void>> futures = items.stream()
+                .map(item -> CompletableFuture.runAsync(() -> {
+                    var verified = productServicePort.verifyProductAvailability(item, token);
+                    if (!verified.isAvailable()) {
+                        throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId(), verified.availableUnits());
+                    }
+                }))
+                .toList();
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } catch (CompletionException e) {
+            throw (RuntimeException) e.getCause();  // Propagar exception
         }
     }
 
@@ -206,27 +231,6 @@ public class OrderServiceImpl implements OrderService {
         return futures.stream()
                 .map(CompletableFuture::join)
                 .collect(Collectors.toMap(ProductResponse::id, p -> p));
-    }
-
-    private void validateOrderAsync(Order order) {
-        try {
-            CompletableFuture.runAsync(() -> {
-                var response = paymentServicePort.authorizePayment(new PaymentAuthorizationRequest(order.id().toString(), order.totalPrice()));
-                if (response.authorized()) {
-                    Order validatedOrder = order.withStatus(OrderStatus.VALIDATION_SUCCEEDED);
-                    orderRepositoryPort.save(validatedOrder);
-                    eventPublisherPort.publishOrderValidatedEvent(validatedOrder);
-                } else {
-                    throw new OrderValidationException("Payment Authorization Denied");
-                }
-            }).get(ASYNC_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.info("Handling validation failure for order ID: {}", order.id().toString());
-            Order failedOrder = order.withStatus(OrderStatus.VALIDATION_FAILED);
-            orderRepositoryPort.save(failedOrder);
-            eventPublisherPort.publishValidationFailedEvent(failedOrder);
-            throw new OrderValidationException(e.getMessage());
-        }
     }
 
     private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, Order order, String token) {
