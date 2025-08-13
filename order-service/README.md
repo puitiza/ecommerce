@@ -2,7 +2,7 @@
 
 The Order Service is a critical core business microservice responsible for managing the entire lifecycle of customer
 orders within the e-commerce platform. It handles order creation, validation, state transitions, and integration with
-other services like Payment and Shipment.
+other services like Payment and Shipment via a message broker (Kafka) and a REST client (Feign).
 
 ## Key Features
 
@@ -84,6 +84,46 @@ MySQL, and Kafka are running.
 - Utilize distributed tracing (Azure Application Insights) and metrics (Azure Monitor) for production monitoring.
 - Consider Kafka best practices for production, including replication factors, topic configurations, and consumer
   groups.
+
+#### 1\. Performance: Load Balancer Cache
+
+**Current State:** The application uses the default, simple cache for Spring Cloud LoadBalancer.
+**Production Improvement:** For better performance and lower latency in service-to-service communication, it is highly
+recommended to use **Caffeine Cache**.
+
+**How to Implement:**
+
+  - Add the Caffeine dependency to your build file. 
+  - Enable and configure Caffeine caching in your application.
+
+#### 2\. Observability: Structured Logging
+
+**Current State:** Logs are in a human-readable text format.
+**Production Improvement:** To enable advanced analysis and monitoring, switch to a structured logging format like *
+*JSON**. This makes logs easy for log aggregation platforms (e.g., ELK, Grafana Loki) to parse and index.
+
+**How to Implement:**
+
+  - Add a logging library like `Logstash Logback Encoder`. 
+  - Configure Logback to use a JSON encoder.
+
+#### 3\. Observability: Log Level Management
+
+**Current State:** Verbose `INFO` logs are shown for all dependencies (Kafka, Hibernate, Hikari).
+**Production Improvement:** Reduce the verbosity of third-party libraries to prevent log clutter and focus on core
+application events.
+
+**How to Implement:**
+
+- In your configuration file (`application.yml` or `application.properties`), adjust log levels for specific packages.
+
+```yaml
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.hibernate: WARN
+    com.zaxxer.hikari: WARN
+```
 
 ## Multi-Module Integration
 
