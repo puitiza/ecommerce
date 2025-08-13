@@ -1,9 +1,9 @@
 package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
-import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import com.ecommerce.orderservice.domain.event.OrderEvent;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
+import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +26,68 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     }
 
     @Override
-    public void publishOrderValidatedEvent(Order order) {
-        publishEvent(order, OrderEventType.ORDER_VALIDATED_SUCCESS);
+    public void publishValidationSucceededEvent(Order order) {
+        publishEvent(order, OrderEventType.VALIDATION_SUCCEEDED);
     }
 
     @Override
     public void publishValidationFailedEvent(Order order) {
-        publishEvent(order, OrderEventType.ORDER_VALIDATED_FAILED);
+        publishEvent(order, OrderEventType.VALIDATION_FAILED);
+    }
+
+    @Override
+    public void publishRetryValidationEvent(Order order) {
+        publishEvent(order, OrderEventType.RETRY_VALIDATION);
+    }
+
+    @Override
+    public void publishPaymentStartEvent(Order order) {
+        publishEvent(order, OrderEventType.PAYMENT_START);
+    }
+
+    @Override
+    public void publishPaymentSucceededEvent(Order order) {
+        publishEvent(order, OrderEventType.PAYMENT_SUCCEEDED);
+    }
+
+    @Override
+    public void publishPaymentFailedEvent(Order order) {
+        publishEvent(order, OrderEventType.PAYMENT_FAILED);
+    }
+
+    @Override
+    public void publishRetryPaymentEvent(Order order) {
+        publishEvent(order, OrderEventType.RETRY_PAYMENT);
+    }
+
+    @Override
+    public void publishShipmentStartEvent(Order order) {
+        publishEvent(order, OrderEventType.SHIPMENT_START);
+    }
+
+    @Override
+    public void publishShipmentSucceededEvent(Order order) {
+        publishEvent(order, OrderEventType.SHIPMENT_SUCCEEDED);
+    }
+
+    @Override
+    public void publishShipmentFailedEvent(Order order) {
+        publishEvent(order, OrderEventType.SHIPMENT_FAILED);
+    }
+
+    @Override
+    public void publishRetryShipmentEvent(Order order) {
+        publishEvent(order, OrderEventType.RETRY_SHIPMENT);
+    }
+
+    @Override
+    public void publishDeliveredEvent(Order order) {
+        publishEvent(order, OrderEventType.DELIVERED);
+    }
+
+    @Override
+    public void publishCancelEvent(Order order) {
+        publishEvent(order, OrderEventType.CANCEL);
     }
 
     @Override
