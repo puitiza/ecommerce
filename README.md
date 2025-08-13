@@ -93,19 +93,31 @@ Get the project running locally in a few steps:
    ```
 
 2. **Running the Application**:
-    - Build and start all services:
+    - **Build and start all services:**
       ```bash
       docker-compose up --build -d
       ```
-    - Stop and remove services:
+    - **Stop and remove all services:**
       ```bash
       docker-compose down
       ```
-    - Remove volumes (clean up):
+    - **Stop and remove all services and volumes (clean up):**
       ```bash
       docker-compose down -v
       ```
-    - View logs for a specific service:
+    
+    #### **Developer Workflow (Advanced)**
+    For faster iterations during development, you can manage services individually:
+    
+   - **Rebuild and restart a single service (e.g., `order-service`):**
+      ```bash
+      docker-compose up --build --no-deps -d order-service
+      ```
+   - **Rebuild, remove and restart a service and its database (e.g., `order-service` and `mysql`):**
+      ```bash
+      docker-compose down -v order-service mysql && docker-compose up --build -d order-service mysql
+      ```
+   - **View logs for a specific service:**
       ```bash
       docker-compose logs <service-name>
       ```
