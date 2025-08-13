@@ -149,110 +149,79 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishCancelEvent()); // Includes refund + reverse shipment
     }
 
+    private Optional<Order> getOrderFromContext(StateContext<OrderStatus, OrderEventType> context) {
+        return Optional.ofNullable(context.getMessageHeader("order"))
+                .filter(Order.class::isInstance)
+                .map(Order.class::cast);
+    }
+
     @Bean
     public Action<OrderStatus, OrderEventType> publishOrderCreatedEvent() {
-        return context ->
-                Optional.of((Order) context.getMessageHeader("order"))
-                        .ifPresentOrElse(order -> {
-                            eventPublisher.publishOrderCreatedEvent(order);
-                            log.info("Published OrderCreated event for order ID: {}", order.id());
-                        }, () -> log.warn("Null or invalid order in publishOrderCreatedEvent"));
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    eventPublisher.publishOrderCreatedEvent(order);
+                    log.info("Published OrderCreated event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishOrderCreatedEvent"));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> publishPaymentStartEvent() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                eventPublisher.publishPaymentStartEvent(order);
-                log.info("Published PaymentStart event for order ID: {}", order.id());
-            } else {
-                log.warn("Null or invalid order in publishPaymentStartEvent");
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    eventPublisher.publishPaymentStartEvent(order);
+                    log.info("Published PaymentStart event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishPaymentStartEvent"));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> publishShipmentStartEvent() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                eventPublisher.publishShipmentStartEvent(order);
-                log.info("Published ShipmentStart event for order ID: {}", order.id());
-            } else {
-                log.warn("Null or invalid order in publishShipmentStartEvent");
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    eventPublisher.publishShipmentStartEvent(order);
+                    log.info("Published ShipmentStart event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishShipmentStartEvent"));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> publishDeliveredEvent() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                eventPublisher.publishDeliveredEvent(order);
-                log.info("Published Delivered event for order ID: {}", order.id());
-            } else {
-                log.warn("Null or invalid order in publishDeliveredEvent");
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    eventPublisher.publishDeliveredEvent(order);
+                    log.info("Published Delivered event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishDeliveredEvent"));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> publishCancelEvent() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                eventPublisher.publishCancelEvent(order);
-                log.info("Published Cancel event for order ID: {}", order.id());
-            } else {
-                log.warn("Null or invalid order in publishCancelEvent");
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    eventPublisher.publishCancelEvent(order);
+                    log.info("Published Cancel event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishCancelEvent"));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> validationFailedAction() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                log.error("Validation failed for order {}", order.id());
-                // Compensation logic
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresent(order -> log.error("Validation failed for order {}", order.id()));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> paymentFailedAction() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                log.error("Payment failed for order {}", order.id());
-                // Compensation
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresent(order -> log.error("Payment failed for order {}", order.id()));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> shipmentFailedAction() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                log.error("Shipment failed for order {}", order.id());
-                // Compensation
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresent(order -> log.error("Shipment failed for order {}", order.id()));
     }
 
     @Bean
     public Action<OrderStatus, OrderEventType> fulfilledAction() {
-        return context -> {
-            Object orderObj = context.getMessageHeader("order");
-            if (orderObj instanceof Order order) {
-                log.info("Order fulfilled: {}", order.id());
-                // Notification
-            }
-        };
+        return context -> getOrderFromContext(context)
+                .ifPresent(order -> log.info("Order fulfilled: {}", order.id()));
     }
 
     @Bean
