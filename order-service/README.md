@@ -93,8 +93,8 @@ recommended to use **Caffeine Cache**.
 
 **How to Implement:**
 
-  - Add the Caffeine dependency to your build file. 
-  - Enable and configure Caffeine caching in your application.
+- Add the Caffeine dependency to your build file.
+- Enable and configure Caffeine caching in your application.
 
 #### 2\. Observability: Structured Logging
 
@@ -104,8 +104,8 @@ recommended to use **Caffeine Cache**.
 
 **How to Implement:**
 
-  - Add a logging library like `Logstash Logback Encoder`. 
-  - Configure Logback to use a JSON encoder.
+- Add a logging library like `Logstash Logback Encoder`.
+- Configure Logback to use a JSON encoder.
 
 #### 3\. Observability: Log Level Management
 
