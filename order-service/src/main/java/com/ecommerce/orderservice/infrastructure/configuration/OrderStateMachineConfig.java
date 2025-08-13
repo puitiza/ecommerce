@@ -155,6 +155,22 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .map(Order.class::cast);
     }
 
+    private Guard<OrderStatus, OrderEventType> createRetryGuard(String retryCountKey) {
+        return context -> {
+            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault(retryCountKey, 0);
+            if (retryCount < 3) {
+                context.getExtendedState().getVariables().put(retryCountKey, retryCount + 1);
+                return true;
+            }
+            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
+                    .setHeader("order", context.getMessageHeader("order"))
+                    .build();
+            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
+            return false;
+        };
+    }
+
+    // Event publication actions, using the Helper Get Order From Context
     @Bean
     public Action<OrderStatus, OrderEventType> publishOrderCreatedEvent() {
         return context -> getOrderFromContext(context)
@@ -200,6 +216,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 }, () -> log.warn("Null or invalid order in publishCancelEvent"));
     }
 
+    // Error Log actions and completed
     @Bean
     public Action<OrderStatus, OrderEventType> validationFailedAction() {
         return context -> getOrderFromContext(context)
@@ -224,51 +241,19 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .ifPresent(order -> log.info("Order fulfilled: {}", order.id()));
     }
 
+    // Guards retry
     @Bean
     public Guard<OrderStatus, OrderEventType> validationRetryGuard() {
-        return context -> {
-            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("validationRetryCount", 0);
-            if (retryCount < 3) {
-                context.getExtendedState().getVariables().put("validationRetryCount", retryCount + 1);
-                return true;
-            }
-            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
-                    .setHeader("order", context.getMessageHeader("order"))
-                    .build();
-            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
-            return false;
-        };
+        return createRetryGuard("validationRetryCount");
     }
 
     @Bean
     public Guard<OrderStatus, OrderEventType> paymentRetryGuard() {
-        return context -> {
-            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("paymentRetryCount", 0);
-            if (retryCount < 3) {
-                context.getExtendedState().getVariables().put("paymentRetryCount", retryCount + 1);
-                return true;
-            }
-            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
-                    .setHeader("order", context.getMessageHeader("order"))
-                    .build();
-            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
-            return false;
-        };
+        return createRetryGuard("paymentRetryCount");
     }
 
     @Bean
     public Guard<OrderStatus, OrderEventType> shipmentRetryGuard() {
-        return context -> {
-            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("shippingRetryCount", 0);
-            if (retryCount < 3) {
-                context.getExtendedState().getVariables().put("shippingRetryCount", retryCount + 1);
-                return true;
-            }
-            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
-                    .setHeader("order", context.getMessageHeader("order"))
-                    .build();
-            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
-            return false;
-        };
+        return createRetryGuard("shippingRetryCount");
     }
 }
