@@ -101,6 +101,10 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     }
 
     private void publishEvent(Order order, OrderEventType eventType) {
+        if (order == null) {
+            log.warn("Attempted to publish event {} with null order", eventType.getEventType());
+            return;
+        }
         CloudEvent cloudEvent = CloudEventBuilder.v1()
                 .withId(UUID.randomUUID().toString())
                 .withType(eventType.getEventType())

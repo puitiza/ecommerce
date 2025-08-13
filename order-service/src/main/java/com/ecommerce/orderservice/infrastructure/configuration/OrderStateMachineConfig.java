@@ -6,6 +6,7 @@ import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
@@ -13,6 +14,9 @@ import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 import org.springframework.statemachine.guard.Guard;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+import reactor.core.publisher.Mono;
 
 import java.util.EnumSet;
 
@@ -37,211 +41,265 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
     @Override
     public void configure(StateMachineTransitionConfigurer<OrderStatus, OrderEventType> transitions) throws Exception {
         transitions
-                // CREATED to VALIDATION_PENDING
+                // CREATED -> VALIDATION_PENDING (Initial transition)
                 .withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.ORDER_CREATED)
-                .action(validationPendingAction())  // Publish to product-service for validation/reservation
-                .timerOnce(30000)  // 30s timeout to VALIDATION_FAILED
+                .action(publishOrderCreatedEvent())
+                .timerOnce(30000)
 
-                // VALIDATION_PENDING to VALIDATION_SUCCEEDED
+                // VALIDATION_PENDING -> VALIDATION_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_SUCCEEDED)
                 .event(OrderEventType.VALIDATION_SUCCEEDED)
-                .action(validationSucceededAction())  // Publish PaymentStart
+                .action(publishPaymentStartEvent())
 
-                // VALIDATION_PENDING to VALIDATION_FAILED
+                // VALIDATION_PENDING -> VALIDATION_FAILED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_FAILED)
                 .event(OrderEventType.VALIDATION_FAILED)
-                .action(validationFailedAction())  // Compensate: cancel/notify
+                .action(validationFailedAction())
 
-                // VALIDATION_FAILED to VALIDATION_PENDING (retry)
+                // VALIDATION_FAILED -> VALIDATION_PENDING (Retry)
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_FAILED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.RETRY_VALIDATION)
-                .guard(retryGuard())  // Check retry count < 3
+                .guard(validationRetryGuard())
                 .timerOnce(30000)
 
-                // VALIDATION_SUCCEEDED to PAYMENT_PENDING
+                // VALIDATION_SUCCEEDED -> PAYMENT_PENDING
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_SUCCEEDED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.PAYMENT_START)
-                .action(paymentPendingAction())  // Publish to payment-service
-                .timerOnce(60000)  // 60s timeout
+                .action(publishPaymentStartEvent())
+                .timerOnce(60000)
 
-                // PAYMENT_PENDING to PAYMENT_SUCCEEDED
+                // PAYMENT_PENDING -> PAYMENT_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_SUCCEEDED)
                 .event(OrderEventType.PAYMENT_SUCCEEDED)
-                .action(paymentSucceededAction())  // Publish ShipmentStart
+                .action(publishShipmentStartEvent())
 
-                // PAYMENT_PENDING to PAYMENT_FAILED
+                // PAYMENT_PENDING -> PAYMENT_FAILED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_FAILED)
                 .event(OrderEventType.PAYMENT_FAILED)
-                .action(paymentFailedAction())  // Compensate if no retry
+                .action(paymentFailedAction())
 
-                // PAYMENT_FAILED to PAYMENT_PENDING (retry)
+                // PAYMENT_FAILED -> PAYMENT_PENDING (retry)
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_FAILED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.RETRY_PAYMENT)
-                .guard(retryGuard())
+                .guard(paymentRetryGuard())
                 .timerOnce(60000)
 
-                // PAYMENT_SUCCEEDED to SHIPPING_PENDING
+                // PAYMENT_SUCCEEDED -> SHIPPING_PENDING
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_SUCCEEDED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.SHIPMENT_START)
-                .action(shippingPendingAction())  // Publish to shipment-service
-                .timerOnce(120000)  // 120s timeout
+                .action(publishShipmentStartEvent())
+                .timerOnce(120000)
 
-                // SHIPPING_PENDING to SHIPPING_SUCCEEDED
+                // SHIPPING_PENDING -> SHIPPING_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_SUCCEEDED)
                 .event(OrderEventType.SHIPMENT_SUCCEEDED)
-                .action(shippingSucceededAction())  // Transition to FULFILLED via Delivered
+                .action(publishDeliveredEvent())
 
-                // SHIPPING_PENDING to SHIPPING_FAILED
+                // SHIPPING_PENDING -> SHIPPING_FAILED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_FAILED)
                 .event(OrderEventType.SHIPMENT_FAILED)
-                .action(shippingFailedAction())
+                .action(shipmentFailedAction())
 
-                // SHIPPING_FAILED to SHIPPING_PENDING (retry)
+                // SHIPPING_FAILED -> SHIPPING_PENDING (retry)
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_FAILED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.RETRY_SHIPMENT)
-                .guard(retryGuard())
+                .guard(shipmentRetryGuard())
                 .timerOnce(120000)
 
-                // SHIPPING_SUCCEEDED to FULFILLED
+                // SHIPPING_SUCCEEDED -> FULFILLED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_SUCCEEDED).target(OrderStatus.FULFILLED)
                 .event(OrderEventType.DELIVERED)
-                .action(fulfilledAction())  // Optional: notify completion
+                .action(fulfilledAction()) // Optional: notify completion
 
                 // Cancel transitions from various sources
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(cancelAction())
+                .action(publishCancelEvent())
 
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(cancelAction())
+                .action(publishCancelEvent())
 
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(cancelAction())  // Includes refund
+                .action(publishCancelEvent()) // Includes refund
 
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(cancelAction());  // Includes refund + reverse shipment
+                .action(publishCancelEvent()); // Includes refund + reverse shipment
     }
 
-    // Action examples
-    private Action<OrderStatus, OrderEventType> validationPendingAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishOrderCreatedEvent() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishOrderCreatedEvent(order);  // To product-service
-            log.info("Validation pending for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                eventPublisher.publishOrderCreatedEvent(order);
+                log.info("Published OrderCreated event for order ID: {}", order.id());
+            } else {
+                log.warn("Null or invalid order in publishOrderCreatedEvent");
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> validationSucceededAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishPaymentStartEvent() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishPaymentStartEvent(order);
-            log.info("Validation succeeded for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                eventPublisher.publishPaymentStartEvent(order);
+                log.info("Published PaymentStart event for order ID: {}", order.id());
+            } else {
+                log.warn("Null or invalid order in publishPaymentStartEvent");
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> validationFailedAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishShipmentStartEvent() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            log.error("Validation failed for order {}", order.id());
-            // Compensation: notify user, etc.
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                eventPublisher.publishShipmentStartEvent(order);
+                log.info("Published ShipmentStart event for order ID: {}", order.id());
+            } else {
+                log.warn("Null or invalid order in publishShipmentStartEvent");
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> paymentPendingAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishDeliveredEvent() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishPaymentStartEvent(order);  // Already triggered? Adjust if needed
-            log.info("Payment pending for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                eventPublisher.publishDeliveredEvent(order);
+                log.info("Published Delivered event for order ID: {}", order.id());
+            } else {
+                log.warn("Null or invalid order in publishDeliveredEvent");
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> paymentSucceededAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishCancelEvent() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishShipmentStartEvent(order);
-            log.info("Payment succeeded for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                eventPublisher.publishCancelEvent(order);
+                log.info("Published Cancel event for order ID: {}", order.id());
+            } else {
+                log.warn("Null or invalid order in publishCancelEvent");
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> paymentFailedAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> validationFailedAction() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            log.error("Payment failed for order {}", order.id());
-            // Compensation if no retry
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                log.error("Validation failed for order {}", order.id());
+                // Compensation logic
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> shippingPendingAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> paymentFailedAction() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishShipmentStartEvent(order);
-            log.info("Shipping pending for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                log.error("Payment failed for order {}", order.id());
+                // Compensation
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> shippingSucceededAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> shipmentFailedAction() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishDeliveredEvent(order);  // Or direct to FULFILLED
-            log.info("Shipping succeeded for order {}", order.id());
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                log.error("Shipment failed for order {}", order.id());
+                // Compensation
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> shippingFailedAction() {
+    @Bean
+    public Action<OrderStatus, OrderEventType> fulfilledAction() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            log.error("Shipping failed for order {}", order.id());
-            // Compensation
+            Object orderObj = context.getMessageHeader("order");
+            if (orderObj instanceof Order order) {
+                log.info("Order fulfilled: {}", order.id());
+                // Notification
+            }
         };
     }
 
-    private Action<OrderStatus, OrderEventType> fulfilledAction() {
+    @Bean
+    public Guard<OrderStatus, OrderEventType> validationRetryGuard() {
         return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            log.info("Order fulfilled: {}", order.id());
-            // Notify completion
-        };
-    }
-
-    private Action<OrderStatus, OrderEventType> cancelAction() {
-        return context -> {
-            Order order = context.getExtendedState().get("order", Order.class);
-            eventPublisher.publishOrderCancelledEvent(order);
-            log.info("Order cancelled: {}", order.id());
-            // Publish compensations: RefundRequest, RestockRequest, etc.
-        };
-    }
-
-    private Guard<OrderStatus, OrderEventType> retryGuard() {
-        return context -> {
-            int retryCount = context.getExtendedState().get("retryCount", Integer.class, 0);
+            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("validationRetryCount", 0);
             if (retryCount < 3) {
-                context.getExtendedState().set("retryCount", retryCount + 1);
+                context.getExtendedState().getVariables().put("validationRetryCount", retryCount + 1);
                 return true;
             }
-            // No more retries, trigger compensation
-            context.getStateMachine().sendEvent(OrderEventType.CANCEL);
+            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
+                    .setHeader("order", context.getMessageHeader("order"))
+                    .build();
+            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
+            return false;
+        };
+    }
+
+    @Bean
+    public Guard<OrderStatus, OrderEventType> paymentRetryGuard() {
+        return context -> {
+            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("paymentRetryCount", 0);
+            if (retryCount < 3) {
+                context.getExtendedState().getVariables().put("paymentRetryCount", retryCount + 1);
+                return true;
+            }
+            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
+                    .setHeader("order", context.getMessageHeader("order"))
+                    .build();
+            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
+            return false;
+        };
+    }
+
+    @Bean
+    public Guard<OrderStatus, OrderEventType> shipmentRetryGuard() {
+        return context -> {
+            int retryCount = (int) context.getExtendedState().getVariables().getOrDefault("shippingRetryCount", 0);
+            if (retryCount < 3) {
+                context.getExtendedState().getVariables().put("shippingRetryCount", retryCount + 1);
+                return true;
+            }
+            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
+                    .setHeader("order", context.getMessageHeader("order"))
+                    .build();
+            context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
             return false;
         };
     }
