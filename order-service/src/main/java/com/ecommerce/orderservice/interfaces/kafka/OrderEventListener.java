@@ -46,9 +46,7 @@ public class OrderEventListener {
             OrderEventType.PAYMENT_SUCCEEDED,
             OrderEventType.PAYMENT_FAILED,
             OrderEventType.SHIPMENT_SUCCEEDED,
-            OrderEventType.SHIPMENT_FAILED,
-            //next delete
-            OrderEventType.ORDER_CREATED
+            OrderEventType.SHIPMENT_FAILED
     };
 
     // Map topics to OrderEventType for quick lookup
@@ -73,16 +71,7 @@ public class OrderEventListener {
             log.warn("Received event on unknown topic: {}", topic);
             return;
         }
-        handleTest(cloudEvent);
-        //processEvent(cloudEvent, eventType);
-    }
-
-    //@KafkaListener(topics = "order_created")
-    public void handleTest(CloudEvent cloudEvent) {
-        extractOrderFromEvent(cloudEvent)
-                .ifPresentOrElse(order -> {
-                    log.info("Received cloudEvent. Id: {}; Data: {}", cloudEvent.getId(), order.toString());
-                }, () -> log.warn("Could not extract order" + cloudEvent.getType()));
+        processEvent(cloudEvent, eventType);
     }
 
     /**
