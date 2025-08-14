@@ -1,9 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
-import com.ecommerce.orderservice.application.dto.PaymentAuthorizationResponse;
 import com.ecommerce.orderservice.application.dto.RefundResponse;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
-import com.ecommerce.orderservice.application.dto.PaymentAuthorizationRequest;
 import com.ecommerce.orderservice.application.dto.RefundRequest;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.shared.exception.ExceptionError;
@@ -18,30 +16,20 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class PaymentFeignAdapter implements PaymentServicePort {
+
     private static final String SERVICE_NAME = "Payment";
     private final PaymentFeignClient paymentFeignClient;
 
     @Override
-    @CircuitBreaker(name = "paymentAuthorizeCircuit", fallbackMethod = "authorizePaymentFallback")
-    public PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest request) {
-        return paymentFeignClient.authorizePayment(request);
-    }
-
-    @Override
-    @CircuitBreaker(name = "paymentRefundCircuit", fallbackMethod = "initiateRefundFallback")
+    @CircuitBreaker(name = "paymentServiceCircuit", fallbackMethod = "initiateRefundFallback")
     public void initiateRefund(String paymentId, RefundRequest refundRequest) {
         paymentFeignClient.initiateRefund(paymentId, refundRequest);
     }
 
     @Override
-    @CircuitBreaker(name = "paymentFindCircuit", fallbackMethod = "findPaymentIdFallback")
+    @CircuitBreaker(name = "paymentServiceCircuit", fallbackMethod = "findPaymentIdFallback")
     public String findPaymentIdByOrderId(String orderId) {
         return paymentFeignClient.findPaymentIdByOrderId(orderId);
-    }
-
-    @SuppressWarnings("unused")
-    private PaymentAuthorizationResponse authorizePaymentFallback(PaymentAuthorizationRequest request, Throwable t) {
-        throw handleError(request.orderId(), t, "Failed to authorize payment", ExceptionError.ORDER_PAYMENT_AUTHORIZATION_FAILED);
     }
 
     @SuppressWarnings("unused")

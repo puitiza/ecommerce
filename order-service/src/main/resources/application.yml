@@ -73,26 +73,14 @@ openapi:
 resilience4j.circuitbreaker:
   instances:
     productServiceCircuit:
-      slidingWindowSize: 10
-      failureRateThreshold: 50  # 50% failure
-      waitDurationInOpenState: 10000  # 10 second open state
-      permittedNumberOfCallsInHalfOpenState: 3
-      registerHealthIndicator: true
-    paymentAuthorizeCircuit:
-      slidingWindowSize: 10
-      failureRateThreshold: 50
-      waitDurationInOpenState: 10000
-      permittedNumberOfCallsInHalfOpenState: 3
-      registerHealthIndicator: true
-    paymentRefundCircuit:
+      slidingWindowSize: 10     # Number of calls to record and analyze.
+      failureRateThreshold: 50  # Threshold (in %) at which the circuit opens.
+      waitDurationInOpenState: 10000  # Time the circuit stays open before transitioning to HALF_OPEN.
+      permittedNumberOfCallsInHalfOpenState: 3 # Number of calls allowed to test the service's health.
+      registerHealthIndicator: true   # Enables the actuator health endpoint.
+    paymentServiceCircuit:
       slidingWindowSize: 5
       failureRateThreshold: 60
       waitDurationInOpenState: 15000
       permittedNumberOfCallsInHalfOpenState: 2
-      registerHealthIndicator: true
-    paymentFindCircuit:
-      slidingWindowSize: 10
-      failureRateThreshold: 50
-      waitDurationInOpenState: 10000
-      permittedNumberOfCallsInHalfOpenState: 3
       registerHealthIndicator: true
