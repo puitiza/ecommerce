@@ -25,6 +25,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ public class OrderServiceImpl implements OrderService {
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
     @Override
+    @Transactional
     public OrderResponse createOrder(OrderRequest request) {
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
@@ -85,6 +87,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<OrderResponse> getAllOrders(int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
@@ -118,6 +121,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getOrderById(UUID id) {
         log.info("Retrieving order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
@@ -136,6 +140,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
         log.info("Updating order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
@@ -163,6 +168,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void cancelOrder(UUID id) {
         log.info("Cancelling order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();

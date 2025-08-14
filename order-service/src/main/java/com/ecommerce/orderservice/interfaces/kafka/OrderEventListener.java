@@ -15,14 +15,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -35,8 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderEventListener {
 
-    private final OrderRepositoryPort repositoryPort;
-    private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
+    private final OrderEventProcessor eventProcessor;
     private final ObjectMapper objectMapper;
 
     // Subset of events that the listener consumes
@@ -63,6 +58,14 @@ public class OrderEventListener {
         }
     }
 
+    /**
+     * Kafka listener for processing order-related events.
+     * It deserializes the incoming CloudEvent and delegates its processing
+     * to the OrderEventProcessor to handle the state machine logic in a transactional context.
+     *
+     * @param cloudEvent The incoming CloudEvent payload.
+     * @param topic      The Kafka topic the event was received from.
+     */
     @KafkaListener(topics = "#{consumerTopics}")
     public void handleEvent(@Payload CloudEvent cloudEvent,
                             @Header(value = KafkaHeaders.RECEIVED_TOPIC, required = false) String topic) {
@@ -71,35 +74,9 @@ public class OrderEventListener {
             log.warn("Received event on unknown topic: {}", topic);
             return;
         }
-        processEvent(cloudEvent, eventType);
-    }
-
-    /**
-     * Centralized method to process any incoming CloudEvent and advance the state machine.
-     *
-     * @param cloudEvent The incoming CloudEvent.
-     * @param eventType  The type of the event, which corresponds to the state machine transition.
-     */
-    //@Transactional
-    private void processEvent(CloudEvent cloudEvent, OrderEventType eventType) {
-        extractOrderFromEvent(cloudEvent).ifPresentOrElse(order -> {
-            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-            sm.getExtendedState().getVariables().put("order", order);
-
-            Message<OrderEventType> message = MessageBuilder
-                    .withPayload(eventType)
-                    .setHeader("order", order)
-                    .build();
-
-            sm.sendEvent(Mono.just(message)).subscribe(
-                    result -> {
-                        // The states machine has moved successfully
-                        log.info("State machine advanced to {} for order ID: {}", sm.getState().getId(), order.id());
-                        repositoryPort.save(order.withStatus(sm.getState().getId()));
-                    },
-                    error -> log.error("Failed to send event {} to state machine for order {}: {}", eventType, order.id(), error.getMessage())
-            );
-        }, () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
+        extractOrderFromEvent(cloudEvent)
+                .ifPresentOrElse(order -> eventProcessor.processEvent(order, eventType),
+                        () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
     }
 
     private Optional<Order> extractOrderFromEvent(CloudEvent event) {

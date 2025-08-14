@@ -181,6 +181,80 @@ consistency across the microservices' ecosystem.
 
 -----
 
+### Data Consistency and Transactional Integrity
+
+To ensure the integrity and consistency of order data, all operations that involve multiple database actions or state
+changes are executed within a transaction.
+
+#### 1. API Endpoints
+
+Endpoints such as `createOrder`, `updateOrder`, and `cancelOrder` are annotated with `@Transactional`. This guarantees
+that if any part of the process fails (e.g., a database save or a state machine transition), the entire operation is
+rolled back, preventing orders from being left in a corrupted or inconsistent state.
+
+#### 2. Event-Driven Logic
+
+The service consumes events from Kafka to update the state of an order. The processing of these events is also handled
+within a transaction. A dedicated `OrderEventProcessor` class, separate from the Kafka listener, is responsible for this
+logic.
+
+- The `@KafkaListener` method deserializes the incoming event.
+- It then delegates the processing to the `OrderEventProcessor`, which is annotated with `@Transactional`.
+
+This design ensures that the state machine transition and the subsequent database update are atomic. If the database
+save fails, the transaction is rolled back, and the Kafka message is not committed, allowing for safe retries and
+preventing data loss or inconsistencies.
+
+-----
+
+## Future Enhancements and Best Practices
+
+This section outlines potential improvements for better resilience, maintainability, and production readiness.
+
+### Kafka Error Handling and Dead Letter Topics
+
+Currently, logging is used to handle Kafka deserialization and processing errors. While simple, this approach has
+limitations, as it lacks a **retry mechanism** and can lead to **message loss** or **duplicate processing** if not
+carefully managed.
+
+A more robust approach is to implement a centralized `CommonErrorHandler` provided by Spring Kafka. This allows for:
+
+- **Automatic Retries**: Configure a backoff policy to automatically retry failed messages for transient errors.
+- **Dead Letter Topic (DLT)**: After a configurable number of retries, a message can be automatically sent to a separate
+  topic, known as a Dead Letter Topic. This prevents "poison pill" messages from blocking the consumer group and
+  provides a place to store failed messages for manual inspection and reprocessing.
+- **Centralized Logic**: A single class handles all consumer errors, reducing code duplication in individual listeners.
+
+**Example of a `CommonErrorHandler` for Retries:**
+The following code snippet shows how a `CommonErrorHandler` can be configured to retry failed messages up to three times
+with a fixed 1-second delay.
+
+```java
+
+@Component("kafkaErrorHandler")
+public class KafkaErrorHandler implements CommonErrorHandler {
+    private final DefaultErrorHandler errorHandler;
+
+    public KafkaErrorHandler() {
+        // Retry a message 3 times with a 1-second delay
+        this.errorHandler = new DefaultErrorHandler(new FixedBackOff(1000L, 3));
+    }
+
+    @Override
+    public void handleRecord(Exception thrownException, ConsumerRecord<?, ?> record,
+                             Consumer<?, ?> consumer, Message<?> message) {
+        log.error("Error processing Kafka record on topic {}: {}", record.topic(), thrownException.getMessage());
+        // Delegate to the default error handler, which will perform retries
+        errorHandler.handleRecord(thrownException, record, consumer, message);
+    }
+}
+```
+
+To enable this, you would then configure your consumer's error handler in the listener with
+`@KafkaListener(errorHandler = "kafkaErrorHandler")`.
+
+-----
+
 ## Resources
 
 - [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
@@ -189,3 +263,4 @@ consistency across the microservices' ecosystem.
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 - [CloudEvents Specification](https://cloudevents.io/)
 - [Spring State Machine Reference](https://docs.spring.io/spring-statemachine/docs/current/reference)
+- [Spring Kafka Error Handling Documentation](https://www.google.com/search?q=https://docs.spring.io/spring-kafka/reference/html/%23error-handling)
