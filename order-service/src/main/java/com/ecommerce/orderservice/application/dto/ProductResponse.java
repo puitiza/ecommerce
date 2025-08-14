@@ -2,7 +2,14 @@ package com.ecommerce.orderservice.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-//Allows the production to change or add new fields to your response without breaking consumers
+/**
+ * DTO for the response from the Product Service.
+ * <p>
+ * The {@code @JsonIgnoreProperties(ignoreUnknown = true)} annotation is used
+ * to ensure that deserialization does not fail if the Product Service adds new fields
+ * to its response in the future. This promotes loose coupling and resilience
+ * between microservices.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductResponse(
         Long id,

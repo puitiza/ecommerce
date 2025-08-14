@@ -214,6 +214,25 @@ unrecoverable by the client and result in a `5xx` HTTP status code.
 
 -----
 
+#### Resiliency and API Evolution
+
+To ensure that the Order Service remains resilient and loosely coupled from other microservices, we use the
+`@JsonIgnoreProperties(ignoreUnknown = true)` annotation on all DTOs used by Feign clients.
+
+This practice is essential because it:
+
+- **Prevents Breaking Changes**: If a remote service adds new fields to its API response, our service will not fail with
+  a deserialization error.
+- **Promotes Decoupling**: It allows the `product-service` and `payment-service` to evolve independently without
+  requiring simultaneous updates to the `order-service`.
+- **Enhances Stability**: The service will continue to function correctly, only processing the fields it understands,
+  even if the API contract is slightly changed.
+
+This design decision protects the service from unexpected changes in external APIs, making the overall microservice
+ecosystem more stable and easier to maintain.
+
+-----
+
 ## Multi-Module Integration
 
 The Order Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring
