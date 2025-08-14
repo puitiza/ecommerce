@@ -174,6 +174,46 @@ logging:
 
 -----
 
+### Exception Handling and Error Strategy
+
+The service distinguishes between two primary types of exceptions to provide clear and actionable feedback: **Business
+Exceptions** and **Infrastructure Exceptions**. This separation is crucial for maintaining a robust and predictable API.
+
+#### Business Exceptions
+
+These exceptions represent failures in the application's business logic. They are typically handled by the API Gateway
+or a global exception handler, resulting in a `4xx` HTTP status code. These errors indicate an issue with the client's
+request or the current state of the business domain.
+
+- `OrderValidationException`: Used for failures during the validation of an order. For example, if a product is out of
+  stock or if the request contains duplicate items.
+  ``` java
+  throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId());
+  ```
+- `OrderCancellationException`: Thrown when a request to cancel an order fails because the order is not in a cancellable
+  state.
+  ``` java
+  throw new OrderCancellationException("Order cannot be canceled in its current state");
+  ```
+
+#### Infrastructure Exceptions
+
+These exceptions represent internal system failures or issues with external dependencies. They are typically
+unrecoverable by the client and result in a `5xx` HTTP status code.
+
+- `EventPublishingException`: Thrown when the service fails to serialize or send an event to Kafka. This indicates a
+  problem with the messaging infrastructure.
+  ``` java
+  throw new EventPublishingException("Failed to serialize or publish event", e);
+  ```
+- `ConcurrencyException`: Thrown when an error occurs during the execution of a concurrent operation, such as an
+  `InterruptedException` within a `StructuredTaskScope`. This signals an internal concurrency issue.
+  ``` java
+  throw new ConcurrencyException("Validation process was interrupted", e);
+  ```
+
+-----
+
 ## Multi-Module Integration
 
 The Order Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring

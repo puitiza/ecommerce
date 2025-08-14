@@ -2,6 +2,7 @@ package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
+import com.ecommerce.orderservice.domain.exception.ConcurrencyException;
 import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
 import com.ecommerce.orderservice.application.port.out.PaymentServicePort;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
@@ -207,7 +208,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (CompletionException e) {
-            throw (RuntimeException) e.getCause();  // Propagar exception
+            throw new ConcurrencyException("Validation process was interrupted", e);
         }
     }
 

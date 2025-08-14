@@ -2,8 +2,6 @@ package com.ecommerce.orderservice.interfaces.kafka;
 
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
-import com.ecommerce.orderservice.domain.model.OrderStatus;
-import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.CloudEventUtils;
@@ -17,7 +15,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
