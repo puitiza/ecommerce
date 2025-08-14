@@ -11,15 +11,24 @@ import io.cloudevents.core.data.PojoCloudEventData;
 import io.cloudevents.jackson.PojoCloudEventDataMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -28,36 +37,52 @@ public class OrderEventListener {
 
     private final OrderRepositoryPort repositoryPort;
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
-    private final ObjectMapper objectMapper; // Spring will inject the Bean configured
+    private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = "validation_succeeded")
-    public void handleValidationSucceeded(CloudEvent event) {
-        processEvent(event, OrderEventType.VALIDATION_SUCCEEDED);
+    // Subset of events that the listener consumes
+    private static final OrderEventType[] CONSUMER_EVENTS = {
+            OrderEventType.VALIDATION_SUCCEEDED,
+            OrderEventType.VALIDATION_FAILED,
+            OrderEventType.PAYMENT_SUCCEEDED,
+            OrderEventType.PAYMENT_FAILED,
+            OrderEventType.SHIPMENT_SUCCEEDED,
+            OrderEventType.SHIPMENT_FAILED,
+            //next delete
+            OrderEventType.ORDER_CREATED
+    };
+
+    // Map topics to OrderEventType for quick lookup
+    private final Map<String, OrderEventType> topicToEventTypeMap = Arrays.stream(CONSUMER_EVENTS)
+            .collect(Collectors.toMap(OrderEventType::getTopic, Function.identity()));
+
+    @Configuration
+    static class KafkaListenerConfig {
+        @Bean
+        public String[] consumerTopics() {
+            return Arrays.stream(CONSUMER_EVENTS)
+                    .map(OrderEventType::getTopic)
+                    .toArray(String[]::new);
+        }
     }
 
-    @KafkaListener(topics = "validation_failed")
-    public void handleValidationFailed(CloudEvent event) {
-        processEvent(event, OrderEventType.VALIDATION_FAILED);
+    @KafkaListener(topics = "#{consumerTopics}")
+    public void handleEvent(@Payload CloudEvent cloudEvent,
+                            @Header(value = KafkaHeaders.RECEIVED_TOPIC, required = false) String topic) {
+        OrderEventType eventType = topicToEventTypeMap.get(topic);
+        if (eventType == null) {
+            log.warn("Received event on unknown topic: {}", topic);
+            return;
+        }
+        handleTest(cloudEvent);
+        //processEvent(cloudEvent, eventType);
     }
 
-    @KafkaListener(topics = "payment_succeeded")
-    public void handlePaymentSucceeded(CloudEvent event) {
-        processEvent(event, OrderEventType.PAYMENT_SUCCEEDED);
-    }
-
-    @KafkaListener(topics = "payment_failed")
-    public void handlePaymentFailed(CloudEvent event) {
-        processEvent(event, OrderEventType.PAYMENT_FAILED);
-    }
-
-    @KafkaListener(topics = "shipment_succeeded")
-    public void handleShipmentSucceeded(CloudEvent event) {
-        processEvent(event, OrderEventType.SHIPMENT_SUCCEEDED);
-    }
-
-    @KafkaListener(topics = "shipment_failed")
-    public void handleShipmentFailed(CloudEvent event) {
-        processEvent(event, OrderEventType.SHIPMENT_FAILED);
+    //@KafkaListener(topics = "order_created")
+    public void handleTest(CloudEvent cloudEvent) {
+        extractOrderFromEvent(cloudEvent)
+                .ifPresentOrElse(order -> {
+                    log.info("Received cloudEvent. Id: {}; Data: {}", cloudEvent.getId(), order.toString());
+                }, () -> log.warn("Could not extract order" + cloudEvent.getType()));
     }
 
     /**
@@ -68,8 +93,7 @@ public class OrderEventListener {
      */
     //@Transactional
     private void processEvent(CloudEvent cloudEvent, OrderEventType eventType) {
-        extractOrderFromEvent(cloudEvent)
-                .ifPresentOrElse(order -> {
+        extractOrderFromEvent(cloudEvent).ifPresentOrElse(order -> {
             StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
             sm.getExtendedState().getVariables().put("order", order);
 

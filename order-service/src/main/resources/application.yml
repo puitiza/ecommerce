@@ -19,17 +19,30 @@ spring:
     hibernate:
       ddl-auto: update
   kafka:
+    client-id: order-service
     bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.cloudevents.kafka.CloudEventSerializer
       properties:
+        max.request.size: 1000000
+        metadata.max.idle.ms: 180000
+        request.timeout.ms: 30000
+        linger.ms: 0
         retry-backoff-ms: 10000
         retries: 10
     consumer:
-      group-id: order-service-group # A single group name for your service
+      group-id: order-service-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+      properties:
+        metadata.max.age.ms: 180000
+        connections.max.idle.ms: 180000
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      max-poll-records: 100
+      fetch-min-size: 1
+      fetch-max-wait: 500
 
 permit-urls:
   swagger:
