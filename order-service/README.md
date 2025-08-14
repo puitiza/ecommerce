@@ -1,325 +1,445 @@
 # Order Service
 
-The Order Service is a critical core business microservice responsible for managing the entire lifecycle of customer
-orders within the e-commerce platform. It handles order creation, validation, state transitions, and integration with
-other services like Payment and Shipment via a message broker (Kafka) and a REST client (Feign).
+The **Order Service** is a core microservice in the e-commerce platform, responsible for managing the lifecycle of
+customer orders. It handles order creation, validation, state transitions, and integration with other services (e.g.,
+Payment, Shipment, Product) using asynchronous messaging (Kafka) and synchronous REST calls (Feign). The service is
+designed for reliability, scalability, and maintainability, leveraging a state machine for controlled order state
+transitions and robust error handling for production readiness.
+
+---
+
+## Table of Contents
+
+1. [Key Features](#key-features)
+2. [Architecture](#architecture)
+    - [Technologies](#technologies)
+    - [Integration with Other Services](#integration-with-other-services)
+    - [Data Consistency and Transactional Integrity](#data-consistency-and-transactional-integrity)
+3. [Configuration](#configuration)
+    - [Application Configuration](#application-configuration)
+    - [Kafka Configuration](#kafka-configuration)
+    - [Security Configuration](#security-configuration)
+    - [Dependencies](#dependencies)
+4. [Setup and Deployment](#setup-and-deployment)
+    - [Local Setup](#local-setup)
+    - [Production Considerations](#production-considerations)
+5. [Error Handling and Resiliency](#error-handling-and-resiliency)
+    - [Business Exceptions](#business-exceptions)
+    - [Infrastructure Exceptions](#infrastructure-exceptions)
+    - [Kafka Error Handling](#kafka-error-handling)
+    - [API Resiliency](#api-resiliency)
+6. [Testing](#testing)
+7. [Future Enhancements](#future-enhancements)
+    - [Performance Improvements](#performance-improvements)
+    - [Observability Enhancements](#observability-enhancements)
+    - [Kafka Enhancements](#kafka-enhancements)
+8. [Resources](#resources)
+
+---
 
 ## Key Features
 
-- **Order Lifecycle and State Management**: Manages orders through various states (e.g., PENDING, PROCESSING, SHIPPED,
-  DELIVERED, CANCELLED) using a **state machine** to ensure a controlled flow.
-- **Order Validation**: Ensures order integrity before processing.
-- **Integration with Payment Service**: Initiates payment processing for new orders.
-- **Integration with Product Service**: Interacts for product availability and inventory updates.
-- **Integration with Shipment Service**: Triggers shipment creation upon successful payment.
-- **Event-Driven Communication**: Utilizes Kafka for asynchronous communication, acting as both an event producer and
-  consumer.
-- **RESTful API**: Provides endpoints for order creation, retrieval, and updates.
-- **Security**: Secured with JWT authentication via Keycloak.
+- **Order Lifecycle Management**: Manages orders through states (e.g., PENDING, PROCESSING, SHIPPED, DELIVERED,
+  CANCELLED) using a Spring State Machine for controlled transitions.
+- **Order Validation**: Ensures order integrity (e.g., product availability, valid quantities) before processing.
+- **Service Integration**:
+    - **Payment Service**: Initiates payment processing for new orders.
+    - **Product Service**: Validates product availability and updates inventory.
+    - **Shipment Service**: Triggers shipment creation upon successful payment.
+- **Event-Driven Communication**: Publishes and consumes events via Kafka using the CloudEvents format for
+  interoperability.
+- **RESTful API**: Exposes endpoints for order creation, retrieval, and updates.
+- **Security**: Implements JWT-based authentication and authorization via Keycloak.
+- **Resiliency**: Handles errors gracefully with retries, Dead Letter Topics (DLTs), and robust exception handling.
+- **Scalability**: Supports load balancing and service discovery via Eureka.
 
------
+---
 
-## Technologies
+## Architecture
 
-- **Spring Boot 3.0**: Framework for building robust microservices.
-- **MySQL**: Relational database for persistent storage of order data.
-- **Spring Data JPA / Hibernate**: For data persistence and ORM.
-- **Apache Kafka**: For asynchronous, event-driven communication.
-- **CloudEvents**: Used as the messaging format over Kafka for structured event data.
-- **Spring Security**: For authentication and authorization using OAuth2 Resource Server.
-- **Spring State Machine**: Manages the complex state transitions of an order.
-- **Spring Cloud Config Client**: To fetch centralized configurations.
-- **Eureka Client**: For service registration and discovery.
-- **Springdoc OpenAPI**: For API documentation and Swagger UI.
+### Technologies
 
------
+The Order Service is built with modern frameworks and tools for reliability and maintainability:
 
-## Configuration
+- **Spring Boot 3.0**: Core framework for microservice development.
+- **MySQL**: Relational database for persistent order storage.
+- **Spring Data JPA / Hibernate**: Simplifies data persistence and ORM.
+- **Apache Kafka**: Enables asynchronous, event-driven communication.
+- **CloudEvents**: Standardizes event messaging over Kafka.
+- **Spring Security**: Secures the service with OAuth2 and JWT.
+- **Spring State Machine**: Manages complex order state transitions.
+- **Spring Cloud Config Client**: Fetches centralized configurations.
+- **Spring Cloud Netflix Eureka**: Handles service registration and discovery.
+- **Springdoc OpenAPI**: Generates API documentation and Swagger UI.
 
-The Order Service retrieves its configuration from the Spring Cloud Config Server and uses Spring Boot's
-autoconfiguration for JPA, OAuth2, and Kafka.
+### Integration with Other Services
 
-### Security Configuration
+The Order Service integrates with the following components:
 
-The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically configures a `JwtDecoder` using the
-`issuer-uri` to validate tokens. Public endpoints (e.g., Swagger) are accessible without authentication.
-
-### Kafka Configuration
-
-The service is configured to both produce and consume events from a Kafka cluster. The configuration in
-`application.yml` specifies the behavior of these clients.
-
-#### 1\. Producer Configuration
-
-The producer is responsible for sending messages to Kafka. Key configurations include:
-
-- `key-serializer`: Defines how the message key is serialized. Using `StringSerializer` is common for simple string
-  keys.
-- `value-serializer`: Defines how the message value is serialized. The `CloudEventSerializer` is used to encode events
-  according to the CloudEvents specification, ensuring a consistent and interoperable format.
-- `properties`: Advanced settings like `retries` and `request.timeout.ms` are crucial for handling transient network
-  failures and ensuring message delivery in a resilient manner.
-
-#### 2\. Consumer Configuration
-
-The consumer is responsible for reading messages from Kafka. Key configurations include:
-
-- `group-id`: A unique identifier for the consumer group. All consumer instances within the same group work together to
-  consume messages from a set of partitions, providing load balancing and high availability.
-- `key-deserializer` and `value-deserializer`: These match the serializers used by the producer, ensuring the received
-  messages are correctly decoded.
-- `auto-offset-reset`: Determines what to do when a consumer starts for the first time or if there is no committed
-  offset for its group. `latest` tells it to start consuming from the newest messages.
-- `enable-auto-commit`: Set to `false` for manual offset management, giving the application explicit control over when
-  an offset is considered processed and committed. This is a common practice for reliable message processing.
-- `max-poll-records`: Limits the number of records returned in a single poll, helping to manage batch processing and
-  resource usage.
-
-### Dependencies
-
-- `spring-boot-starter-web`: For REST APIs.
-- `spring-boot-starter-data-jpa`: Auto-configures MySQL connectivity.
-- `spring-boot-starter-security`: Enables OAuth2 resource server.
-- `spring-boot-starter-oauth2-resource-server`: Configures JWT validation.
-- `spring-kafka`: For event publishing to and consumption from Kafka.
-- `spring-cloud-starter-config`: Connects to Config Server.
-- `spring-cloud-starter-netflix-eureka-client`: Registers with Eureka.
-- `spring-statemachine-core`: Core dependency for implementing the state machine.
-
------
-
-## Integration with Other Services
-
-- **Config Server**: Retrieves configuration (e.g., database credentials, Keycloak URL) from `http://localhost:8885`.
+- **Spring Cloud Config Server**: Fetches configuration (e.g., database credentials, Keycloak URL) from
+  `http://localhost:8885`.
 - **Eureka Server**: Registers as `ORDER-SERVICE` for service discovery.
-- **API Gateway**: Routes requests from `/orders/**` to this service.
+- **API Gateway**: Routes requests from `/orders/**` to the service.
 - **Keycloak**: Validates JWT tokens for authenticated requests.
-- **Kafka**: Publishes and consumes order events (e.g., `ORDER_CREATED`, `ORDER_CANCELLED`) to/from topics consumed by
+- **Kafka**: Publishes and consumes events (e.g., `ORDER_CREATED`, `ORDER_CANCELLED`) to/from topics used by
   `payment-service`, `shipment-service`, and `notification-service`.
 - **MySQL**: Stores order data with automatic schema updates (`ddl-auto: update`).
-
------
-
-## Local Setup
-
-To run the Order Service locally:
-
-1. Ensure [Config Server](../config-server/README.md), [Eureka Server](../service-registry/README.md),
-   MySQL, and Kafka are running.
-2. Navigate to the `order-service` directory.
-3. Run the application: `./gradlew bootRun` or use your IDE.
-4. Alternatively, use `docker-compose up -d order-service` from the root directory to start it as part of the overall
-   microservices stack.
-
------
-
-## Testing
-
-- **Unit Tests**: Implemented using JUnit 5 and Mockito for isolated component testing.
-- **Integration Tests**: Utilizes Testcontainers for database and Kafka integration testing.
-- Run tests with `./gradlew test`.
-
------
-
-## Production Considerations
-
-- Ensure database credentials and Kafka broker URLs are securely managed using environment variables or a secrets
-  management solution.
-- Configure `spring.jpa.hibernate.ddl-auto` to `none` or `validate` in production for schema stability.
-- Utilize distributed tracing (Azure Application Insights) and metrics (Azure Monitor) for production monitoring.
-- Consider Kafka best practices for production, including replication factors, topic configurations, and consumer
-  groups.
-
-#### 1\. Performance: Load Balancer Cache
-
-**Current State:** The application uses the default, simple cache for Spring Cloud LoadBalancer.
-**Production Improvement:** For better performance and lower latency in service-to-service communication, it is highly
-recommended to use **Caffeine Cache**.
-
-**How to Implement:**
-
-- Add the Caffeine dependency to your build file.
-- Enable and configure Caffeine caching in your application.
-
-#### 2\. Observability: Structured Logging
-
-**Current State:** Logs are in a human-readable text format.
-**Production Improvement:** To enable advanced analysis and monitoring, switch to a structured logging format like *
-*JSON**. This makes logs easy for log aggregation platforms (e.g., ELK, Grafana Loki) to parse and index.
-
-**How to Implement:**
-
-- Add a logging library like `Logstash Logback Encoder`.
-- Configure Logback to use a JSON encoder.
-
-#### 3\. Observability: Log Level Management
-
-**Current State:** Verbose `INFO` logs are shown for all dependencies (Kafka, Hibernate, Hikari).
-**Production Improvement:** Reduce the verbosity of third-party libraries to prevent log clutter and focus on core
-application events.
-
-**How to Implement:**
-
-- In your configuration file (`application.yml` or `application.properties`), adjust log levels for specific packages.
-
-<!-- end list -->
-
-```yaml
-logging:
-  level:
-    org.apache.kafka: WARN
-    org.hibernate: WARN
-    com.zaxxer.hikari: WARN
-```
-
------
-
-### Exception Handling and Error Strategy
-
-The service distinguishes between two primary types of exceptions to provide clear and actionable feedback: **Business
-Exceptions** and **Infrastructure Exceptions**. This separation is crucial for maintaining a robust and predictable API.
-
-#### Business Exceptions
-
-These exceptions represent failures in the application's business logic. They are typically handled by the API Gateway
-or a global exception handler, resulting in a `4xx` HTTP status code. These errors indicate an issue with the client's
-request or the current state of the business domain.
-
-- `OrderValidationException`: Used for failures during the validation of an order. For example, if a product is out of
-  stock or if the request contains duplicate items.
-  ``` java
-  throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId());
-  ```
-- `OrderCancellationException`: Thrown when a request to cancel an order fails because the order is not in a cancellable
-  state.
-  ``` java
-  throw new OrderCancellationException("Order cannot be canceled in its current state");
-  ```
-
-#### Infrastructure Exceptions
-
-These exceptions represent internal system failures or issues with external dependencies. They are typically
-unrecoverable by the client and result in a `5xx` HTTP status code.
-
-- `EventPublishingException`: Thrown when the service fails to serialize or send an event to Kafka. This indicates a
-  problem with the messaging infrastructure.
-  ``` java
-  throw new EventPublishingException("Failed to serialize or publish event", e);
-  ```
-- `ConcurrencyException`: Thrown when an error occurs during the execution of a concurrent operation, such as an
-  `InterruptedException` within a `StructuredTaskScope`. This signals an internal concurrency issue.
-  ``` java
-  throw new ConcurrencyException("Validation process was interrupted", e);
-  ```
-
------
-
-#### Resiliency and API Evolution
-
-To ensure that the Order Service remains resilient and loosely coupled from other microservices, we use the
-`@JsonIgnoreProperties(ignoreUnknown = true)` annotation on all DTOs used by Feign clients.
-
-This practice is essential because it:
-
-- **Prevents Breaking Changes**: If a remote service adds new fields to its API response, our service will not fail with
-  a deserialization error.
-- **Promotes Decoupling**: It allows the `product-service` and `payment-service` to evolve independently without
-  requiring simultaneous updates to the `order-service`.
-- **Enhances Stability**: The service will continue to function correctly, only processing the fields it understands,
-  even if the API contract is slightly changed.
-
-This design decision protects the service from unexpected changes in external APIs, making the overall microservice
-ecosystem more stable and easier to maintain.
-
------
-
-## Multi-Module Integration
-
-The Order Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring
-consistency across the microservices' ecosystem.
-
------
+- **Shared Library**: Uses the `share-library` module for consistent DTOs, exceptions, and utilities across
+  microservices.
 
 ### Data Consistency and Transactional Integrity
 
-To ensure the integrity and consistency of order data, all operations that involve multiple database actions or state
-changes are executed within a transaction.
+To ensure data integrity:
 
-#### 1. API Endpoints
+- **API Endpoints**: Operations like `createOrder`, `updateOrder`, and `cancelOrder` are annotated with `@Transactional`
+  to ensure atomicity. If any step (e.g., database save, state transition) fails, the transaction rolls back, preventing
+  inconsistent states.
+- **Event-Driven Logic**: Kafka event processing is transactional. The `OrderEventProcessor` class, annotated with
+  `@Transactional`, handles state transitions and database updates atomically. If an update fails, the Kafka offset is
+  not committed, allowing retries.
 
-Endpoints such as `createOrder`, `updateOrder`, and `cancelOrder` are annotated with `@Transactional`. This guarantees
-that if any part of the process fails (e.g., a database save or a state machine transition), the entire operation is
-rolled back, preventing orders from being left in a corrupted or inconsistent state.
+---
 
-#### 2. Event-Driven Logic
+## Configuration
 
-The service consumes events from Kafka to update the state of an order. The processing of these events is also handled
-within a transaction. A dedicated `OrderEventProcessor` class, separate from the Kafka listener, is responsible for this
-logic.
+### Application Configuration
 
-- The `@KafkaListener` method deserializes the incoming event.
-- It then delegates the processing to the `OrderEventProcessor`, which is annotated with `@Transactional`.
+The service uses Spring Boot’s autoconfiguration and retrieves settings from the Spring Cloud Config Server. Key
+configurations are defined in `application.yml`:
 
-This design ensures that the state machine transition and the subsequent database update are atomic. If the database
-save fails, the transaction is rolled back, and the Kafka message is not committed, allowing for safe retries and
-preventing data loss or inconsistencies.
+```yaml
+spring:
+  application:
+    name: order-service
+  profiles:
+    active: prod
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
+  datasource:
+    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: order_user
+    password: order_password
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+```
 
------
+### Kafka Configuration
 
-## Future Enhancements and Best Practices
+The service acts as both a Kafka producer and consumer, configured in `application.yml`:
 
-This section outlines potential improvements for better resilience, maintainability, and production readiness.
+#### Producer Configuration
 
-### Kafka Error Handling and Dead Letter Topics
+- **Purpose**: Sends events (e.g., `ORDER_CREATED`) to Kafka topics.
+- **Key Settings**:
+    - `key-serializer`: `StringSerializer` for string keys.
+    - `value-serializer`: `CloudEventSerializer` for CloudEvents-compliant messages.
+    - `properties`:
+        - `max.request.size: 1000000`: Limits message size to 1MB.
+        - `retry.backoff.ms: 1000`: 1-second delay between retries.
+        - `retries: 10`: Attempts up to 10 retries for transient failures.
+        - `linger.ms: 0`: Sends messages immediately for low latency.
+        - `request.timeout.ms: 30000`: 30-second timeout for broker responses.
 
-Currently, logging is used to handle Kafka deserialization and processing errors. While simple, this approach has
-limitations, as it lacks a **retry mechanism** and can lead to **message loss** or **duplicate processing** if not
-carefully managed.
+#### Consumer Configuration
 
-A more robust approach is to implement a centralized `CommonErrorHandler` provided by Spring Kafka. This allows for:
+- **Purpose**: Consumes events (e.g., `PAYMENT_SUCCEEDED`, `SHIPMENT_FAILED`) to update order states.
+- **Key Settings**:
+    - `group-id`: `order-service-group` for load balancing across consumer instances.
+    - `key-deserializer`: `ErrorHandlingDeserializer` with `StringDeserializer` delegate.
+    - `value-deserializer`: `ErrorHandlingDeserializer` with `CloudEventDeserializer` delegate.
+    - `auto-offset-reset: latest`: Starts consuming from the latest messages.
+    - `enable-auto-commit: false`: Enables manual offset commits for reliability.
+    - `max-poll-records: 100`: Limits records per poll for controlled processing.
+    - `fetch-min-size: 1`, `fetch-max-wait: 500`: Optimizes for low latency.
 
-- **Automatic Retries**: Configure a backoff policy to automatically retry failed messages for transient errors.
-- **Dead Letter Topic (DLT)**: After a configurable number of retries, a message can be automatically sent to a separate
-  topic, known as a Dead Letter Topic. This prevents "poison pill" messages from blocking the consumer group and
-  provides a place to store failed messages for manual inspection and reprocessing.
-- **Centralized Logic**: A single class handles all consumer errors, reducing code duplication in individual listeners.
+```yaml
+spring:
+  kafka:
+    client-id: order-service
+    bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.cloudevents.kafka.CloudEventSerializer
+      properties:
+        max.request.size: 1000000
+        metadata.max.idle.ms: 180000
+        request.timeout.ms: 30000
+        linger.ms: 0
+        retry.backoff.ms: 1000
+        retries: 10
+    consumer:
+      group-id: order-service-group
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: io.cloudevents.kafka.CloudEventDeserializer
+        metadata.max.age.ms: 180000
+        connections.max.idle.ms: 180000
+      auto-offset-reset: latest
+      enable-auto-commit: false
+      max-poll-records: 100
+      fetch-min-size: 1
+      fetch-max-wait: 500
+```
 
-**Example of a `CommonErrorHandler` for Retries:**
-The following code snippet shows how a `CommonErrorHandler` can be configured to retry failed messages up to three times
-with a fixed 1-second delay.
+### Security Configuration
 
-```java
+- **Authentication**: Uses Keycloak with OAuth2 and JWT. Spring Security’s `JwtDecoder` validates tokens via the
+  `issuer-uri` from `application.yml`.
+- **Authorization**: Only authenticated requests access protected endpoints. Public endpoints (e.g., Swagger UI) are
+  accessible without authentication.
+- **Configuration**:
+  ```yaml
+  spring:
+    security:
+      oauth2:
+        resourceserver:
+          jwt:
+            issuer-uri: ${keycloak.realm.url}
+  ```
 
-@Component("kafkaErrorHandler")
-public class KafkaErrorHandler implements CommonErrorHandler {
-    private final DefaultErrorHandler errorHandler;
+### Dependencies
 
-    public KafkaErrorHandler() {
-        // Retry a message 3 times with a 1-second delay
-        this.errorHandler = new DefaultErrorHandler(new FixedBackOff(1000L, 3));
-    }
+The service uses the following Gradle dependencies (`build.gradle`):
 
-    @Override
-    public void handleRecord(Exception thrownException, ConsumerRecord<?, ?> record,
-                             Consumer<?, ?> consumer, Message<?> message) {
-        log.error("Error processing Kafka record on topic {}: {}", record.topic(), thrownException.getMessage());
-        // Delegate to the default error handler, which will perform retries
-        errorHandler.handleRecord(thrownException, record, consumer, message);
-    }
+```groovy
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.kafka:spring-kafka:2.9.10' // Adjust to your version
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.springframework.statemachine:spring-statemachine-core'
+    implementation 'io.cloudevents:cloudevents-kafka:2.5.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+    implementation 'mysql:mysql-connector-java:8.0.33'
+    implementation project(':share-library') // Shared DTOs and utilities
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    testImplementation 'org.testcontainers:kafka'
 }
 ```
 
-To enable this, you would then configure your consumer's error handler in the listener with
-`@KafkaListener(errorHandler = "kafkaErrorHandler")`.
+---
 
------
+## Setup and Deployment
+
+### Local Setup
+
+To run the Order Service locally:
+
+1. **Prerequisites**:
+    - Running services: [Config Server](../config-server/README.md), [Eureka Server](../service-registry/README.md),
+      MySQL, Kafka.
+    - Kafka topics: Ensure topics like `order_created`, `payment_succeeded`, etc., are created.
+    - MySQL database: Create `order_db` with credentials `order_user`/`order_password`.
+
+2. **Steps**:
+    - Navigate to the `order-service` directory.
+    - Run: `./gradlew bootRun` or use your IDE.
+    - Alternatively, use `docker-compose up -d order-service` from the root directory to start the service as part of
+      the microservices stack.
+
+3. **Verification**:
+    - Access Swagger UI at `http://localhost:8080/swagger-ui.html`.
+    - Verify service registration in Eureka at `http://localhost:8761`.
+    - Monitor Kafka topics for published events.
+
+### Production Considerations
+
+- **Security**:
+    - Store sensitive data (e.g., database credentials, Kafka URLs, Keycloak secrets) in environment variables or a
+      secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault).
+- **Database**:
+    - Set `spring.jpa.hibernate.ddl-auto: none` or `validate` to prevent schema changes in production.
+- **Kafka**:
+    - Configure replication factors (e.g., 3) and partitions for high availability.
+    - Use SSL/TLS for secure Kafka communication.
+- **Monitoring**:
+    - Enable distributed tracing with Azure Application Insights or OpenTelemetry.
+    - Collect metrics with Azure Monitor or Prometheus/Grafana.
+- **Scaling**:
+    - Deploy multiple instances with Eureka for load balancing.
+    - Configure consumer group scaling with `order-service-group`.
+
+---
+
+## Error Handling and Resiliency
+
+The service implements robust error handling to ensure reliability and clear feedback.
+
+### Business Exceptions
+
+These represent failures in business logic, returning `4xx` HTTP status codes via the API Gateway or a global exception
+handler.
+
+- **`OrderValidationException`**:
+    - **Purpose**: Thrown when order validation fails (e.g., insufficient inventory, duplicate items).
+    - **Example**:
+      ``` java
+      throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId());
+      ```
+- **`OrderCancellationException`**:
+    - **Purpose**: Thrown when an order cannot be canceled due to its state.
+    - **Example**:
+      ``` java
+      throw new OrderCancellationException("Order cannot be canceled in its current state");
+      ```
+
+### Infrastructure Exceptions
+
+These represent system or external dependency failures, returning `5xx` HTTP status codes.
+
+- **`EventPublishingException`**:
+    - **Purpose**: Thrown when Kafka event serialization or publishing fails.
+    - **Example**:
+      ``` java
+      throw new EventPublishingException("Failed to serialize or publish event", e);
+      ```
+- **`ConcurrencyException`**:
+    - **Purpose**: Thrown for concurrency issues (e.g., `InterruptedException` in `StructuredTaskScope`).
+    - **Example**:
+      ``` java
+      throw new ConcurrencyException("Validation process was interrupted", e);
+      ```
+
+### Kafka Error Handling
+
+The service uses Spring Kafka’s `DefaultErrorHandler` for robust message processing:
+
+- **Configuration**:
+    - Defined in `KafkaErrorHandlerConfig` as a `CommonErrorHandler` bean.
+    - Uses `ErrorHandlingDeserializer` to catch deserialization errors.
+    - Configures 3 retries with a 1-second delay for transient errors (e.g., `NetworkException`).
+    - Sends non-retriable errors (e.g., `SerializationException`) to `dead-letter-topic`.
+
+- **Implementation**:
+  ```java
+  @Configuration
+  public class KafkaErrorHandlerConfig {
+      @Bean
+      public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, CloudEvent> kafkaTemplate) {
+          DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+              kafkaTemplate, (record, ex) -> new TopicPartition("dead-letter-topic", -1)
+          );
+          DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
+          errorHandler.setRetryListeners((record, ex, attempt) -> {
+              log.info("Retry attempt {} for record on topic {}: {}", attempt, record.topic(), ex.getMessage());
+          });
+          return errorHandler;
+      }
+  }
+  ```
+
+- **Listener Usage**:
+  ```java
+  @KafkaListener(topics = "order_created", containerFactory = "kafkaListenerContainerFactory")
+  public void listen(ConsumerRecord<String, CloudEvent> record, Acknowledgment acknowledgment) {
+      try {
+          // Process event
+          acknowledgment.acknowledge();
+      } catch (Exception e) {
+          log.error("Error processing record: {}", e.getMessage());
+          throw e; // Handled by DefaultErrorHandler
+      }
+  }
+  ```
+
+- **Purpose**:
+    - Prevents “poison pill” messages from blocking consumers.
+    - Ensures retries for transient errors and DLT for unrecoverable errors.
+    - Centralizes error handling, reducing listener code complexity.
+
+### API Resiliency
+
+- **Feign Clients**: Use `@JsonIgnoreProperties(ignoreUnknown = true)` on DTOs to handle unknown fields, ensuring
+  compatibility with evolving APIs (e.g., `product-service`, `payment-service`).
+- **Benefits**:
+    - Prevents deserialization failures from breaking changes.
+    - Promotes loose coupling and independent service evolution.
+
+---
+
+## Testing
+
+- **Unit Tests**: Use JUnit 5 and Mockito for isolated testing of components (e.g., services, state machine).
+- **Integration Tests**: Use Testcontainers to spin up MySQL and Kafka for realistic testing.
+- **Run Tests**: `./gradlew test`
+
+---
+
+## Future Enhancements
+
+### Performance Improvements
+
+- **Caffeine Cache for LoadBalancer**:
+    - **Why**: Improves service-to-service communication latency compared to the default cache.
+    - **Implementation**:
+      ```groovy
+      implementation 'com.github.ben-manes.caffeine:caffeine'
+      ```
+      ```yaml
+      spring:
+        cloud:
+          loadbalancer:
+            cache:
+              caffeine:
+                spec: maximumSize=500,expireAfterAccess=5m
+      ```
+
+### Observability Enhancements
+
+- **Structured Logging**:
+    - **Why**: JSON logs enable better parsing by log aggregators (e.g., ELK, Grafana Loki).
+    - **Implementation**:
+      ```groovy
+      implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+      ```
+      ```xml
+      <!-- logback-spring.xml -->
+      <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+          <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+      </appender>
+      ```
+
+- **Log Level Management**:
+    - **Why**: Reduces clutter from verbose third-party logs.
+    - **Implementation**:
+      ```yaml
+      logging:
+        level:
+          org.apache.kafka: WARN
+          org.hibernate: WARN
+          com.zaxxer.hikari: WARN
+      ```
+
+### Kafka Enhancements
+
+- **Advanced DLT Processing**:
+    - Add a dedicated consumer for `dead-letter-topic` to analyze and reprocess failed messages.
+- **Schema Validation**:
+    - Integrate a schema registry (e.g., Confluent Schema Registry) to validate `CloudEvent` payloads.
+- **Consumer Group Scaling**:
+    - Increase partitions and consumer instances for high-throughput topics.
+
+---
 
 ## Resources
 
-- [Spring Cloud Config Documentation](https://cloud.spring.io/spring-cloud-config/)
-- [Spring Boot Data JPA Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/data.html)
-- [Spring Security OAuth2 Documentation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
-- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
-- [CloudEvents Specification](https://cloudevents.io/)
-- [Spring State Machine Reference](https://docs.spring.io/spring-statemachine/docs/current/reference)
-- [Spring Kafka Error Handling Documentation](https://www.google.com/search?q=https://docs.spring.io/spring-kafka/reference/html/%23error-handling)
+- [Spring Boot Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- [Spring Data JPA](https://docs.spring.io/spring-boot/docs/current/reference/html/data.html)
+- [Spring Security OAuth2](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
+- [Spring Kafka](https://docs.spring.io/spring-kafka/reference/html/)
+- [CloudEvents](https://cloudevents.io/)
+- [Spring State Machine](https://docs.spring.io/spring-statemachine/docs/current/reference)
+- [Spring Cloud Config](https://cloud.spring.io/spring-cloud-config/)
+- [Eureka](https://github.com/Netflix/eureka/wiki)
+- [Springdoc OpenAPI](https://springdoc.org/)
+
+---
