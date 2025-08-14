@@ -2,20 +2,22 @@
 
 The Order Service is a critical core business microservice responsible for managing the entire lifecycle of customer
 orders within the e-commerce platform. It handles order creation, validation, state transitions, and integration with
-other services like Payment and Shipment.
+other services like Payment and Shipment via a message broker (Kafka) and a REST client (Feign).
 
 ## Key Features
 
-- **Order Lifecycle Management**: Manages orders through various states (e.g., PENDING, PROCESSING, SHIPPED, DELIVERED,
-  CANCELLED) using a state machine.
+- **Order Lifecycle and State Management**: Manages orders through various states (e.g., PENDING, PROCESSING, SHIPPED,
+  DELIVERED, CANCELLED) using a **state machine** to ensure a controlled flow.
 - **Order Validation**: Ensures order integrity before processing.
 - **Integration with Payment Service**: Initiates payment processing for new orders.
 - **Integration with Product Service**: Interacts for product availability and inventory updates.
 - **Integration with Shipment Service**: Triggers shipment creation upon successful payment.
-- **Event-Driven Communication**: Utilizes Kafka for asynchronous communication and event publishing (e.g., order
-  created, order paid).
+- **Event-Driven Communication**: Utilizes Kafka for asynchronous communication, acting as both an event producer and
+  consumer.
 - **RESTful API**: Provides endpoints for order creation, retrieval, and updates.
 - **Security**: Secured with JWT authentication via Keycloak.
+
+-----
 
 ## Technologies
 
@@ -25,9 +27,12 @@ other services like Payment and Shipment.
 - **Apache Kafka**: For asynchronous, event-driven communication.
 - **CloudEvents**: Used as the messaging format over Kafka for structured event data.
 - **Spring Security**: For authentication and authorization using OAuth2 Resource Server.
+- **Spring State Machine**: Manages the complex state transitions of an order.
 - **Spring Cloud Config Client**: To fetch centralized configurations.
 - **Eureka Client**: For service registration and discovery.
 - **Springdoc OpenAPI**: For API documentation and Swagger UI.
+
+-----
 
 ## Configuration
 
@@ -39,15 +44,49 @@ autoconfiguration for JPA, OAuth2, and Kafka.
 The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically configures a `JwtDecoder` using the
 `issuer-uri` to validate tokens. Public endpoints (e.g., Swagger) are accessible without authentication.
 
+### Kafka Configuration
+
+The service is configured to both produce and consume events from a Kafka cluster. The configuration in
+`application.yml` specifies the behavior of these clients.
+
+#### 1\. Producer Configuration
+
+The producer is responsible for sending messages to Kafka. Key configurations include:
+
+- `key-serializer`: Defines how the message key is serialized. Using `StringSerializer` is common for simple string
+  keys.
+- `value-serializer`: Defines how the message value is serialized. The `CloudEventSerializer` is used to encode events
+  according to the CloudEvents specification, ensuring a consistent and interoperable format.
+- `properties`: Advanced settings like `retries` and `request.timeout.ms` are crucial for handling transient network
+  failures and ensuring message delivery in a resilient manner.
+
+#### 2\. Consumer Configuration
+
+The consumer is responsible for reading messages from Kafka. Key configurations include:
+
+- `group-id`: A unique identifier for the consumer group. All consumer instances within the same group work together to
+  consume messages from a set of partitions, providing load balancing and high availability.
+- `key-deserializer` and `value-deserializer`: These match the serializers used by the producer, ensuring the received
+  messages are correctly decoded.
+- `auto-offset-reset`: Determines what to do when a consumer starts for the first time or if there is no committed
+  offset for its group. `latest` tells it to start consuming from the newest messages.
+- `enable-auto-commit`: Set to `false` for manual offset management, giving the application explicit control over when
+  an offset is considered processed and committed. This is a common practice for reliable message processing.
+- `max-poll-records`: Limits the number of records returned in a single poll, helping to manage batch processing and
+  resource usage.
+
 ### Dependencies
 
 - `spring-boot-starter-web`: For REST APIs.
 - `spring-boot-starter-data-jpa`: Auto-configures MySQL connectivity.
 - `spring-boot-starter-security`: Enables OAuth2 resource server.
 - `spring-boot-starter-oauth2-resource-server`: Configures JWT validation.
-- `spring-kafka`: For event publishing to Kafka.
+- `spring-kafka`: For event publishing to and consumption from Kafka.
 - `spring-cloud-starter-config`: Connects to Config Server.
 - `spring-cloud-starter-netflix-eureka-client`: Registers with Eureka.
+- `spring-statemachine-core`: Core dependency for implementing the state machine.
+
+-----
 
 ## Integration with Other Services
 
@@ -55,26 +94,32 @@ The service is secured with Keycloak OAuth2 and JWT. Spring Boot automatically c
 - **Eureka Server**: Registers as `ORDER-SERVICE` for service discovery.
 - **API Gateway**: Routes requests from `/orders/**` to this service.
 - **Keycloak**: Validates JWT tokens for authenticated requests.
-- **Kafka**: Publishes order events (e.g., `ORDER_CREATED`, `ORDER_CANCELLED`) to topics consumed by `payment-service`,
-  `shipment-service`, and `notification-service`.
+- **Kafka**: Publishes and consumes order events (e.g., `ORDER_CREATED`, `ORDER_CANCELLED`) to/from topics consumed by
+  `payment-service`, `shipment-service`, and `notification-service`.
 - **MySQL**: Stores order data with automatic schema updates (`ddl-auto: update`).
+
+-----
 
 ## Local Setup
 
 To run the Order Service locally:
 
-1. Ensure [Config Server](https://www.google.com/search?q=config-server/README.md), [Eureka Server](https://www.google.com/search?q=service-registry/README.md),
-MySQL, and Kafka are running.
+1. Ensure [Config Server](../config-server/README.md), [Eureka Server](../service-registry/README.md),
+   MySQL, and Kafka are running.
 2. Navigate to the `order-service` directory.
 3. Run the application: `./gradlew bootRun` or use your IDE.
 4. Alternatively, use `docker-compose up -d order-service` from the root directory to start it as part of the overall
    microservices stack.
+
+-----
 
 ## Testing
 
 - **Unit Tests**: Implemented using JUnit 5 and Mockito for isolated component testing.
 - **Integration Tests**: Utilizes Testcontainers for database and Kafka integration testing.
 - Run tests with `./gradlew test`.
+
+-----
 
 ## Production Considerations
 
@@ -85,10 +130,56 @@ MySQL, and Kafka are running.
 - Consider Kafka best practices for production, including replication factors, topic configurations, and consumer
   groups.
 
+#### 1\. Performance: Load Balancer Cache
+
+**Current State:** The application uses the default, simple cache for Spring Cloud LoadBalancer.
+**Production Improvement:** For better performance and lower latency in service-to-service communication, it is highly
+recommended to use **Caffeine Cache**.
+
+**How to Implement:**
+
+- Add the Caffeine dependency to your build file.
+- Enable and configure Caffeine caching in your application.
+
+#### 2\. Observability: Structured Logging
+
+**Current State:** Logs are in a human-readable text format.
+**Production Improvement:** To enable advanced analysis and monitoring, switch to a structured logging format like *
+*JSON**. This makes logs easy for log aggregation platforms (e.g., ELK, Grafana Loki) to parse and index.
+
+**How to Implement:**
+
+- Add a logging library like `Logstash Logback Encoder`.
+- Configure Logback to use a JSON encoder.
+
+#### 3\. Observability: Log Level Management
+
+**Current State:** Verbose `INFO` logs are shown for all dependencies (Kafka, Hibernate, Hikari).
+**Production Improvement:** Reduce the verbosity of third-party libraries to prevent log clutter and focus on core
+application events.
+
+**How to Implement:**
+
+- In your configuration file (`application.yml` or `application.properties`), adjust log levels for specific packages.
+
+<!-- end list -->
+
+```yaml
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.hibernate: WARN
+    com.zaxxer.hikari: WARN
+```
+
+-----
+
 ## Multi-Module Integration
 
 The Order Service integrates with the `share-library` module for shared DTOs, exceptions, and utility classes, ensuring
 consistency across the microservices' ecosystem.
+
+-----
 
 ## Resources
 
@@ -97,3 +188,4 @@ consistency across the microservices' ecosystem.
 - [Spring Security OAuth2 Documentation](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 - [CloudEvents Specification](https://cloudevents.io/)
+- [Spring State Machine Reference](https://docs.spring.io/spring-statemachine/docs/current/reference)

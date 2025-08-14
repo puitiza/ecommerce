@@ -9,8 +9,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.statemachine:spring-statemachine-core:4.0.1'
+
     implementation 'org.springframework.kafka:spring-kafka' // Kafka
     implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Kafka
+    implementation 'io.cloudevents:cloudevents-json-jackson:2.5.0'//Kafka
+
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'io.github.openfeign:feign-micrometer' // Zipkin for feign

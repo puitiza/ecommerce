@@ -10,9 +10,7 @@ import java.util.Set;
 @Component
 public class OrderDomainServiceImpl implements OrderDomainService {
     private static final Set<OrderStatus> CANCELLABLE_STATES = Set.of(
-            OrderStatus.PENDING,
-            OrderStatus.CONFIRMED,
-            OrderStatus.PROCESSING
+
     );
 
     @Override

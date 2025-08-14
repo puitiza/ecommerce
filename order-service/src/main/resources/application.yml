@@ -19,13 +19,29 @@ spring:
     hibernate:
       ddl-auto: update
   kafka:
+    client-id: order-service
     bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.cloudevents.kafka.CloudEventSerializer
       properties:
-        retry-backoff-ms: 10000
-        retries: 10
+        max.request.size: 1000000 # Max size of a single request (1MB)
+        metadata.max.idle.ms: 180000 # Time to wait for metadata (3min)
+        request.timeout.ms: 30000 # Timeout for a request to the server
+        retry.backoff.ms: 10000 # Time to wait before retrying.
+        retries: 10         # Number of retries on failed requests.
+    consumer:
+      group-id: order-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+      properties:
+        metadata.max.age.ms: 180000
+        connections.max.idle.ms: 180000
+      auto-offset-reset: latest # Where to start consuming if no offset is committed.
+      enable-auto-commit: false # Disable auto-commit for manual offset control.
+      max-poll-records: 100  # Max records to fetch in a single poll.
+      fetch-min-size: 1      # Min data to wait for in bytes.
+      fetch-max-wait: 500    # Max time to wait for min data.
 
 permit-urls:
   swagger:
