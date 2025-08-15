@@ -23,6 +23,7 @@ transitions and robust error handling for production readiness.
 4. [Setup and Deployment](#setup-and-deployment)
     - [Local Setup](#local-setup)
     - [Production Considerations](#production-considerations)
+    - [Monitoring and Actuator Endpoints](#monitoring-and-actuator-endpoints)
 5. [Error Handling and Resiliency](#error-handling-and-resiliency)
     - [Business Exceptions](#business-exceptions)
     - [Infrastructure Exceptions](#infrastructure-exceptions)
@@ -33,6 +34,7 @@ transitions and robust error handling for production readiness.
     - [Performance Improvements](#performance-improvements)
     - [Observability Enhancements](#observability-enhancements)
     - [Kafka Enhancements](#kafka-enhancements)
+    - [Security Enhancements](#security-enhancements)
 8. [Resources](#resources)
 
 ---
@@ -49,9 +51,10 @@ transitions and robust error handling for production readiness.
 - **Event-Driven Communication**: Publishes and consumes events via Kafka using the CloudEvents format for
   interoperability.
 - **RESTful API**: Exposes endpoints for order creation, retrieval, and updates.
-- **Security**: Implements JWT-based authentication and authorization via Keycloak.
+- **Security**: Implements JWT-based authentication and authorization via Keycloak with dynamic URL permissions.
 - **Resiliency**: Handles errors gracefully with retries, Dead Letter Topics (DLTs), and robust exception handling.
 - **Scalability**: Supports load balancing and service discovery via Eureka.
+- **Monitoring**: Exposes Actuator endpoints for health checks and diagnostics.
 
 ---
 
@@ -71,6 +74,7 @@ The Order Service is built with modern frameworks and tools for reliability and 
 - **Spring Cloud Config Client**: Fetches centralized configurations.
 - **Spring Cloud Netflix Eureka**: Handles service registration and discovery.
 - **Springdoc OpenAPI**: Generates API documentation and Swagger UI.
+- **Spring Boot Actuator**: Provides monitoring and management endpoints.
 
 ### Integration with Other Services
 
@@ -123,6 +127,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: update
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,env,configprops
 ```
 
 ### Kafka Configuration
@@ -189,10 +198,22 @@ spring:
 
 - **Authentication**: Uses Keycloak with OAuth2 and JWT. Spring Security’s `JwtDecoder` validates tokens via the
   `issuer-uri` from `application.yml`.
-- **Authorization**: Only authenticated requests access protected endpoints. Public endpoints (e.g., Swagger UI) are
-  accessible without authentication.
+- **Authorization**: Only authenticated requests access protected endpoints. Public endpoints (e.g., Swagger UI,
+  Actuator) are accessible without authentication, configured dynamically via `security.permit-urls`.
 - **Configuration**:
   ```yaml
+  security:
+    permit-urls:
+      swagger:
+        - /orders/v3/api-docs/**
+        - /orders/swagger-ui/**
+        - /orders/swagger-ui.html
+        - /favicon.ico
+      actuator:
+        - /actuator/health/**
+        - /actuator/info/**
+        - /actuator/env/**
+        - /actuator/configprops/**
   spring:
     security:
       oauth2:
@@ -200,6 +221,47 @@ spring:
           jwt:
             issuer-uri: ${keycloak.realm.url}
   ```
+
+- **Security Filter Chain**:
+  ```java
+  @Configuration
+  @EnableWebSecurity
+  public record SecurityConfig {
+      private final SecurityProperties securityProperties;
+
+      public SecurityConfig(SecurityProperties securityProperties) {
+          this.securityProperties = securityProperties;
+      }
+
+      @Bean
+      public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+          return http
+                  .csrf(AbstractHttpConfigurer::disable)
+                  .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                  .authorizeHttpRequests((authz) -> {
+                      securityProperties.permitUrls().forEach((category, paths) -> {
+                          paths.forEach(path -> authz.requestMatchers(HttpMethod.GET, path).permitAll());
+                      });
+                      authz.anyRequest().authenticated();
+                  })
+                  .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                  .build();
+      }
+  }
+  ```
+
+- **Security Properties**:
+  ```java
+  @ConfigurationProperties(prefix = "security")
+  public record SecurityProperties(Map<String, List<String>> permitUrls) {
+  }
+  ```
+
+- **Purpose**:
+    - Dynamically configures permitted URLs for `GET` requests (e.g., Swagger, Actuator) via `application.yml`.
+    - Supports adding new URL categories (e.g., `public`, `metrics`) without code changes.
+    - Managed via Spring Cloud Config Server for centralized updates.
+    - Extensible to support specific HTTP methods or role-based access in the future.
 
 ### Dependencies
 
@@ -247,15 +309,19 @@ To run the Order Service locally:
       the microservices stack.
 
 3. **Verification**:
-    - Access Swagger UI at `http://localhost:8080/swagger-ui.html`.
+    - Access Swagger UI at `http://localhost:8080/orders/swagger-ui.html` or
+      `http://localhost:8090/orders/swagger-ui.html` (via API Gateway).
     - Verify service registration in Eureka at `http://localhost:8761`.
     - Monitor Kafka topics for published events.
+    - Test Actuator endpoints (e.g., `http://localhost:8080/actuator/health`).
 
 ### Production Considerations
 
 - **Security**:
     - Store sensitive data (e.g., database credentials, Kafka URLs, Keycloak secrets) in environment variables or a
       secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault).
+    - Restrict sensitive Actuator endpoints (`/actuator/env`, `/actuator/configprops`) to authenticated users or a
+      separate management port.
 - **Database**:
     - Set `spring.jpa.hibernate.ddl-auto: none` or `validate` to prevent schema changes in production.
 - **Kafka**:
@@ -267,6 +333,33 @@ To run the Order Service locally:
 - **Scaling**:
     - Deploy multiple instances with Eureka for load balancing.
     - Configure consumer group scaling with `order-service-group`.
+
+### Monitoring and Actuator Endpoints
+
+Spring Boot Actuator provides endpoints for monitoring the service’s health and configuration:
+
+- **Endpoints**:
+    - Health: `/actuator/health` (e.g., `http://localhost:8080/actuator/health` or
+      `http://localhost:3001/orders/actuator/health` via API Gateway)
+    - Info: `/actuator/info`
+    - Environment: `/actuator/env`
+    - Configuration Properties: `/actuator/configprops`
+
+- **Access**:
+    - These endpoints are publicly accessible for `GET` requests (no authentication required) as configured in
+      `security.permit-urls`.
+    - Test with:
+      ```bash
+      curl http://localhost:8080/actuator/health
+      ```
+      Expected output:
+      ```json
+      {"status":"UP"}
+      ```
+
+- **Production Notes**:
+    - Restrict `/actuator/env` and `/actuator/configprops` to prevent sensitive data exposure.
+    - Consider using a separate management port (e.g., `management.server.port: 8081`) for Actuator endpoints.
 
 ---
 
@@ -428,6 +521,39 @@ The service uses Spring Kafka’s `DefaultErrorHandler` for robust message proce
 - **Consumer Group Scaling**:
     - Increase partitions and consumer instances for high-throughput topics.
 
+### Security Enhancements
+
+- **Role-Based Access**:
+    - Extend `SecurityProperties` to include `endpoint-roles` for role-based access (e.g., `ROLE_ADMIN` for
+      `/actuator/env`).
+    - Example:
+      ```yaml
+      security:
+        endpoint-roles:
+          actuator:
+            - path: /actuator/env/**
+              method: GET
+              role: ROLE_ADMIN
+      ```
+
+- **Management Port**:
+    - Use a separate port for Actuator endpoints to isolate monitoring traffic:
+      ```yaml
+      management:
+        server:
+          port: 8081
+      ```
+
+- **Support for Non-GET Methods**:
+    - Extend `SecurityProperties` to support specific HTTP methods for permitted URLs:
+      ```yaml
+      security:
+        permit-urls:
+          actuator:
+            - path: /actuator/refresh
+              methods: [POST]
+      ```
+
 ---
 
 ## Resources
@@ -441,5 +567,6 @@ The service uses Spring Kafka’s `DefaultErrorHandler` for robust message proce
 - [Spring Cloud Config](https://cloud.spring.io/spring-cloud-config/)
 - [Eureka](https://github.com/Netflix/eureka/wiki)
 - [Springdoc OpenAPI](https://springdoc.org/)
+- [Spring Boot Actuator](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
 
 ---

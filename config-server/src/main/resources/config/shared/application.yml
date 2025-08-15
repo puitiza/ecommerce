@@ -19,7 +19,7 @@ spring:
 management:
   tracing:
     sampling:
-      probability: 1.0 # Sample ALL requests for traces (high overhead in production)
+      probability: 1.0 # Sample ALL requests for traces (only for dev)
   zipkin:
     tracing: # Send tracing data to Zipkin server at this address
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
