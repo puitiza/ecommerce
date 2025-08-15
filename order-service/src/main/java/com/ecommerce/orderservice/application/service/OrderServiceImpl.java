@@ -51,7 +51,7 @@ public class OrderServiceImpl implements OrderService {
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
     // ExecutorService dedicated for I/O tasks (calls to APIS)
-    private final ExecutorService apiThreadPool = Executors.newFixedThreadPool(20);
+    private final ExecutorService apiThreadPool = Executors.newCachedThreadPool();
 
     @PreDestroy
     public void shutdown() {
@@ -64,15 +64,19 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse createOrder(OrderRequest request) {
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
-        validateNoDuplicates(request.items());
-        validateAvailabilityConcurrently(request.items(), authDetails.token());
+        // Validate and fetch product details/availability
+        List<OrderItemResponse> itemResponses = validateAndGetOrderItemResponses(request.items(), authDetails.token());
 
-        List<OrderItemResponse> itemResponses = createOrderItemResponses(request.items(), authDetails.token());
         Order order = new Order(
                 null,
                 authDetails.userId(),
                 itemResponses.stream()
-                        .map(item -> new OrderItem(null, item.productId(), item.quantity(), BigDecimal.valueOf(item.unitPrice())))
+                        .map(item -> new OrderItem(
+                                null,
+                                item.productId(),
+                                item.quantity(),
+                                item.unitPrice()
+                        ))
                         .collect(Collectors.toSet()),
                 OrderStatus.CREATED,
                 LocalDateTime.now(),
@@ -83,7 +87,7 @@ public class OrderServiceImpl implements OrderService {
         order = domainService.calculateTotalPrice(order);
 
         Order savedOrder = orderRepositoryPort.save(order);
-        log.info("Saved Order with ID: {}", savedOrder.id());
+        log.debug("Saved Order with ID: {}", savedOrder.id());
 
         StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(savedOrder.id().toString());
         sm.startReactively().subscribe();
@@ -195,29 +199,40 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order successfully cancelled: {}", id);
     }
 
-    private void validateNoDuplicates(List<OrderItemRequest> items) {
+    private List<OrderItemResponse> validateAndGetOrderItemResponses(List<OrderItemRequest> items, String token) {
+        // Validate No Duplicates
         Set<Long> uniqueIds = new HashSet<>();
         for (OrderItemRequest item : items) {
             if (!uniqueIds.add(item.productId())) {
                 throw new OrderValidationException(ExceptionError.ORDER_DUPLICATE_PRODUCT, item.productId());
             }
         }
-    }
 
-    private void validateAvailabilityConcurrently(List<OrderItemRequest> items, String token) {
-        List<CompletableFuture<Void>> futures = items.stream()
-                .map(item -> CompletableFuture.runAsync(() -> {
-                    var verified = productServicePort.verifyProductAvailability(item, token);
-                    if (!verified.isAvailable()) {
-                        throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId(), verified.availableUnits());
-                    }
-                }, apiThreadPool))
+        // Fetch batch response
+        BatchProductResponse batchResponse = productServicePort.verifyAndGetProducts(new BatchProductRequest(items), token);
+
+        // Check errors
+        List<String> errors = batchResponse.products().stream()
+                .filter(response -> response.error() != null)
+                .map(response -> String.format("Product ID %d: %s", response.productId(), response.error()))
                 .toList();
-        try {
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        } catch (CompletionException e) {
-            throw new ConcurrencyException("Validation process was interrupted", e.getCause());
+
+        if (!errors.isEmpty()) {
+            throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, String.join("; ", errors));
         }
+
+        return batchResponse.products().stream()
+                .map(response -> new OrderItemResponse(
+                        response.productId(),
+                        response.name(),
+                        items.stream()
+                                .filter(item -> item.productId().equals(response.productId()))
+                                .findFirst()
+                                .orElseThrow()
+                                .quantity(),
+                        response.price()
+                ))
+                .toList();
     }
 
     private List<OrderItemResponse> createOrderItemResponses(List<OrderItemRequest> items, String token) {
@@ -271,7 +286,7 @@ public class OrderServiceImpl implements OrderService {
                 currentItems.add(new OrderItem(item.id(), item.productId(), updatedItem.quantity(), item.unitPrice()));
             } else {
                 ProductResponse product = productServicePort.getProductById(updatedItem.productId(), token);
-                currentItems.add(new OrderItem(null, updatedItem.productId(), updatedItem.quantity(), BigDecimal.valueOf(product.price())));
+                currentItems.add(new OrderItem(null, updatedItem.productId(), updatedItem.quantity(), product.price()));
             }
         }
     }

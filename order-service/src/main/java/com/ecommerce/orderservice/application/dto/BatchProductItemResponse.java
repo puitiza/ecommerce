@@ -5,17 +5,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 
 /**
- * DTO for the response from the Product Service.
+ * DTO for the Batch products availability response from the Product Service.
  * <p>
  * The {@code @JsonIgnoreProperties(ignoreUnknown = true)} annotation is used
  * to ensure that deserialization does not fail if the Product Service adds new fields
- * to its response in the future. This promotes loose coupling and resilience
- * between microservices.
+ * to its response. This promotes loose coupling and resilience.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record ProductResponse(
-        Long id,
+public record BatchProductItemResponse(
+        Long productId,
         String name,
         BigDecimal price,
-        Integer inventory
-) {}
+        boolean isAvailable,
+        Integer availableUnits,
+        String error
+) {
+}

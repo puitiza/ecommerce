@@ -1,9 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
-import com.ecommerce.orderservice.application.dto.ProductAvailabilityResponse;
-import com.ecommerce.orderservice.application.dto.ProductResponse;
+import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
-import com.ecommerce.orderservice.application.dto.OrderItemRequest;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.shared.exception.ExceptionError;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
@@ -13,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class ProductFeignAdapter implements ProductServicePort {
     private final ProductFeignClient productFeignClient;
 
     @Override
-    @CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "verifyAvailabilityFallback")
+    //@CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "verifyAvailabilityFallback")
     public ProductAvailabilityResponse verifyProductAvailability(OrderItemRequest request, String token) {
         return productFeignClient.verifyProductAvailability(request, token);
     }
@@ -36,6 +36,12 @@ public class ProductFeignAdapter implements ProductServicePort {
     @CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "updateInventoryFallback")
     public void updateProductInventory(Long id, int updatedInventory, String token) {
         productFeignClient.updateProductInventory(id, updatedInventory, token);
+    }
+
+    @Override
+    @CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "verifyAvailabilityFallback")
+    public BatchProductResponse verifyAndGetProducts(BatchProductRequest items, String token) {
+        return productFeignClient.verifyAndGetProducts(items, token);
     }
 
     @SuppressWarnings("unused")

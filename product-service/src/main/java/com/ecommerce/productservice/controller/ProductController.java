@@ -71,7 +71,7 @@ public record ProductController(ProductService productService) implements Produc
 
     @PostMapping(value = "/batch", produces = MediaType.APPLICATION_JSON_VALUE)
     public BatchProductResponse verifyAndGetProducts(@Valid @RequestBody BatchProductRequest request) {
-        log.info("Verify Products in Batch 2: {}", request.toString());
+        log.info("Verify Products in Batch : {}", request.toString());
         return productService.verifyAndGetProducts(request);
     }
 
