@@ -16,6 +16,7 @@ import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -49,13 +50,22 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper mapper;
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
+    // ExecutorService dedicated for I/O tasks (calls to APIS)
+    private final ExecutorService apiThreadPool = Executors.newFixedThreadPool(20);
+
+    @PreDestroy
+    public void shutdown() {
+        apiThreadPool.shutdown();
+        log.info("API Thread Pool shutdown successfully.");
+    }
+
     @Override
     @Transactional
     public OrderResponse createOrder(OrderRequest request) {
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         validateNoDuplicates(request.items());
-        validateAvailabilityConcurrently(request.items(), authDetails.token()); //Feign calls en parallel
+        validateAvailabilityConcurrently(request.items(), authDetails.token());
 
         List<OrderItemResponse> itemResponses = createOrderItemResponses(request.items(), authDetails.token());
         Order order = new Order(
@@ -93,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
         PageRequest pageable = PageRequest.of(page, size);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
-        Page<Order> orders = orderRepositoryPort.findAll(page, size); // Asume port soporta paginación
+        Page<Order> orders = orderRepositoryPort.findAll(page, size);
         Set<Long> productIds = orders.getContent().stream()
                 .flatMap(order -> order.items().stream())
                 .map(OrderItem::productId)
@@ -129,12 +139,11 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = orderRepositoryPort.findById(id);
 
-        List<OrderItemResponse> items = createOrderItemResponses(
-                order.items().stream()
-                        .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
-                        .toList(),
-                authDetails.token()
-        );
+        List<OrderItemRequest> itemRequests = order.items().stream()
+                .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
+                .toList();
+
+        List<OrderItemResponse> items = createOrderItemResponses(itemRequests, authDetails.token());
 
         log.info("Order retrieved successfully: {}", id);
         return mapper.toResponse(order, items);
@@ -157,12 +166,11 @@ public class OrderServiceImpl implements OrderService {
         order = orderRepositoryPort.save(order);
         eventPublisherPort.publishOrderUpdatedEvent(order);
 
-        List<OrderItemResponse> items = createOrderItemResponses(
-                order.items().stream()
-                        .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
-                        .toList(),
-                authDetails.token()
-        );
+        List<OrderItemRequest> itemRequests = order.items().stream()
+                .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
+                .toList();
+
+        List<OrderItemResponse> items = createOrderItemResponses(itemRequests, authDetails.token());
 
         log.info("Order successfully updated: {}", id);
         return mapper.toResponse(order, items);
@@ -203,12 +211,12 @@ public class OrderServiceImpl implements OrderService {
                     if (!verified.isAvailable()) {
                         throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY, item.productId(), verified.availableUnits());
                     }
-                }))
+                }, apiThreadPool))
                 .toList();
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (CompletionException e) {
-            throw new ConcurrencyException("Validation process was interrupted", e);
+            throw new ConcurrencyException("Validation process was interrupted", e.getCause());
         }
     }
 
@@ -232,7 +240,8 @@ public class OrderServiceImpl implements OrderService {
 
     private Map<Long, ProductResponse> getProductResponsesConcurrently(Set<Long> productIds, String token) {
         var futures = productIds.stream()
-                .map(id -> CompletableFuture.supplyAsync(() -> productServicePort.getProductById(id, token)))
+                .map(id -> CompletableFuture.supplyAsync(() -> productServicePort.getProductById(id, token),
+                        apiThreadPool))
                 .toList();
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         return futures.stream()
@@ -275,21 +284,17 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderCancellationException("Failed to initiate refund for order: " + e.getMessage(), e);
         }
 
-        ExecutorService restockThreadPool = Executors.newFixedThreadPool(5);
         try {
             var futures = order.items().stream()
                     .map(item -> CompletableFuture.runAsync(() -> {
                         ProductResponse product = productServicePort.getProductById(item.productId(), token);
                         int updatedInventory = product.inventory() + item.quantity();
                         productServicePort.updateProductInventory(item.productId(), updatedInventory, token);
-                    }, restockThreadPool))
+                    }, apiThreadPool))
                     .toList();
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
             throw new OrderCancellationException("Failed to restock items: " + e.getMessage());
-        } finally {
-            restockThreadPool.shutdown();
         }
     }
-
 }
