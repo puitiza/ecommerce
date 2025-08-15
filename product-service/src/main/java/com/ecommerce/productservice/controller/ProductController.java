@@ -1,8 +1,7 @@
 package com.ecommerce.productservice.controller;
 
 import com.ecommerce.productservice.controller.openApi.ProductOpenApi;
-import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
-import com.ecommerce.productservice.model.dto.ProductDto;
+import com.ecommerce.productservice.model.dto.*;
 import com.ecommerce.productservice.model.request.OrderItemRequest;
 import com.ecommerce.productservice.service.ProductService;
 import jakarta.validation.Valid;
@@ -69,4 +68,11 @@ public record ProductController(ProductService productService) implements Produc
         log.info("UPDATING INVENTORY FOR PRODUCT WITH ID {}: {}", id, updatedInventory);
         productService.updateProductInventory(id, updatedInventory);
     }
+
+    @PostMapping(value = "/batch", produces = MediaType.APPLICATION_JSON_VALUE)
+    public BatchProductResponse verifyAndGetProducts(@Valid @RequestBody BatchProductRequest request) {
+        log.info("Verify Products in Batch 2: {}", request.toString());
+        return productService.verifyAndGetProducts(request);
+    }
+
 }
