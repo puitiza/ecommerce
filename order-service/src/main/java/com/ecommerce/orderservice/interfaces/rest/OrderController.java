@@ -17,6 +17,7 @@ import java.util.UUID;
 @RequestMapping("/orders")
 public record OrderController(OrderService orderService) implements OrderOpenApi {
 
+    @Override
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
@@ -24,6 +25,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
         return orderService.createOrder(request);
     }
 
+    @Override
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "10") int size) {
@@ -31,22 +33,32 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
         return new OrderPageResponse(orderService.getAllOrders(page, size));
     }
 
+    @Override
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse getOrderById(@PathVariable UUID orderId) {
         log.info("GETTING ORDER WITH ID {}", orderId);
         return orderService.getOrderById(orderId);
     }
 
+    @Override
     @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody OrderRequest request) {
         log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
         return orderService.updateOrder(orderId, request);
     }
 
+    @Override
     @DeleteMapping(value = "/{orderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteOrder(@PathVariable UUID orderId) {
         log.info("DELETING ORDER WITH ID {}", orderId);
+        orderService.deleteOrder(orderId);
+    }
+
+    @Override
+    @PostMapping(value = "/{orderId}/cancel")
+    public void cancelOrder(@PathVariable UUID orderId) {
+        log.info("CANCELLING ORDER WITH ID {}", orderId);
         orderService.cancelOrder(orderId);
     }
 

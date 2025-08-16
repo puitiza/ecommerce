@@ -12,4 +12,8 @@ public interface OrderDomainService {
     boolean canUpdate(Order order);
 
     BigDecimal calculateTotalPrice(List<OrderItemResponse> itemResponses);
+
+    void sendCreateEvent(Order order);
+
+    void sendCancelEvent(Order order);
 }

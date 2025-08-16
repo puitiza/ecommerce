@@ -29,6 +29,11 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     }
 
     @Override
+    public void publishOrderUpdatedEvent(Order order) {
+        publishEvent(order, OrderEventType.ORDER_UPDATED);
+    }
+
+    @Override
     public void publishValidationSucceededEvent(Order order) {
         publishEvent(order, OrderEventType.VALIDATION_SUCCEEDED);
     }
@@ -91,16 +96,6 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     @Override
     public void publishCancelEvent(Order order) {
         publishEvent(order, OrderEventType.CANCEL);
-    }
-
-    @Override
-    public void publishOrderUpdatedEvent(Order order) {
-        publishEvent(order, OrderEventType.ORDER_UPDATED);
-    }
-
-    @Override
-    public void publishOrderCancelledEvent(Order order) {
-        publishEvent(order, OrderEventType.ORDER_CANCELLED);
     }
 
     private void publishEvent(Order order, OrderEventType eventType) {

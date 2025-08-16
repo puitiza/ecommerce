@@ -50,6 +50,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishOrderCreatedEvent())
                 .timerOnce(30000)
 
+                // CREATED -> CREATED (For Order Updated)
+                .and().withExternal()
+                .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
+                .event(OrderEventType.ORDER_UPDATED)
+                .action(publishOrderUpdatedEvent())
+
                 // VALIDATION_PENDING -> VALIDATION_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_SUCCEEDED)
@@ -132,17 +138,14 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .source(OrderStatus.CREATED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
                 .action(publishCancelEvent())
-
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
                 .action(publishCancelEvent())
-
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
                 .action(publishCancelEvent()) // Includes refund
-
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
@@ -178,6 +181,16 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                     eventPublisher.publishOrderCreatedEvent(order);
                     log.info("Published OrderCreated event for order ID: {}", order.id());
                 }, () -> log.warn("Null or invalid order in publishOrderCreatedEvent"));
+    }
+
+    @Bean
+    public Action<OrderStatus, OrderEventType> publishOrderUpdatedEvent() {
+        return context -> getOrderFromContext(context)
+                .ifPresentOrElse(order -> {
+                    // The publication of this event is not part of the main saga, it is only for notification
+                    eventPublisher.publishOrderUpdatedEvent(order);
+                    log.info("Published OrderUpdated event for order ID: {}", order.id());
+                }, () -> log.warn("Null or invalid order in publishOrderUpdatedEvent"));
     }
 
     @Bean

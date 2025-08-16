@@ -52,5 +52,11 @@ public interface OrderOpenApi {
     @Operation(summary = "Delete Order", description = "Delete an order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Order deleted successfully")
     void deleteOrder(UUID id);
+
+    @ApiErrorGetResponses
+    @Operation(summary = "Cancel Order", description = "Cancel an order", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Success",
+            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
+    void cancelOrder(UUID orderId);
 }
 

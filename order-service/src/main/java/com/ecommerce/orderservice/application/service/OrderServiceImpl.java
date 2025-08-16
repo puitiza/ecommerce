@@ -3,7 +3,6 @@ package com.ecommerce.orderservice.application.service;
 import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.application.port.out.ProductServicePort;
 import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
-import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
@@ -19,13 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
-import org.springframework.statemachine.StateMachine;
-import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,7 +37,6 @@ public class OrderServiceImpl implements OrderService {
     private final OrderDomainService domainService;
     private final UserAuthenticationPort userAuthenticationPort;
     private final OrderMapper mapper;
-    private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
     @Override
     @Transactional
@@ -74,15 +67,7 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.debug("Saved Order with ID: {}", savedOrder.id());
 
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(savedOrder.id().toString());
-        sm.startReactively().subscribe();
-
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.ORDER_CREATED)
-                .setHeader("order", savedOrder)
-                .build();
-
-        sm.sendEvent(Mono.just(message)).subscribe();
+        domainService.sendCreateEvent(savedOrder);
         return mapper.toResponse(savedOrder, itemResponses);
     }
 
@@ -143,16 +128,15 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepositoryPort.save(updatedOrder);
 
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.ORDER_UPDATED)
-                .setHeader("order", savedOrder)
-                .build();
-        sm.sendEvent(Mono.just(message)).subscribe();
+        // Restart the flow of the state machine with the Order_CREATED event
+        domainService.sendCreateEvent(savedOrder);
 
         log.debug("Order successfully updated: {}", id);
         return mapper.toResponse(savedOrder, itemResponses);
+    }
+
+    @Override
+    public void deleteOrder(UUID id) {
     }
 
     @Override
@@ -165,13 +149,7 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
 
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.ORDER_CANCELLED)
-                .setHeader("order", order)
-                .build();
-        sm.sendEvent(Mono.just(message)).subscribe();
+        domainService.sendCancelEvent(order);
 
         log.info("Cancel order sent to state machine for order ID: {}", id);
     }
