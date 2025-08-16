@@ -16,14 +16,7 @@ public record Order(
         String shippingAddress
 ) {
     public Order withStatus(OrderStatus status) {
-        return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
+        return new Order(id, userId, items, status, createdAt, LocalDateTime.now(), totalPrice, shippingAddress);
     }
 
-    public Order withItemsAndTotalPrice(Set<OrderItem> items, BigDecimal totalPrice) {
-        return new Order(id, userId, items, status, createdAt, updatedAt, totalPrice, shippingAddress);
-    }
-
-    public Order withShippingAddress(String newShippingAddress) {
-        return new Order(id, userId, items, status, createdAt, LocalDateTime.now(), totalPrice, newShippingAddress);
-    }
 }

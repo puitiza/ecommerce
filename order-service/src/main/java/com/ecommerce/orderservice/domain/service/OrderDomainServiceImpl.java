@@ -1,28 +1,53 @@
 package com.ecommerce.orderservice.domain.service;
 
+import com.ecommerce.orderservice.application.dto.OrderItemResponse;
+import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import org.springframework.statemachine.StateMachine;
+import org.springframework.statemachine.config.StateMachineFactory;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Set;
+import java.math.RoundingMode;
+import java.util.List;
 
-@Component
+
+@Service
+@RequiredArgsConstructor
 public class OrderDomainServiceImpl implements OrderDomainService {
-    private static final Set<OrderStatus> CANCELLABLE_STATES = Set.of(
 
-    );
+    private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
 
     @Override
     public boolean canCancel(Order order) {
-        return CANCELLABLE_STATES.contains(order.status());
+        return isEventAllowed(order, OrderEventType.CANCEL);
     }
 
     @Override
-    public Order calculateTotalPrice(Order order) {
-        BigDecimal totalPrice = order.items().stream()
+    public boolean canUpdate(Order order) {
+        return isEventAllowed(order, OrderEventType.ORDER_UPDATED);
+    }
+
+    @Override
+    public BigDecimal calculateTotalPrice(List<OrderItemResponse> items) {
+        return items.stream()
                 .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return order.withItemsAndTotalPrice(order.items(), totalPrice);
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean isEventAllowed(Order order, OrderEventType eventType) {
+        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+        sm.startReactively().subscribe(); // ensures that the machine is in its initial state
+
+        // Verify if there is a transition with the state of origin of the order and the event
+        return sm.getTransitions()
+                .stream()
+                .anyMatch(transition ->
+                        transition.getSource().getId().equals(order.status()) &&
+                                transition.getTrigger() != null &&
+                                transition.getTrigger().getEvent().equals(eventType));
     }
 }

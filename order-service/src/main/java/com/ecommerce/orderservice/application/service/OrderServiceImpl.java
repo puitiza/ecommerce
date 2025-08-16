@@ -6,6 +6,7 @@ import com.ecommerce.orderservice.application.port.out.ProductServicePort;
 import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
+import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
@@ -46,21 +47,11 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final ProductServicePort productServicePort;
-    private final PaymentServicePort paymentServicePort;
-    private final OrderEventPublisherPort eventPublisherPort;
+
     private final OrderDomainService domainService;
     private final UserAuthenticationPort userAuthenticationPort;
     private final OrderMapper mapper;
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
-
-    // ExecutorService dedicated for I/O tasks (calls to APIS)
-    private final ExecutorService apiThreadPool = Executors.newCachedThreadPool();
-
-    @PreDestroy
-    public void shutdown() {
-        apiThreadPool.shutdown();
-        log.info("API Thread Pool shutdown successfully.");
-    }
 
     @Override
     @Transactional
@@ -84,10 +75,7 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.CREATED,
                 LocalDateTime.now(),
                 null,
-                itemResponses.stream()
-                        .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(2, RoundingMode.HALF_UP),
+                domainService.calculateTotalPrice(itemResponses),
                 request.shippingAddress()
         );
 
@@ -138,52 +126,62 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
         log.debug("Updating order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
-
         Order order = orderRepositoryPort.findById(id);
-        Set<OrderItem> updatedItems = validateAndUpdateOrderItems(request.items(), order, authDetails.token());
+
+        if (!domainService.canUpdate(order)) {
+            throw new OrderUpdateException(order.status().toString());
+        }
+
+        List<OrderItemResponse> itemResponses = validateAndGetOrderItemResponses(request.items(), authDetails.token());
+        Set<OrderItem> newItems = itemResponses.stream()
+                .map(item -> new OrderItem(null, item.productId(), item.quantity(), item.unitPrice()))
+                .collect(Collectors.toSet());
+        BigDecimal newTotal = domainService.calculateTotalPrice(itemResponses);
 
         Order updatedOrder = new Order(
                 order.id(),
                 order.userId(),
-                updatedItems,
+                newItems,
                 order.status(),
                 order.createdAt(),
                 LocalDateTime.now(),
-                updatedItems.stream()
-                        .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .setScale(2, RoundingMode.HALF_UP),
+                newTotal,
                 request.shippingAddress() != null ? request.shippingAddress() : order.shippingAddress()
         );
 
         Order savedOrder = orderRepositoryPort.save(updatedOrder);
-        eventPublisherPort.publishOrderUpdatedEvent(savedOrder);
 
-        List<OrderItemRequest> itemRequests = savedOrder.items().stream()
-                .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
-                .toList();
-        List<OrderItemResponse> items = validateAndGetOrderItemResponses(itemRequests, authDetails.token());
+        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+
+        Message<OrderEventType> message = MessageBuilder
+                .withPayload(OrderEventType.ORDER_UPDATED)
+                .setHeader("order", savedOrder)
+                .build();
+        sm.sendEvent(Mono.just(message)).subscribe();
 
         log.debug("Order successfully updated: {}", id);
-        return mapper.toResponse(savedOrder, items);
+        return mapper.toResponse(savedOrder, itemResponses);
     }
 
     @Override
     @Transactional
     public void cancelOrder(UUID id) {
         log.debug("Cancelling order with ID: {}", id);
-        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
         if (!domainService.canCancel(order)) {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
 
-        initiateCancellationProcesses(order, authDetails.token());
-        Order cancelledOrder = order.withStatus(OrderStatus.CANCELLED);
-        orderRepositoryPort.save(cancelledOrder);
-        eventPublisherPort.publishOrderCancelledEvent(cancelledOrder);
-        log.info("Order successfully cancelled: {}", id);
+        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+
+        Message<OrderEventType> message = MessageBuilder
+                .withPayload(OrderEventType.ORDER_CANCELLED)
+                .setHeader("order", order)
+                .build();
+        sm.sendEvent(Mono.just(message)).subscribe();
+
+        log.info("Cancel order sent to state machine for order ID: {}", id);
     }
 
     /**
@@ -243,7 +241,6 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // Fetch batch response
         BatchProductResponse batchResponse = productServicePort.verifyAndGetProducts(new BatchProductRequest(items), token);
 
         // Check errors
@@ -270,52 +267,4 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
-    private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, Order order, String token) {
-        Set<OrderItem> currentItems = new HashSet<>(order.items());
-        currentItems.removeIf(item -> updatedItems.stream()
-                .noneMatch(updated -> updated.productId().equals(item.productId())));
-
-        for (OrderItemRequest updatedItem : updatedItems) {
-            ProductAvailabilityResponse availability = productServicePort.verifyProductAvailability(updatedItem, token);
-            if (!availability.isAvailable()) {
-                throw new OrderValidationException(ExceptionError.ORDER_INSUFFICIENT_INVENTORY,
-                        updatedItem.productId(), availability.availableUnits());
-            }
-
-            Optional<OrderItem> existingItem = currentItems.stream()
-                    .filter(item -> item.productId().equals(updatedItem.productId()))
-                    .findFirst();
-
-            if (existingItem.isPresent()) {
-                OrderItem item = existingItem.get();
-                currentItems.remove(item);
-                currentItems.add(new OrderItem(item.id(), item.productId(), updatedItem.quantity(), item.unitPrice()));
-            } else {
-                ProductResponse product = productServicePort.getProductById(updatedItem.productId(), token);
-                currentItems.add(new OrderItem(null, updatedItem.productId(), updatedItem.quantity(), product.price()));
-            }
-        }
-    }
-
-    private void initiateCancellationProcesses(Order order, String token) {
-        try {
-            String paymentId = paymentServicePort.findPaymentIdByOrderId(order.id().toString());
-            paymentServicePort.initiateRefund(paymentId, new RefundRequest(order.totalPrice()));
-        } catch (Exception e) {
-            throw new OrderCancellationException("Failed to initiate refund for order: " + e.getMessage(), e);
-        }
-
-        try {
-            var futures = order.items().stream()
-                    .map(item -> CompletableFuture.runAsync(() -> {
-                        ProductResponse product = productServicePort.getProductById(item.productId(), token);
-                        int updatedInventory = product.inventory() + item.quantity();
-                        productServicePort.updateProductInventory(item.productId(), updatedInventory, token);
-                    }, apiThreadPool))
-                    .toList();
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        } catch (Exception e) {
-            throw new OrderCancellationException("Failed to restock items: " + e.getMessage());
-        }
-    }
 }
