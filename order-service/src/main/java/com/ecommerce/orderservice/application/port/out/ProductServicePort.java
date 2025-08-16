@@ -1,7 +1,6 @@
 package com.ecommerce.orderservice.application.port.out;
 
 import com.ecommerce.orderservice.application.dto.*;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
