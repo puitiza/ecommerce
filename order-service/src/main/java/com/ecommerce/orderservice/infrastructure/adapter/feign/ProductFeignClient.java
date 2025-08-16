@@ -10,20 +10,11 @@ import java.util.List;
 @FeignClient(name = "product-service", path = "/products")
 public interface ProductFeignClient {
 
-    @GetMapping("/{id}")
-    ProductResponse getProductById(@PathVariable("id") Long id, @RequestHeader("Authorization") String token);
-
-    @PostMapping("/verify-availability")
-    ProductAvailabilityResponse verifyProductAvailability(@RequestBody OrderItemRequest request, @RequestHeader("Authorization") String token);
-
-    @PutMapping("/update-inventory/{id}/{updatedInventory}")
-    void updateProductInventory(@PathVariable("id") Long id, @PathVariable("updatedInventory") int updatedInventory, @RequestHeader("Authorization") String token);
-
     @PostMapping("/batch")
     BatchProductResponse verifyAndGetProducts(@RequestBody BatchProductRequest items,
                                               @RequestHeader("Authorization") String token);
 
     @PostMapping("/details")
     List<BatchProductDetailsResponse> getProductsDetailsInBatch(@RequestBody BatchProductDetailsRequest request,
-                                                               @RequestHeader("Authorization") String token);
+                                                                @RequestHeader("Authorization") String token);
 }

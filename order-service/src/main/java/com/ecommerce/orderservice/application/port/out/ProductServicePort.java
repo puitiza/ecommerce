@@ -5,11 +5,6 @@ import com.ecommerce.orderservice.application.dto.*;
 import java.util.List;
 
 public interface ProductServicePort {
-    ProductResponse getProductById(Long id, String token);
-
-    ProductAvailabilityResponse verifyProductAvailability(OrderItemRequest orderItemRequest, String token);
-
-    void updateProductInventory(Long id, int updatedInventory, String token);
 
     BatchProductResponse verifyAndGetProducts(BatchProductRequest items, String token);
 

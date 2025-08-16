@@ -89,9 +89,3 @@ resilience4j.circuitbreaker:
       waitDurationInOpenState: 10000  # Time the circuit stays open before transitioning to HALF_OPEN.
       permittedNumberOfCallsInHalfOpenState: 3 # Number of calls allowed to test the service's health.
       registerHealthIndicator: true   # Enables the actuator health endpoint.
-    paymentServiceCircuit:
-      slidingWindowSize: 5
-      failureRateThreshold: 60
-      waitDurationInOpenState: 15000
-      permittedNumberOfCallsInHalfOpenState: 2
-      registerHealthIndicator: true
