@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -40,6 +42,12 @@ public class ProductFeignAdapter implements ProductServicePort {
     @CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "verifyAvailabilityFallback")
     public BatchProductResponse verifyAndGetProducts(BatchProductRequest items, String token) {
         return productFeignClient.verifyAndGetProducts(items, token);
+    }
+
+    @Override
+    //@CircuitBreaker(name = "productServiceCircuit", fallbackMethod = "getProductFallback")
+    public List<BatchProductDetailsResponse> getProductsDetailsInBatch(BatchProductDetailsRequest request, String token) {
+        return productFeignClient.getProductsDetailsInBatch(request, token);
     }
 
     @SuppressWarnings("unused")

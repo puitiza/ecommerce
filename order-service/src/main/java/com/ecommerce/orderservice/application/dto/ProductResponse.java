@@ -18,4 +18,5 @@ public record ProductResponse(
         String name,
         BigDecimal price,
         Integer inventory
-) {}
+) {
+}

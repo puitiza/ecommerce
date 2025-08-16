@@ -15,6 +15,7 @@ import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.exception.ResourceNotFoundException;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -82,10 +84,12 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.CREATED,
                 LocalDateTime.now(),
                 null,
-                BigDecimal.ZERO,
+                itemResponses.stream()
+                        .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP),
                 request.shippingAddress()
         );
-        order = domainService.calculateTotalPrice(order);
 
         Order savedOrder = orderRepositoryPort.save(order);
         log.debug("Saved Order with ID: {}", savedOrder.id());
@@ -108,87 +112,108 @@ public class OrderServiceImpl implements OrderService {
         PageRequest pageable = PageRequest.of(page, size);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
-        Page<Order> orders = orderRepositoryPort.findAll(page, size);
-        Set<Long> productIds = orders.getContent().stream()
+        Page<Order> ordersPage = orderRepositoryPort.findAll(page, size);
+
+        Set<Long> productIds = ordersPage.getContent().stream()
                 .flatMap(order -> order.items().stream())
                 .map(OrderItem::productId)
                 .collect(Collectors.toSet());
 
-        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(productIds, authDetails.token());
+        List<BatchProductDetailsResponse> batchResponses = productServicePort
+                .getProductsDetailsInBatch(new BatchProductDetailsRequest(new ArrayList<>(productIds)), authDetails.token());
 
-        List<OrderResponse> responses = orders.getContent().stream()
+        Map<Long, ProductResponse> productDetailsMap = batchResponses.stream()
+                .map(BatchProductDetailsResponse::product)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(ProductResponse::id, p -> p));
+
+
+        List<OrderResponse> responses = ordersPage.getContent().stream()
                 .map(order -> {
-                    List<OrderItemResponse> items = order.items().stream()
+                    List<OrderItemResponse> itemResponses = order.items().stream()
                             .map(item -> {
-                                ProductResponse product = productMap.get(item.productId());
+                                ProductResponse productDetails = productDetailsMap.get(item.productId());
+
+                                if (productDetails == null) {
+                                    log.warn("Product details not found for ID: {}", item.productId());
+                                    return new OrderItemResponse(
+                                            item.productId(),
+                                            "Product not found",
+                                            item.quantity(),
+                                            item.unitPrice()
+                                    );
+                                }
                                 return new OrderItemResponse(
                                         item.productId(),
-                                        product.name(),
+                                        productDetails.name(),
                                         item.quantity(),
-                                        product.price()
+                                        productDetails.price()
                                 );
                             })
                             .toList();
-                    return mapper.toResponse(order, items);
+                    return mapper.toResponse(order, itemResponses);
                 })
                 .toList();
 
-        return new PageImpl<>(responses, pageable, orders.getTotalElements());
+        return new PageImpl<>(responses, pageable, ordersPage.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(UUID id) {
-        log.info("Retrieving order with ID: {}", id);
+        log.debug("Retrieving order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
 
-        List<OrderItemRequest> itemRequests = order.items().stream()
-                .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
-                .toList();
-
-        List<OrderItemResponse> items = createOrderItemResponses(itemRequests, authDetails.token());
+        List<OrderItemResponse> itemResponses = getOrderItemResponses(order.items(), authDetails.token());
 
         log.info("Order retrieved successfully: {}", id);
-        return mapper.toResponse(order, items);
+        return mapper.toResponse(order, itemResponses);
     }
 
     @Override
     @Transactional
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
-        log.info("Updating order with ID: {}", id);
+        log.debug("Updating order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
-        validateAndUpdateOrderItems(request.items(), order, authDetails.token());
+        Set<OrderItem> updatedItems = validateAndUpdateOrderItems(request.items(), order, authDetails.token());
 
-        if (request.shippingAddress() != null) {
-            order = order.withShippingAddress(request.shippingAddress());
-        }
+        Order updatedOrder = new Order(
+                order.id(),
+                order.userId(),
+                updatedItems,
+                order.status(),
+                order.createdAt(),
+                LocalDateTime.now(),
+                updatedItems.stream()
+                        .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(2, RoundingMode.HALF_UP),
+                request.shippingAddress() != null ? request.shippingAddress() : order.shippingAddress()
+        );
 
-        order = domainService.calculateTotalPrice(order);
-        order = orderRepositoryPort.save(order);
-        eventPublisherPort.publishOrderUpdatedEvent(order);
+        Order savedOrder = orderRepositoryPort.save(updatedOrder);
+        eventPublisherPort.publishOrderUpdatedEvent(savedOrder);
 
-        List<OrderItemRequest> itemRequests = order.items().stream()
+        List<OrderItemRequest> itemRequests = savedOrder.items().stream()
                 .map(item -> new OrderItemRequest(item.productId(), item.quantity()))
                 .toList();
+        List<OrderItemResponse> items = validateAndGetOrderItemResponses(itemRequests, authDetails.token());
 
-        List<OrderItemResponse> items = createOrderItemResponses(itemRequests, authDetails.token());
-
-        log.info("Order successfully updated: {}", id);
-        return mapper.toResponse(order, items);
+        log.debug("Order successfully updated: {}", id);
+        return mapper.toResponse(savedOrder, items);
     }
 
     @Override
     @Transactional
     public void cancelOrder(UUID id) {
-        log.info("Cancelling order with ID: {}", id);
+        log.debug("Cancelling order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
-
         if (!domainService.canCancel(order)) {
             throw new OrderCancellationException("Order cannot be canceled in its current state");
         }
@@ -198,6 +223,36 @@ public class OrderServiceImpl implements OrderService {
         orderRepositoryPort.save(cancelledOrder);
         eventPublisherPort.publishOrderCancelledEvent(cancelledOrder);
         log.info("Order successfully cancelled: {}", id);
+    }
+
+    private List<OrderItemResponse> getOrderItemResponses(Set<OrderItem> orderItems, String token) {
+        List<Long> productIds = orderItems.stream()
+                .map(OrderItem::productId)
+                .toList();
+
+        List<BatchProductDetailsResponse> batchResponses = productServicePort.getProductsDetailsInBatch(new BatchProductDetailsRequest(productIds), token);
+
+        Map<Long, BatchProductDetailsResponse> productDetailsMap = batchResponses.stream()
+                .collect(Collectors.toMap(
+                        response -> response.product() != null ? response.product().id() : 0L,
+                        response -> response
+                ));
+
+        return orderItems.stream()
+                .map(orderItem -> {
+                    BatchProductDetailsResponse batchResponse = productDetailsMap.get(orderItem.productId());
+                    if (batchResponse == null || batchResponse.product() == null) {
+                        throw new ResourceNotFoundException("Product", orderItem.productId().toString());
+                    }
+                    ProductResponse productDetails = batchResponse.product();
+                    return new OrderItemResponse(
+                            productDetails.id(),
+                            productDetails.name(),
+                            orderItem.quantity(),
+                            productDetails.price()
+                    );
+                })
+                .toList();
     }
 
     private List<OrderItemResponse> validateAndGetOrderItemResponses(List<OrderItemRequest> items, String token) {
@@ -234,35 +289,6 @@ public class OrderServiceImpl implements OrderService {
                         response.price()
                 ))
                 .toList();
-    }
-
-    private List<OrderItemResponse> createOrderItemResponses(List<OrderItemRequest> items, String token) {
-        Map<Long, ProductResponse> productMap = getProductResponsesConcurrently(
-                items.stream().map(OrderItemRequest::productId).collect(Collectors.toSet()),
-                token
-        );
-        return items.stream()
-                .map(item -> {
-                    ProductResponse product = productMap.get(item.productId());
-                    return new OrderItemResponse(
-                            item.productId(),
-                            product.name(),
-                            item.quantity(),
-                            product.price()
-                    );
-                })
-                .toList();
-    }
-
-    private Map<Long, ProductResponse> getProductResponsesConcurrently(Set<Long> productIds, String token) {
-        var futures = productIds.stream()
-                .map(id -> CompletableFuture.supplyAsync(() -> productServicePort.getProductById(id, token),
-                        apiThreadPool))
-                .toList();
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        return futures.stream()
-                .map(CompletableFuture::join)
-                .collect(Collectors.toMap(ProductResponse::id, p -> p));
     }
 
     private void validateAndUpdateOrderItems(List<OrderItemRequest> updatedItems, Order order, String token) {
