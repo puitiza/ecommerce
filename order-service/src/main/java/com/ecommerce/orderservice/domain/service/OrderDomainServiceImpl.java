@@ -1,6 +1,5 @@
 package com.ecommerce.orderservice.domain.service;
 
-import com.ecommerce.orderservice.application.dto.OrderItemResponse;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
@@ -11,10 +10,6 @@ import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 
 @Service
@@ -31,14 +26,6 @@ public class OrderDomainServiceImpl implements OrderDomainService {
     @Override
     public boolean canUpdate(Order order) {
         return isEventAllowed(order, OrderEventType.ORDER_UPDATED);
-    }
-
-    @Override
-    public BigDecimal calculateTotalPrice(List<OrderItemResponse> items) {
-        return items.stream()
-                .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override

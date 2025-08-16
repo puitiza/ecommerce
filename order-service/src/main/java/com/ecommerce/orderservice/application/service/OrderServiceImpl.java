@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,11 +34,18 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final ProductServicePort productServicePort;
-
     private final OrderDomainService domainService;
     private final UserAuthenticationPort userAuthenticationPort;
     private final OrderMapper mapper;
 
+    /**
+     * Creates a new order by validating the requested items,
+     * saving the order to the database, and initiating the
+     * state machine process.
+     *
+     * @param request The order details provided by the client.
+     * @return The response object of the created order.
+     */
     @Override
     @Transactional
     public OrderResponse createOrder(OrderRequest request) {
@@ -60,17 +68,26 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.CREATED,
                 LocalDateTime.now(),
                 null,
-                domainService.calculateTotalPrice(itemResponses),
+                calculateTotalPrice(itemResponses),
                 request.shippingAddress()
         );
 
         Order savedOrder = orderRepositoryPort.save(order);
         log.debug("Saved Order with ID: {}", savedOrder.id());
 
+        //Trigger the state machine to start the validation saga.
         domainService.sendCreateEvent(savedOrder);
+
         return mapper.toResponse(savedOrder, itemResponses);
     }
 
+    /**
+     * Retrieves all orders for the authenticated user with pagination.
+     *
+     * @param page The page number to retrieve (0-indexed).
+     * @param size The number of orders per page.
+     * @return A paginated list of order responses.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<OrderResponse> getAllOrders(int page, int size) {
@@ -85,6 +102,12 @@ public class OrderServiceImpl implements OrderService {
         return new PageImpl<>(responses, pageable, ordersPage.getTotalElements());
     }
 
+    /**
+     * Retrieves a single order by its unique identifier.
+     *
+     * @param id The UUID of the order.
+     * @return The order response.
+     */
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(UUID id) {
@@ -98,6 +121,14 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
+    /**
+     * Updates an existing order. This is only allowed for orders in the CREATED state.
+     * The update restarts the entire validation saga with the new order details.
+     *
+     * @param id      The UUID of the order to update.
+     * @param request The updated order details.
+     * @return The response object of the updated order.
+     */
     @Override
     @Transactional
     public OrderResponse updateOrder(UUID id, OrderRequest request) {
@@ -113,7 +144,7 @@ public class OrderServiceImpl implements OrderService {
         Set<OrderItem> newItems = itemResponses.stream()
                 .map(item -> new OrderItem(null, item.productId(), item.quantity(), item.unitPrice()))
                 .collect(Collectors.toSet());
-        BigDecimal newTotal = domainService.calculateTotalPrice(itemResponses);
+        BigDecimal newTotal = calculateTotalPrice(itemResponses);
 
         Order updatedOrder = new Order(
                 order.id(),
@@ -135,10 +166,22 @@ public class OrderServiceImpl implements OrderService {
         return mapper.toResponse(savedOrder, itemResponses);
     }
 
+    /**
+     * Deletes an order (not implemented).
+     *
+     * @param id The UUID of the order to delete.
+     */
     @Override
     public void deleteOrder(UUID id) {
+        // Not implemented. Orders are typically not deleted, only cancelled or fulfilled.
     }
 
+    /**
+     * Cancels an order. The order must be in a cancellable state as defined
+     * by the domain rules. This triggers a saga for compensation (e.g., refunds).
+     *
+     * @param id The UUID of the order to cancel.
+     */
     @Override
     @Transactional
     public void cancelOrder(UUID id) {
@@ -235,6 +278,19 @@ public class OrderServiceImpl implements OrderService {
                         response.price()
                 ))
                 .toList();
+    }
+
+    /**
+     * Calculates the total price of all items in a list.
+     *
+     * @param items The list of order items.
+     * @return The total price.
+     */
+    private BigDecimal calculateTotalPrice(List<OrderItemResponse> items) {
+        return items.stream()
+                .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
 }
