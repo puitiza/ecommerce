@@ -75,4 +75,10 @@ public record ProductController(ProductService productService) implements Produc
         return productService.verifyAndGetProducts(request);
     }
 
+    @PostMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<BatchProductDetailsResponse> getProductDetails(@Valid @RequestBody BatchProductDetailsRequest request) {
+        log.info("Get Products in Batch : {}", request.toString());
+        return productService.getProductDetails(request);
+    }
+
 }

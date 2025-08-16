@@ -134,5 +134,24 @@ public class ProductServiceImpl implements ProductService {
         return new BatchProductResponse(responses);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request) {
+        List<Long> productIds = request.productIds();
+        List<ProductEntity> products = repository.findAllByIdIn(productIds);
+        Map<Long, ProductEntity> productMap = products.stream()
+                .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        return productIds.stream()
+                .map(id -> {
+                    ProductEntity entity = productMap.get(id);
+                    if (entity == null) {
+                        return new BatchProductDetailsResponse(null, String.format("Product not found with ID: %s", id));
+                    }
+                    return new BatchProductDetailsResponse(modelMapper.map(entity, ProductDto.class), null);
+                })
+                .toList();
+    }
+
 }
 

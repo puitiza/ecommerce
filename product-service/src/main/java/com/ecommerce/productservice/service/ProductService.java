@@ -21,4 +21,6 @@ public interface ProductService {
 
     BatchProductResponse verifyAndGetProducts(BatchProductRequest request);
 
+    List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request);
+
 }
