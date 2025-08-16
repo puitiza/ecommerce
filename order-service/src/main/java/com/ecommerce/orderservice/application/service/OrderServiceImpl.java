@@ -114,47 +114,9 @@ public class OrderServiceImpl implements OrderService {
 
         Page<Order> ordersPage = orderRepositoryPort.findAll(page, size);
 
-        Set<Long> productIds = ordersPage.getContent().stream()
-                .flatMap(order -> order.items().stream())
-                .map(OrderItem::productId)
-                .collect(Collectors.toSet());
-
-        List<BatchProductDetailsResponse> batchResponses = productServicePort
-                .getProductsDetailsInBatch(new BatchProductDetailsRequest(new ArrayList<>(productIds)), authDetails.token());
-
-        Map<Long, ProductResponse> productDetailsMap = batchResponses.stream()
-                .map(BatchProductDetailsResponse::product)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(ProductResponse::id, p -> p));
-
-
         List<OrderResponse> responses = ordersPage.getContent().stream()
-                .map(order -> {
-                    List<OrderItemResponse> itemResponses = order.items().stream()
-                            .map(item -> {
-                                ProductResponse productDetails = productDetailsMap.get(item.productId());
-
-                                if (productDetails == null) {
-                                    log.warn("Product details not found for ID: {}", item.productId());
-                                    return new OrderItemResponse(
-                                            item.productId(),
-                                            "Product not found",
-                                            item.quantity(),
-                                            item.unitPrice()
-                                    );
-                                }
-                                return new OrderItemResponse(
-                                        item.productId(),
-                                        productDetails.name(),
-                                        item.quantity(),
-                                        productDetails.price()
-                                );
-                            })
-                            .toList();
-                    return mapper.toResponse(order, itemResponses);
-                })
+                .map(order -> enrichOrderWithProductDetails(order, authDetails.token()))
                 .toList();
-
         return new PageImpl<>(responses, pageable, ordersPage.getTotalElements());
     }
 
@@ -165,11 +127,10 @@ public class OrderServiceImpl implements OrderService {
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
 
         Order order = orderRepositoryPort.findById(id);
-
-        List<OrderItemResponse> itemResponses = getOrderItemResponses(order.items(), authDetails.token());
+        OrderResponse response = enrichOrderWithProductDetails(order, authDetails.token());
 
         log.info("Order retrieved successfully: {}", id);
-        return mapper.toResponse(order, itemResponses);
+        return response;
     }
 
     @Override
@@ -225,12 +186,20 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order successfully cancelled: {}", id);
     }
 
-    private List<OrderItemResponse> getOrderItemResponses(Set<OrderItem> orderItems, String token) {
-        List<Long> productIds = orderItems.stream()
+    /**
+     * Enriches a single Order domain model with product details from the product-service.
+     * This method handles the batch call and error management for consistency.
+     *
+     * @param order The order to enrich.
+     * @param token The user's authentication token.
+     * @return An enriched OrderResponse.
+     */
+    private OrderResponse enrichOrderWithProductDetails(Order order, String token) {
+        List<Long> productIds = order.items().stream()
                 .map(OrderItem::productId)
                 .toList();
 
-        List<BatchProductDetailsResponse> batchResponses = productServicePort.getProductsDetailsInBatch(new BatchProductDetailsRequest(productIds), token);
+        var batchResponses = productServicePort.getProductsDetailsInBatch(new BatchProductDetailsRequest(productIds), token);
 
         Map<Long, BatchProductDetailsResponse> productDetailsMap = batchResponses.stream()
                 .collect(Collectors.toMap(
@@ -238,21 +207,31 @@ public class OrderServiceImpl implements OrderService {
                         response -> response
                 ));
 
-        return orderItems.stream()
-                .map(orderItem -> {
-                    BatchProductDetailsResponse batchResponse = productDetailsMap.get(orderItem.productId());
+        List<OrderItemResponse> itemResponses = order.items().stream()
+                .map(item -> {
+                    BatchProductDetailsResponse batchResponse = productDetailsMap.get(item.productId());
+
                     if (batchResponse == null || batchResponse.product() == null) {
-                        throw new ResourceNotFoundException("Product", orderItem.productId().toString());
+                        log.warn("Product details not found for ID: {}. Returning fallback item.", item.productId());
+                        return new OrderItemResponse(
+                                item.productId(),
+                                "Product not found",
+                                item.quantity(),
+                                item.unitPrice()
+                        );
                     }
+
                     ProductResponse productDetails = batchResponse.product();
                     return new OrderItemResponse(
                             productDetails.id(),
                             productDetails.name(),
-                            orderItem.quantity(),
+                            item.quantity(),
                             productDetails.price()
                     );
                 })
                 .toList();
+
+        return mapper.toResponse(order, itemResponses);
     }
 
     private List<OrderItemResponse> validateAndGetOrderItemResponses(List<OrderItemRequest> items, String token) {
