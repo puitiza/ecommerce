@@ -47,20 +47,20 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.ORDER_CREATED)
-                .action(publishOrderCreatedEvent())
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
                 .timerOnce(30000)
 
                 // CREATED -> CREATED (For Order Updated)
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
                 .event(OrderEventType.ORDER_UPDATED)
-                .action(publishOrderUpdatedEvent())
+                .action(publishEvent(OrderEventType.ORDER_UPDATED))
 
                 // VALIDATION_PENDING -> VALIDATION_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_SUCCEEDED)
                 .event(OrderEventType.VALIDATION_SUCCEEDED)
-                .action(publishPaymentStartEvent())
+                .action(publishEvent(OrderEventType.PAYMENT_START))
 
                 // VALIDATION_PENDING -> VALIDATION_FAILED
                 .and().withExternal()
@@ -79,14 +79,14 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_SUCCEEDED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.PAYMENT_START)
-                .action(publishPaymentStartEvent())
+                .action(publishEvent(OrderEventType.PAYMENT_START))
                 .timerOnce(60000)
 
                 // PAYMENT_PENDING -> PAYMENT_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_SUCCEEDED)
                 .event(OrderEventType.PAYMENT_SUCCEEDED)
-                .action(publishShipmentStartEvent())
+                .action(publishEvent(OrderEventType.SHIPMENT_START))
 
                 // PAYMENT_PENDING -> PAYMENT_FAILED
                 .and().withExternal()
@@ -105,14 +105,14 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_SUCCEEDED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.SHIPMENT_START)
-                .action(publishShipmentStartEvent())
+                .action(publishEvent(OrderEventType.SHIPMENT_START))
                 .timerOnce(120000)
 
                 // SHIPPING_PENDING -> SHIPPING_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_SUCCEEDED)
                 .event(OrderEventType.SHIPMENT_SUCCEEDED)
-                .action(publishDeliveredEvent())
+                .action(publishEvent(OrderEventType.DELIVERED))
 
                 // SHIPPING_PENDING -> SHIPPING_FAILED
                 .and().withExternal()
@@ -137,19 +137,41 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishCancelEvent())
+                .action(publishEvent(OrderEventType.CANCEL))
+
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishCancelEvent())
+                .action(publishEvent(OrderEventType.CANCEL))
+
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishCancelEvent()) // Includes refund
+                .action(publishEvent(OrderEventType.CANCEL)) // Includes refund
+
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishCancelEvent()); // Includes refund + reverse shipment
+                .action(publishEvent(OrderEventType.CANCEL)); // Includes refund + reverse shipment
+    }
+
+    // Event publication actions, using the Helper Get Order From Context
+    private Action<OrderStatus, OrderEventType> publishEvent(OrderEventType eventType) {
+        return context -> getOrderFromContext(context).ifPresentOrElse(
+                order -> {
+                    switch (eventType) {
+                        case ORDER_CREATED -> eventPublisher.publishOrderCreatedEvent(order);
+                        case ORDER_UPDATED -> eventPublisher.publishOrderUpdatedEvent(order);
+                        case PAYMENT_START -> eventPublisher.publishPaymentStartEvent(order);
+                        case SHIPMENT_START -> eventPublisher.publishShipmentStartEvent(order);
+                        case DELIVERED -> eventPublisher.publishDeliveredEvent(order);
+                        case CANCEL -> eventPublisher.publishCancelEvent(order);
+                        default -> log.warn("No publisher for event: {}", eventType);
+                    }
+                    log.info("Published {} for order ID: {}", eventType.getEventType(), order.id());
+                },
+                () -> log.warn("Null or invalid order for event: {}", eventType.getEventType())
+        );
     }
 
     private Optional<Order> getOrderFromContext(StateContext<OrderStatus, OrderEventType> context) {
@@ -171,62 +193,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
             context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
             return false;
         };
-    }
-
-    // Event publication actions, using the Helper Get Order From Context
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishOrderCreatedEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    eventPublisher.publishOrderCreatedEvent(order);
-                    log.info("Published OrderCreated event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishOrderCreatedEvent"));
-    }
-
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishOrderUpdatedEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    // The publication of this event is not part of the main saga, it is only for notification
-                    eventPublisher.publishOrderUpdatedEvent(order);
-                    log.info("Published OrderUpdated event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishOrderUpdatedEvent"));
-    }
-
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishPaymentStartEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    eventPublisher.publishPaymentStartEvent(order);
-                    log.info("Published PaymentStart event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishPaymentStartEvent"));
-    }
-
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishShipmentStartEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    eventPublisher.publishShipmentStartEvent(order);
-                    log.info("Published ShipmentStart event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishShipmentStartEvent"));
-    }
-
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishDeliveredEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    eventPublisher.publishDeliveredEvent(order);
-                    log.info("Published Delivered event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishDeliveredEvent"));
-    }
-
-    @Bean
-    public Action<OrderStatus, OrderEventType> publishCancelEvent() {
-        return context -> getOrderFromContext(context)
-                .ifPresentOrElse(order -> {
-                    eventPublisher.publishCancelEvent(order);
-                    log.info("Published Cancel event for order ID: {}", order.id());
-                }, () -> log.warn("Null or invalid order in publishCancelEvent"));
     }
 
     // Error Log actions and completed
