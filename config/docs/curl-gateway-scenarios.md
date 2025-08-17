@@ -122,9 +122,9 @@ curl --location 'http://localhost:8090/orders' \
 {
   "status": 503,
   "errorCode": "GEN-004",
-  "message": "Product service unavailable for Id 2",
-  "details": "0764a14f7ec2 executing POST http://product-service/products/verify-availability",
-  "timestamp": "2025-08-12T16:23:38.67522325Z"
+  "message": "Product service unavailable for Id 2,3",
+  "details": "280d23221468 executing POST http://product-service/products/batch",
+  "timestamp": "2025-08-16T23:01:54.361195666Z"
 }
 ```
 

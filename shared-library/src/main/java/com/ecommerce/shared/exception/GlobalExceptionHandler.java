@@ -33,14 +33,25 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
                 ))
                 .toList();
 
-        String errorMessage = "Validation error: " + (validationErrors.isEmpty() ? "No specific error details." : validationErrors.getFirst().message());
+        String message;
+        String details;
 
-        String details = "Validation failed for object '" + ex.getObjectName() + "' on field '" +
-                validationErrors.getFirst().field() + "': rejected value [" +
-                ex.getBindingResult().getFieldValue(validationErrors.getFirst().field()) + "]; " +
-                "default message [" + validationErrors.getFirst().message() + "]";
+        if (validationErrors.size() > 1) {
+            message = "Validation failed for multiple fields.";
+            details = "Multiple validation errors occurred. Please check the 'errors' field for details on each validation failure.";
+        } else {
+            ErrorResponse.ValidationError firstError = validationErrors.getFirst();
+            message = firstError.message();
+            details = String.format(
+                    "Validation failed for object '%s' on field '%s': rejected value [%s]; default message [%s]",
+                    ex.getObjectName(),
+                    firstError.field(),
+                    ex.getBindingResult().getFieldValue(firstError.field()),
+                    firstError.message()
+            );
+        }
 
-        return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, validationErrors, errorMessage, details);
+        return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, validationErrors, details, message);
     }
 
     @Override

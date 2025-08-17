@@ -16,10 +16,8 @@ transitions and robust error handling for production readiness.
     - [Integration with Other Services](#integration-with-other-services)
     - [Data Consistency and Transactional Integrity](#data-consistency-and-transactional-integrity)
 3. [Configuration](#configuration)
-    - [Application Configuration](#application-configuration)
     - [Kafka Configuration](#kafka-configuration)
     - [Security Configuration](#security-configuration)
-    - [Dependencies](#dependencies)
 4. [Setup and Deployment](#setup-and-deployment)
     - [Local Setup](#local-setup)
     - [Production Considerations](#production-considerations)
@@ -105,34 +103,6 @@ To ensure data integrity:
 ---
 
 ## Configuration
-
-### Application Configuration
-
-The service uses Spring Boot’s autoconfiguration and retrieves settings from the Spring Cloud Config Server. Key
-configurations are defined in `application.yml`:
-
-```yaml
-spring:
-  application:
-    name: order-service
-  profiles:
-    active: prod
-  config:
-    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
-  datasource:
-    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
-    username: order_user
-    password: order_password
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: update
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,env,configprops
-```
 
 ### Kafka Configuration
 
@@ -222,71 +192,11 @@ spring:
             issuer-uri: ${keycloak.realm.url}
   ```
 
-- **Security Filter Chain**:
-  ```java
-  @Configuration
-  @EnableWebSecurity
-  public record SecurityConfig {
-      private final SecurityProperties securityProperties;
-
-      public SecurityConfig(SecurityProperties securityProperties) {
-          this.securityProperties = securityProperties;
-      }
-
-      @Bean
-      public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-          return http
-                  .csrf(AbstractHttpConfigurer::disable)
-                  .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                  .authorizeHttpRequests((authz) -> {
-                      securityProperties.permitUrls().forEach((category, paths) -> {
-                          paths.forEach(path -> authz.requestMatchers(HttpMethod.GET, path).permitAll());
-                      });
-                      authz.anyRequest().authenticated();
-                  })
-                  .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-                  .build();
-      }
-  }
-  ```
-
-- **Security Properties**:
-  ```java
-  @ConfigurationProperties(prefix = "security")
-  public record SecurityProperties(Map<String, List<String>> permitUrls) {
-  }
-  ```
-
 - **Purpose**:
     - Dynamically configures permitted URLs for `GET` requests (e.g., Swagger, Actuator) via `application.yml`.
     - Supports adding new URL categories (e.g., `public`, `metrics`) without code changes.
     - Managed via Spring Cloud Config Server for centralized updates.
     - Extensible to support specific HTTP methods or role-based access in the future.
-
-### Dependencies
-
-The service uses the following Gradle dependencies (`build.gradle`):
-
-```groovy
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-    implementation 'org.springframework.kafka:spring-kafka:2.9.10' // Adjust to your version
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    implementation 'org.springframework.statemachine:spring-statemachine-core'
-    implementation 'io.cloudevents:cloudevents-kafka:2.5.0'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
-    implementation 'mysql:mysql-connector-java:8.0.33'
-    implementation project(':share-library') // Shared DTOs and utilities
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:mysql'
-    testImplementation 'org.testcontainers:kafka'
-}
-```
 
 ---
 
