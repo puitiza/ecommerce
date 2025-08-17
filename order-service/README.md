@@ -332,9 +332,7 @@ The service uses Spring Kafka’s `DefaultErrorHandler` for robust message proce
               kafkaTemplate, (record, ex) -> new TopicPartition("dead-letter-topic", -1)
           );
           DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
-          errorHandler.setRetryListeners((record, ex, attempt) -> {
-              log.info("Retry attempt {} for record on topic {}: {}", attempt, record.topic(), ex.getMessage());
-          });
+          errorHandler.setRetryListeners((record, ex, attempt) -> log.info("Retry attempt {} for record on topic {}: {}", attempt, record.topic(), ex.getMessage()));
           return errorHandler;
       }
   }
