@@ -119,8 +119,8 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
             log.info("Sent '{}' to Kafka for order ID: {}", eventType.getEventType(), order.id());
 
         } catch (Exception e) {
-            log.error("Error serializing or sending CloudEvent for order {}", order.id(), e);
-            throw new EventPublishingException("Failed to serialize or publish event for order " + order.id(), e);
+            log.error("Failed to publish {} event for order ID: {}", eventType.getEventType(), order.id(), e);
+            throw new EventPublishingException("Failed to publish %s event for order %s".formatted(eventType.getEventType(), order.id()), e);
         }
     }
 }

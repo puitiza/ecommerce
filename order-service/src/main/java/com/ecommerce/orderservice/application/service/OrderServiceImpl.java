@@ -263,7 +263,7 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         if (!errors.isEmpty()) {
-            throw new OrderValidationException(ExceptionError.ORDER_VALIDATION, String.join("; ", errors));
+            throw new OrderValidationException(String.join("; ", errors));
         }
 
         return batchResponse.products().stream()

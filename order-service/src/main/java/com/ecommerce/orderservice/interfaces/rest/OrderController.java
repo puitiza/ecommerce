@@ -5,6 +5,7 @@ import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.ecommerce.orderservice.application.service.OrderService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,13 +16,16 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/orders")
-public record OrderController(OrderService orderService) implements OrderOpenApi {
+@RequiredArgsConstructor
+public class OrderController implements OrderOpenApi {
+
+    private final OrderService orderService;
 
     @Override
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
-        log.info("CREATING ORDER: {}", request);
+        log.info("Creating order: {}", request);
         return orderService.createOrder(request);
     }
 
@@ -29,21 +33,21 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "10") int size) {
-        log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
+        log.info("Retrieving orders for page {} with size {}", page, size);
         return new OrderPageResponse(orderService.getAllOrders(page, size));
     }
 
     @Override
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse getOrderById(@PathVariable UUID orderId) {
-        log.info("GETTING ORDER WITH ID {}", orderId);
+        log.info("Retrieving order with ID: {}", orderId);
         return orderService.getOrderById(orderId);
     }
 
     @Override
     @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody OrderRequest request) {
-        log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
+        log.info("Updating order with ID: {} with request: {}", orderId, request);
         return orderService.updateOrder(orderId, request);
     }
 
@@ -58,7 +62,7 @@ public record OrderController(OrderService orderService) implements OrderOpenApi
     @Override
     @PostMapping(value = "/{orderId}/cancel")
     public void cancelOrder(@PathVariable UUID orderId) {
-        log.info("CANCELLING ORDER WITH ID {}", orderId);
+        log.info("Cancelling order with ID: {}", orderId);
         orderService.cancelOrder(orderId);
     }
 
