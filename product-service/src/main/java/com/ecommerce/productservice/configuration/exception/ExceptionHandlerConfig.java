@@ -4,7 +4,7 @@ import com.ecommerce.productservice.configuration.exception.handler.InvalidInven
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
 import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.domain.exception.ExceptionError;
-import com.ecommerce.shared.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
 import com.ecommerce.shared.domain.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;

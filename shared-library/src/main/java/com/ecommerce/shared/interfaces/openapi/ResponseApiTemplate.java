@@ -1,5 +1,8 @@
 package com.ecommerce.shared.interfaces.openapi;
 
+/**
+ * Provides JSON templates for OpenAPI error response examples.
+ */
 public class ResponseApiTemplate {
 
     public static final String UNAUTHORIZED = """

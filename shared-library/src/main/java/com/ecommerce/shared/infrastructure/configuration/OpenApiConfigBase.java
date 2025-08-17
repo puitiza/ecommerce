@@ -5,14 +5,16 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.*;
-import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Base configuration for OpenAPI documentation.
+ * Provides a reusable OpenAPI bean with optional OAuth2 security.
+ */
 @Configuration
 public class OpenApiConfigBase {
 
@@ -23,10 +25,15 @@ public class OpenApiConfigBase {
 
     private final ServiceConfig serviceConfig;
 
-    protected OpenApiConfigBase(ServiceConfig serviceConfig) {
+    public OpenApiConfigBase(ServiceConfig serviceConfig) {
         this.serviceConfig = serviceConfig;
     }
 
+    /**
+     * Configures an OpenAPI bean with service metadata and optional OAuth2 security.
+     *
+     * @return An OpenAPI instance.
+     */
     @Bean
     public OpenAPI openApi() {
         OpenAPI openAPI = new OpenAPI()
@@ -42,10 +49,7 @@ public class OpenApiConfigBase {
                                             .flows(new OAuthFlows()
                                                     .clientCredentials(new OAuthFlow()
                                                             .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
-                                                            .scopes(new Scopes().addString("openid", "openid scope"))
-                                                    )
-                                            )
-                            ))
+                                                            .scopes(new Scopes().addString("openid", "OpenID scope"))))))
                     .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
         }
 
@@ -59,10 +63,9 @@ public class OpenApiConfigBase {
                 .version(serviceConfig.version());
     }
 
-    private List<Server> getServers() {
+    private List<io.swagger.v3.oas.models.servers.Server> getServers() {
         return serviceConfig.servers().stream()
                 .map(ServiceConfig.ServerConfig::toServer)
-                .collect(Collectors.toList());
+                .toList();
     }
-
 }
