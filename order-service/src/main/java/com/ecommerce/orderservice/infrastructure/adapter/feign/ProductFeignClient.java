@@ -1,8 +1,13 @@
 package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
-import com.ecommerce.orderservice.application.dto.*;
+import com.ecommerce.orderservice.application.dto.BatchProductDetailsRequest;
+import com.ecommerce.orderservice.application.dto.BatchProductDetailsResponse;
+import com.ecommerce.orderservice.application.dto.BatchProductRequest;
+import com.ecommerce.orderservice.application.dto.BatchProductResponse;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 

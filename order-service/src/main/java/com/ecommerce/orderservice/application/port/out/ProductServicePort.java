@@ -1,6 +1,9 @@
 package com.ecommerce.orderservice.application.port.out;
 
-import com.ecommerce.orderservice.application.dto.*;
+import com.ecommerce.orderservice.application.dto.BatchProductDetailsRequest;
+import com.ecommerce.orderservice.application.dto.BatchProductDetailsResponse;
+import com.ecommerce.orderservice.application.dto.BatchProductRequest;
+import com.ecommerce.orderservice.application.dto.BatchProductResponse;
 
 import java.util.List;
 
