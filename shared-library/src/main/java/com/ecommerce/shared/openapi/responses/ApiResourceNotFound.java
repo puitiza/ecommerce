@@ -14,8 +14,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
-@ApiErrorCommon
+@ApiCommonErrors
 @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
-public @interface ApiErrorGetResponses {
+public @interface ApiResourceNotFound {
 }

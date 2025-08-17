@@ -8,8 +8,8 @@ import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
-import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
-import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
+import com.ecommerce.shared.openapi.responses.ApiResourceNotFound;
+import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -22,7 +22,7 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 public interface PaymentOpenApi {
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Process Payment", description = "Processes a payment for an order")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Payment processed successfully",
@@ -32,19 +32,19 @@ public interface PaymentOpenApi {
     })
     PaymentResponse processPayment(PaymentRequest paymentRequest);
 
-    @ApiErrorGetResponses
+    @ApiResourceNotFound
     @Operation(summary = "Get Payment Details", description = "Gets details of a specific payment")
     @ApiResponse(responseCode = "200", description = "Payment details retrieved successfully",
             content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentTransactionDetails.class))})
     PaymentTransactionDetails getPaymentDetails(UUID paymentId);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Authorize Payment", description = "Authorizes a payment for an order")
     @ApiResponse(responseCode = "200", description = "Payment authorization successful",
             content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentAuthorizationResponse.class))})
     PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest authorizationRequest);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Initiate Refund", description = "Initiates a refund for a payment")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Refund initiated successfully",

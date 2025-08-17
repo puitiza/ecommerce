@@ -14,8 +14,8 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
-@ApiErrorCommon
+@ApiCommonErrors
 @ApiResponse(responseCode = "422", description = "Invalid request data", content = @Content(mediaType = "application/json",
         schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.UNPROCESSABLE)))
-public @interface ApiErrorPostResponses {
+public @interface ApiValidationErrors {
 }

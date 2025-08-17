@@ -1,7 +1,7 @@
 package com.ecommerce.userservice.controller.openApi;
 
 import com.ecommerce.shared.openapi.ResponseApiTemplate;
-import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
+import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
 import com.ecommerce.userservice.model.request.LoginRequest;
 import com.ecommerce.userservice.model.request.UserDto;
 import com.ecommerce.userservice.model.response.LoginResponse;
@@ -38,7 +38,7 @@ public interface UserOpenApi {
     })
     LoginResponse login(LoginRequest loginDto);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Test endpoint in order to validate access by right role")
     @ApiResponse(responseCode = "200")
     ResponseEntity<?> data();

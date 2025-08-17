@@ -4,7 +4,7 @@ import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.request.OrderItemRequest;
 import com.ecommerce.shared.openapi.CrudOpenApi;
-import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
+import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,12 +42,12 @@ public interface ProductOpenApi extends CrudOpenApi<ProductDto, Long> {
     @ApiResponse(responseCode = "204", description = "Product deleted successfully")
     void delete(Long id);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Verify Product Availability", description = "Verifies if a product is available for an order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "200", description = "Availability verified successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductAvailabilityDto.class)))
     ProductAvailabilityDto verifyProductAvailability(OrderItemRequest orderItemRequest);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Update Product Inventory", description = "Updates the inventory of a product", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Inventory updated successfully")
     void updateProductInventory(Long id, Integer updatedInventory);

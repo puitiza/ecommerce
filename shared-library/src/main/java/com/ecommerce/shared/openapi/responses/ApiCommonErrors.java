@@ -19,7 +19,11 @@ import java.lang.annotation.Target;
         @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.UNAUTHORIZED))),
         @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(mediaType = "application/json",
-                schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN)))
+                schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN))),
+        @ApiResponse(responseCode = "500", description = "Internal", content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.INTERNAL_SERVER_ERROR))),
+        @ApiResponse(responseCode = "503", description = "Unavailable", content = @Content(mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.SERVICE_UNAVAILABLE)))
 })
-public @interface ApiErrorCommon {
+public @interface ApiCommonErrors {
 }
