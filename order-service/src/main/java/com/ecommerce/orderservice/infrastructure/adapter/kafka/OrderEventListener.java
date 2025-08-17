@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.interfaces.kafka;
+package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
