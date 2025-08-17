@@ -3,7 +3,6 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.service.OrderApplicationService;
 import com.ecommerce.orderservice.domain.port.in.OrderUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,13 @@ import java.util.UUID;
 
 /**
  * REST controller for handling order-related HTTP requests.
- * This class delegates all business logic to the {@link OrderApplicationService}.
+ * This class implements the {@link OrderOpenApi} interface to inherit all
+ * Spring and OpenAPI documentation, ensuring a clean and focused implementation.
+ * <p>
+ * NOTE: Parameter-level annotations (e.g., {@code @Valid}, {@code @RequestBody},
+ * {@code @PathVariable}, {@code @RequestParam}) are NOT inherited from the interface.
+ * They must be duplicated in the implementing methods to ensure Spring correctly
+ * handles request processing, binding, and validation at runtime.
  */
 @Slf4j
 @RestController
@@ -71,6 +76,8 @@ public class OrderController implements OrderOpenApi {
         orderUseCase.cancelOrder(orderId);
     }
 
+    // This method is not part of the main API contract, so it must define its own
+    // routing annotations as it does not inherit them from the interface.
     @GetMapping("/orders/search")
     public String testBoolean(@RequestParam boolean active) {
         return "Active: " + active;

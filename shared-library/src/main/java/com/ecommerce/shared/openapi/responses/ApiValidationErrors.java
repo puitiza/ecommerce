@@ -12,10 +12,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * API response for validation errors (e.g., malformed request body).
+ * Applicable to POST, PUT, and PATCH methods.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
-@ApiCommonErrors
 @ApiResponse(responseCode = "422", description = "Invalid request data", content = @Content(mediaType = "application/json",
-        schema = @Schema(implementation = ErrorResponse.class), examples = @ExampleObject(value = ResponseApiTemplate.UNPROCESSABLE)))
+        schema = @Schema(implementation = ErrorResponse.class),
+        examples = @ExampleObject(value = ResponseApiTemplate.UNPROCESSABLE)))
 public @interface ApiValidationErrors {
 }

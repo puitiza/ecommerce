@@ -14,21 +14,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Common API error responses for general issues.
+ * Common API error responses for unauthorized, forbidden, and server issues.
  * These responses are applicable to most, if not all, API endpoints.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
 @ApiResponses({
-        @ApiResponse(responseCode = "429", description = "Too Many Requests", content = @Content(mediaType = "application/json",
+        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = ResponseApiTemplate.RATE_LIMIT))),
-        @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = ResponseApiTemplate.UNAUTHORIZED))),
+        @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = ResponseApiTemplate.INTERNAL_SERVER_ERROR))),
-        @ApiResponse(responseCode = "503", description = "Service Unavailable", content = @Content(mediaType = "application/json",
-                schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = ResponseApiTemplate.SERVICE_UNAVAILABLE)))
+                examples = @ExampleObject(value = ResponseApiTemplate.FORBIDDEN)))
 })
-public @interface ApiCommonErrors {
+public @interface ApiAuthErrors {
 }

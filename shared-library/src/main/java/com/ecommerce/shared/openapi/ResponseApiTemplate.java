@@ -62,7 +62,7 @@ public class ResponseApiTemplate {
             {
                   "status": 500,
                   "errorCode": "GEN-003",
-                  "message": "Cannot invoke "java.util.List.iterator()" because the return value of "Class.getItems()" is null",
+                  "message": "Cannot invoke \\"java.util.List.iterator()\\" because the return value of \\"Class.getItems()\\" is null",
                   "timestamp": "2025-08-16T23:01:54.361195666Z",
                   "stackTrace": []
             }
