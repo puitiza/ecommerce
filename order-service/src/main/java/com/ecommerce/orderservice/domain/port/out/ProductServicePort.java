@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.application.port.out;
+package com.ecommerce.orderservice.domain.port.out;
 
 import com.ecommerce.orderservice.application.dto.BatchProductDetailsRequest;
 import com.ecommerce.orderservice.application.dto.BatchProductDetailsResponse;

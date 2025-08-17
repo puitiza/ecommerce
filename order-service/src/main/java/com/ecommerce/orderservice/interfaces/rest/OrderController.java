@@ -3,7 +3,8 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.service.OrderService;
+import com.ecommerce.orderservice.application.service.OrderApplicationService;
+import com.ecommerce.orderservice.domain.port.in.OrderUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +16,7 @@ import java.util.UUID;
 
 /**
  * REST controller for handling order-related HTTP requests.
- * This class delegates all business logic to the {@link OrderService}.
+ * This class delegates all business logic to the {@link OrderApplicationService}.
  */
 @Slf4j
 @RestController
@@ -23,14 +24,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderController implements OrderOpenApi {
 
-    private final OrderService orderService;
+    private final OrderUseCase orderUseCase;
 
     @Override
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
         log.info("Creating order: {}", request);
-        return orderService.createOrder(request);
+        return orderUseCase.createOrder(request);
     }
 
     @Override
@@ -38,21 +39,21 @@ public class OrderController implements OrderOpenApi {
     public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "10") int size) {
         log.info("Retrieving orders for page {} with size {}", page, size);
-        return new OrderPageResponse(orderService.getAllOrders(page, size));
+        return new OrderPageResponse(orderUseCase.getAllOrders(page, size));
     }
 
     @Override
     @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse getOrderById(@PathVariable UUID orderId) {
         log.info("Retrieving order with ID: {}", orderId);
-        return orderService.getOrderById(orderId);
+        return orderUseCase.getOrderById(orderId);
     }
 
     @Override
     @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody OrderRequest request) {
         log.info("Updating order with ID: {} with request: {}", orderId, request);
-        return orderService.updateOrder(orderId, request);
+        return orderUseCase.updateOrder(orderId, request);
     }
 
     @Override
@@ -60,14 +61,14 @@ public class OrderController implements OrderOpenApi {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteOrder(@PathVariable UUID orderId) {
         log.info("DELETING ORDER WITH ID {}", orderId);
-        orderService.deleteOrder(orderId);
+        orderUseCase.deleteOrder(orderId);
     }
 
     @Override
     @PostMapping(value = "/{orderId}/cancel")
     public void cancelOrder(@PathVariable UUID orderId) {
         log.info("Cancelling order with ID: {}", orderId);
-        orderService.cancelOrder(orderId);
+        orderUseCase.cancelOrder(orderId);
     }
 
     @GetMapping("/orders/search")

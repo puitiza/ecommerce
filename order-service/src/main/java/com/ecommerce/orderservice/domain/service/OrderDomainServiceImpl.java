@@ -11,7 +11,9 @@ import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-
+/**
+ * Implementation of the OrderDomainService, handling state machine interactions for order processing.
+ */
 @Service
 @RequiredArgsConstructor
 public class OrderDomainServiceImpl implements OrderDomainService {

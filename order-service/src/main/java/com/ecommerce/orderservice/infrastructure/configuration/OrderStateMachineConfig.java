@@ -3,7 +3,7 @@ package com.ecommerce.orderservice.infrastructure.configuration;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
-import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.out.OrderEventPublisherPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

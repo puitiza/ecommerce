@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.security;
 
-import com.ecommerce.orderservice.application.dto.UserAuthenticationDetails;
-import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
+import com.ecommerce.orderservice.domain.port.out.UserAuthenticationPort;
+import com.ecommerce.orderservice.infrastructure.adapter.security.dto.UserAuthenticationDetails;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;

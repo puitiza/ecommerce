@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.domain.port;
+package com.ecommerce.orderservice.domain.port.out;
 
 import com.ecommerce.orderservice.domain.model.Order;
 

@@ -1,17 +1,18 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.*;
-import com.ecommerce.orderservice.application.port.out.ProductServicePort;
-import com.ecommerce.orderservice.application.port.out.UserAuthenticationPort;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderItem;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
-import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
+import com.ecommerce.orderservice.domain.port.out.OrderRepositoryPort;
+import com.ecommerce.orderservice.domain.port.out.ProductServicePort;
+import com.ecommerce.orderservice.domain.port.out.UserAuthenticationPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
+import com.ecommerce.orderservice.infrastructure.adapter.security.dto.UserAuthenticationDetails;
 import com.ecommerce.shared.exception.ExceptionError;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OrderServiceImpl implements OrderService {
+public class OrderApplicationServiceImpl implements OrderApplicationService {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final ProductServicePort productServicePort;

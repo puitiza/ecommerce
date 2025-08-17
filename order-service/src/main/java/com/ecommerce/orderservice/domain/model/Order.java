@@ -23,10 +23,10 @@ public record Order(
 ) {
 
     /**
-     * Creates a new Order with updated status and timestamp.
+     * Creates a new order with an updated status.
      *
-     * @param newStatus The new order status.
-     * @return Updated Order instance.
+     * @param newStatus The new status of the order.
+     * @return A new Order instance with the updated status and current timestamp.
      */
     public Order withStatus(OrderStatus newStatus) {
         return new Order(id, userId, items, newStatus, createdAt, LocalDateTime.now(), totalPrice, shippingAddress);

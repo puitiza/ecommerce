@@ -3,7 +3,7 @@ package com.ecommerce.orderservice.interfaces.kafka;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
-import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
+import com.ecommerce.orderservice.domain.port.out.OrderRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;

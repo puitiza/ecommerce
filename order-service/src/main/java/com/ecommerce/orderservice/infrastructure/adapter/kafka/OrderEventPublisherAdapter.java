@@ -3,7 +3,7 @@ package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.exception.EventPublishingException;
 import com.ecommerce.orderservice.domain.model.Order;
-import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.out.OrderEventPublisherPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;

@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.persistence.repository;
 
 import com.ecommerce.orderservice.domain.model.Order;
-import com.ecommerce.orderservice.domain.port.OrderRepositoryPort;
+import com.ecommerce.orderservice.domain.port.out.OrderRepositoryPort;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
