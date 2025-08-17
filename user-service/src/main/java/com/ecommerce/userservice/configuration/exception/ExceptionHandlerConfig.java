@@ -24,6 +24,6 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
     @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
     public ResponseEntity<Object> handleInvalidUserException(InvalidUserException ex, WebRequest request) {
         log.error("Invalid user: {}", ex.getMessage(), ex);
-        return errorResponseBuilder.build(ex, request, ExceptionError.USER_USERNAME_FOUND, null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.USER_USERNAME_FOUND, null, ex.getMessage());
     }
 }

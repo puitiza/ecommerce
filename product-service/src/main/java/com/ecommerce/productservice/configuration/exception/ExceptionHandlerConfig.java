@@ -24,11 +24,11 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidInventoryException.class)
     public ResponseEntity<Object> handleInvalidInventoryException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_INVALID_INVENTORY, null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_INVALID_INVENTORY, null, ex.getMessage());
     }
 
     @ExceptionHandler(ProductUpdateException.class)
     public ResponseEntity<Object> handleProductUpdateException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_UPDATE_FAILED, null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_UPDATE_FAILED, null, ex.getMessage());
     }
 }
