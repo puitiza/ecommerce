@@ -49,7 +49,7 @@ public class ProductFeignAdapter implements ProductServicePort {
     private OrderValidationException handleError(String errorMessage, List<Long> productIds, Throwable t) {
         String details = t.getMessage() != null ? t.getMessage() : errorMessage + " for products: " + productIds;
         String productIdsStr = productIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        log.error("{} for products {}: {}", errorMessage, productIds, t.getMessage(), t);
+        log.error("Fallback triggered for products {}. Original exception: {}: {}", productIds, t.getClass().getName(), t.getMessage());
 
         if (t instanceof FeignException feign) {
             switch (feign.status()) {
