@@ -6,6 +6,11 @@ import org.springframework.data.domain.Page;
 
 import java.util.UUID;
 
+/**
+ * Defines the use cases for managing orders.
+ * This interface is the primary entry point for all order-related operations
+ * in the application layer.
+ */
 public interface OrderService {
     OrderResponse createOrder(OrderRequest request);
 

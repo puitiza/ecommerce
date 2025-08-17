@@ -17,6 +17,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.util.UUID;
 
+/**
+ * OpenAPI interface for order endpoints.
+ * <p>
+ * Defines API documentation for Swagger.
+ */
 @SuppressWarnings("unused")
 public interface OrderOpenApi {
 

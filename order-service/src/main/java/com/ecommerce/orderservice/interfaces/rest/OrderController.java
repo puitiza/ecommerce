@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST controller for handling order-related HTTP requests.
+ * This class delegates all business logic to the {@link OrderService}.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/orders")

@@ -27,6 +27,10 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Implements the OrderUseCase interface, providing the core application logic for order management.
+ * This service orchestrates calls to domain services and infrastructure ports.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

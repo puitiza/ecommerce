@@ -1,26 +1,29 @@
 dependencies {
-    // Apply shared dependency sets
+    // Apply shared dependencies sets
     applyCommonDependencies(dependencies)
     applyTracingDependencies(dependencies)
     applySecurityDependencies(dependencies)
     applyOpenApiDependencies(dependencies)
 
-    // Service-specific dependencies
+    // Core Spring dependencies
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Third-party dependencies
     implementation 'org.springframework.statemachine:spring-statemachine-core:4.0.1'
-
-    implementation 'org.springframework.kafka:spring-kafka' // Kafka
-    implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Kafka
-    implementation 'io.cloudevents:cloudevents-json-jackson:2.5.0'//Kafka
-
-    runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'io.github.openfeign:feign-micrometer' // Zipkin for feign
-
     implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+    implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Cloudevents properties
+    implementation 'io.cloudevents:cloudevents-json-jackson:2.5.0'//Cloudevents For Deserialization
 
-    // Add this line to depend on the shared-library module
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Database driver
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Project modules
     implementation project(':shared-library')
 }
