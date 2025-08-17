@@ -15,7 +15,7 @@ public enum ExceptionError {
     ORDER_VALIDATION("error.order.validation", HttpStatus.BAD_REQUEST),
     ORDER_DUPLICATE_PRODUCT("error.order.duplicate_product", HttpStatus.UNPROCESSABLE_ENTITY),
     ORDER_INSUFFICIENT_INVENTORY("error.order.insufficient_inventory", HttpStatus.UNPROCESSABLE_ENTITY),
-    ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED("error.order.product_availability_check_failed", HttpStatus.BAD_REQUEST),
+    ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED("error.order.product_availability_check_failed", HttpStatus.UNPROCESSABLE_ENTITY),
     ORDER_UPDATE_FAILED("error.order.update_failed.msg", HttpStatus.BAD_REQUEST),
     ORDER_CANCELLATION("error.order.cancellation", HttpStatus.BAD_REQUEST),
     ORDER_PAYMENT_AUTHORIZATION_FAILED("error.order.payment_authorization_failed", HttpStatus.BAD_REQUEST),

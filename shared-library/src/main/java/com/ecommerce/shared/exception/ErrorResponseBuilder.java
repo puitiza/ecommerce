@@ -32,11 +32,6 @@ public class ErrorResponseBuilder {
     private final MessageSource messageSource;
 
     public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
-                                        List<ErrorResponse.ValidationError> validationErrors, Object... messageArgs) {
-        return build(exception, requestContext, error, validationErrors, exception.getMessage(), messageArgs);
-    }
-
-    public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
                                         List<ErrorResponse.ValidationError> validationErrors,
                                         String details, Object... messageArgs) {
         Locale locale = LocaleContextHolder.getLocale();
