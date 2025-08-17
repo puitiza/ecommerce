@@ -1,4 +1,4 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.domain.exception;
 
 public class ResourceNotFoundException extends ServiceException {
     public ResourceNotFoundException(String resourceType, String id) {

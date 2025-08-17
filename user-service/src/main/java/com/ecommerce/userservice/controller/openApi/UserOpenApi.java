@@ -1,7 +1,7 @@
 package com.ecommerce.userservice.controller.openApi;
 
-import com.ecommerce.shared.openapi.ResponseApiTemplate;
-import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
+import com.ecommerce.shared.interfaces.openapi.ResponseApiTemplate;
+import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import com.ecommerce.userservice.model.request.LoginRequest;
 import com.ecommerce.userservice.model.request.UserDto;
 import com.ecommerce.userservice.model.response.LoginResponse;

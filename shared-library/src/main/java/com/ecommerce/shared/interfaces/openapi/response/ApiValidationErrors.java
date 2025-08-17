@@ -1,7 +1,7 @@
-package com.ecommerce.shared.openapi.responses;
+package com.ecommerce.shared.interfaces.openapi.response;
 
-import com.ecommerce.shared.exception.ErrorResponse;
-import com.ecommerce.shared.openapi.ResponseApiTemplate;
+import com.ecommerce.shared.domain.model.ErrorResponse;
+import com.ecommerce.shared.interfaces.openapi.ResponseApiTemplate;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;

@@ -1,8 +1,8 @@
 package com.ecommerce.shared.openapi;
 
-import com.ecommerce.shared.openapi.responses.ApiCommonErrors;
-import com.ecommerce.shared.openapi.responses.ApiResourceNotFound;
-import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
+import com.ecommerce.shared.interfaces.openapi.response.ApiCommonErrors;
+import com.ecommerce.shared.interfaces.openapi.response.ApiResourceNotFound;
+import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

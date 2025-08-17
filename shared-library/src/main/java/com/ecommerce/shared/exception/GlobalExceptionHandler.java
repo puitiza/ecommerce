@@ -1,5 +1,10 @@
 package com.ecommerce.shared.exception;
 
+import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
+import com.ecommerce.shared.domain.exception.ServiceException;
+import com.ecommerce.shared.domain.model.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;

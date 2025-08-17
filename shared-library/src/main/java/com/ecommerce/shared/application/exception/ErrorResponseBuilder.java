@@ -1,5 +1,7 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.application.exception;
 
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.domain.model.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

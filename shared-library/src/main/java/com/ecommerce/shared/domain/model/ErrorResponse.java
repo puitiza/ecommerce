@@ -1,4 +1,4 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;

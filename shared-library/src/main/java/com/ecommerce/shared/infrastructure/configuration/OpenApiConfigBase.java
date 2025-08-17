@@ -1,5 +1,6 @@
-package com.ecommerce.shared.openapi;
+package com.ecommerce.shared.infrastructure.configuration;
 
+import com.ecommerce.shared.infrastructure.openapi.ServiceConfig;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;

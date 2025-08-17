@@ -1,7 +1,7 @@
-package com.ecommerce.shared;
+package com.ecommerce.shared.infrastructure.configuration;
 
-import com.ecommerce.shared.exception.ErrorResponseBuilder;
-import com.ecommerce.shared.openapi.ServiceConfig;
+import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.infrastructure.openapi.ServiceConfig;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;

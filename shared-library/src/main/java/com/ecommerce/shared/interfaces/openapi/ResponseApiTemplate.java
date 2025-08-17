@@ -1,4 +1,4 @@
-package com.ecommerce.shared.openapi;
+package com.ecommerce.shared.interfaces.openapi;
 
 public class ResponseApiTemplate {
 

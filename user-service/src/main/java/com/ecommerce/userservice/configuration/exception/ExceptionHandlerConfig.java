@@ -1,7 +1,7 @@
 package com.ecommerce.userservice.configuration.exception;
 
-import com.ecommerce.shared.exception.ErrorResponseBuilder;
-import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.domain.exception.ExceptionError;
 import com.ecommerce.shared.exception.GlobalExceptionHandler;
 import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
 import lombok.extern.slf4j.Slf4j;

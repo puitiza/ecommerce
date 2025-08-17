@@ -1,4 +1,4 @@
-package com.ecommerce.shared.openapi;
+package com.ecommerce.shared.infrastructure.openapi;
 
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.boot.context.properties.ConfigurationProperties;

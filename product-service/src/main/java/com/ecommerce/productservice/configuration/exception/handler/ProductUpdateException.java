@@ -1,7 +1,7 @@
 package com.ecommerce.productservice.configuration.exception.handler;
 
-import com.ecommerce.shared.exception.ExceptionError;
-import com.ecommerce.shared.exception.ServiceException;
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.domain.exception.ServiceException;
 
 public class ProductUpdateException extends ServiceException {
 

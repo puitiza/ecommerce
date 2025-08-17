@@ -1,4 +1,4 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.domain.exception;
 
 import lombok.Getter;
 

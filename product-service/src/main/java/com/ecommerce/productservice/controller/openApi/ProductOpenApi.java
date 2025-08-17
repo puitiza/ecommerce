@@ -4,7 +4,7 @@ import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.request.OrderItemRequest;
 import com.ecommerce.shared.openapi.CrudOpenApi;
-import com.ecommerce.shared.openapi.responses.ApiValidationErrors;
+import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

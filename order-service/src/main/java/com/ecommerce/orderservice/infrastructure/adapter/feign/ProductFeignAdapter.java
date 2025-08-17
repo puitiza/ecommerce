@@ -3,7 +3,7 @@ package com.ecommerce.orderservice.infrastructure.adapter.feign;
 import com.ecommerce.orderservice.application.dto.*;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
 import com.ecommerce.orderservice.domain.port.out.ProductServicePort;
-import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.domain.exception.ExceptionError;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;

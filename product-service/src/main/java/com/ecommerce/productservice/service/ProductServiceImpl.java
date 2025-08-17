@@ -5,7 +5,7 @@ import com.ecommerce.productservice.configuration.exception.handler.ProductUpdat
 import com.ecommerce.productservice.model.dto.*;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.repository.ProductRepository;
-import com.ecommerce.shared.exception.ResourceNotFoundException;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
