@@ -69,7 +69,7 @@ public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, U
     @ApiResourceNotFound
     @Operation(summary = "Cancel Order", description = "Cancels an order by its ID", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Order cancelled successfully")
-    @DeleteMapping(value = "/{orderId}/cancel")
+    @DeleteMapping(value = "/{id}/cancel")
     void cancelOrder(@Parameter(description = "ID of the order to cancel", required = true)
-                     @PathVariable("orderId") UUID orderId);
+                     @PathVariable("id") UUID id);
 }

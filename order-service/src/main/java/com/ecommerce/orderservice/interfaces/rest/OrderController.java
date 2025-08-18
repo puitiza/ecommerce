@@ -60,9 +60,9 @@ public class OrderController implements OrderOpenApi {
     }
 
     @Override
-    public void cancelOrder(@PathVariable("orderId") UUID orderId) {
-        log.info("Cancelling order with ID: {}", orderId);
-        orderUseCase.cancelOrder(orderId);
+    public void cancelOrder(@PathVariable("id") UUID id) {
+        log.info("Cancelling order with ID: {}", id);
+        orderUseCase.cancelOrder(id);
     }
 
     @GetMapping("/orders/search")

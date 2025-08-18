@@ -7,12 +7,10 @@ import com.ecommerce.paymentservice.model.request.RefundRequest;
 import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
-import com.ecommerce.shared.interfaces.openapi.ResponseApiTemplate;
 import com.ecommerce.shared.interfaces.openapi.response.ApiResourceNotFound;
 import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -27,8 +25,7 @@ public interface PaymentOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Payment processed successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentResponse.class))}),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.RATE_LIMIT)))
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
     PaymentResponse processPayment(PaymentRequest paymentRequest);
 
@@ -49,8 +46,7 @@ public interface PaymentOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Refund initiated successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = RefundResponse.class))}),
-            @ApiResponse(responseCode = "404", description = "Payment not found",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
+            @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest);
 }
