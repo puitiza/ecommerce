@@ -4,17 +4,13 @@ import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
 import com.ecommerce.shared.interfaces.openapi.CrudOpenApi;
-import com.ecommerce.shared.interfaces.openapi.response.ApiAuthErrors;
-import com.ecommerce.shared.interfaces.openapi.response.ApiCommonErrors;
 import com.ecommerce.shared.interfaces.openapi.response.ApiResourceNotFound;
-import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
