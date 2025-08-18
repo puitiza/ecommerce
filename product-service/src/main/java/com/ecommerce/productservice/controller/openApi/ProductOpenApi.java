@@ -3,7 +3,7 @@ package com.ecommerce.productservice.controller.openApi;
 import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
 import com.ecommerce.productservice.model.dto.ProductDto;
 import com.ecommerce.productservice.model.request.OrderItemRequest;
-import com.ecommerce.shared.openapi.CrudOpenApi;
+import com.ecommerce.shared.interfaces.openapi.CrudOpenApi;
 import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -15,14 +15,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 
 @SuppressWarnings("unused")
-public interface ProductOpenApi extends CrudOpenApi<ProductDto, Long> {
+public interface ProductOpenApi extends CrudOpenApi<ProductDto, ProductDto, Long> {
 
     @Override
     @Operation(summary = "Create Product", description = "Creates a new product", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "201", description = "Product created successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
     ProductDto create(ProductDto resource);
 
-    @Override
+    //@Override
     @Operation(summary = "Retrieve All Products", description = "Retrieves all products", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "200", description = "Products retrieved successfully", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductDto.class))))
     List<ProductDto> getAll();
