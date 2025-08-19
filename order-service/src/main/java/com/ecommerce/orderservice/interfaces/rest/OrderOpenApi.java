@@ -3,60 +3,73 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.shared.openapi.ResponseApiTemplate;
-import com.ecommerce.shared.openapi.responses.ApiErrorCommon;
-import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
-import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
+import com.ecommerce.shared.interfaces.openapi.CrudOpenApi;
+import com.ecommerce.shared.interfaces.openapi.ListableCrudOpenApi;
+import com.ecommerce.shared.interfaces.openapi.response.ApiResourceNotFound;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@SuppressWarnings("unused")
-public interface OrderOpenApi {
+/**
+ * OpenAPI interface for order endpoints.
+ * Extends CrudOpenApi and ListableCrudOpenApi for standard CRUD operations and adds order-specific endpoints.
+ */
+@RequestMapping("/orders")
+public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, UUID>, ListableCrudOpenApi<OrderPageResponse> {
 
-    @ApiErrorPostResponses
+    @Override
     @Operation(summary = "Create Order", description = "Creates a new order", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "201", description = "Order created successfully",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
-    OrderResponse createOrder(OrderRequest request);
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = OrderResponse.class)))
+    OrderResponse create(@Parameter(description = "Order details to create", required = true)
+                         @RequestBody OrderRequest request);
 
-    @ApiErrorCommon
-    @Operation(summary = "Retrieve all Orders", description = "Retrieve all orders with pagination", security = @SecurityRequirement(name = "security_auth"))
+    @Override
+    @Operation(summary = "Retrieve All Orders", description = "Retrieves all orders with pagination", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderPageResponse.class)))
-    OrderPageResponse getOrders(int page, int size);
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = OrderPageResponse.class)))
+    OrderPageResponse getAll(@Parameter(description = "Page number for pagination", example = "0")
+                             @RequestParam(defaultValue = "0") int page,
+                             @Parameter(description = "Number of items per page", example = "10")
+                             @RequestParam(defaultValue = "10") int size);
 
-    @ApiErrorGetResponses
-    @Operation(summary = "Order Details", description = "Retrieves the details of an order by order ID", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Success",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
-    OrderResponse getOrderById(UUID id);
+    @Override
+    @Operation(summary = "Retrieve Order by ID", description = "Retrieves the details of an order by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Order retrieved successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = OrderResponse.class)))
+    OrderResponse getById(@Parameter(description = "ID of the order to retrieve", required = true)
+                          @PathVariable("id") UUID id);
 
-    @ApiErrorPostResponses
-    @Operation(summary = "Update Order", description = "Updates an existing order", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Order updated successfully",
-                    content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))}),
-            @ApiResponse(responseCode = "404", description = "Payment not found",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
-    })
-    OrderResponse updateOrder(UUID id, OrderRequest request);
+    @Override
+    @Operation(summary = "Update Order", description = "Updates an existing order by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Order updated successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = OrderResponse.class)))
+    OrderResponse update(@Parameter(description = "ID of the order to update", required = true)
+                         @PathVariable("id") UUID id,
+                         @Parameter(description = "Updated order details", required = true)
+                         @RequestBody OrderRequest request);
 
-    @ApiErrorGetResponses
-    @Operation(summary = "Delete Order", description = "Delete an order", security = @SecurityRequirement(name = "security_auth"))
+    @Override
+    @Operation(summary = "Delete Order", description = "Deletes an order by its ID", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Order deleted successfully")
-    void deleteOrder(UUID id);
+    void delete(@Parameter(description = "ID of the order to delete", required = true)
+                @PathVariable("id") UUID id);
 
-    @ApiErrorGetResponses
-    @Operation(summary = "Cancel Order", description = "Cancel an order", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Success",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))})
-    void cancelOrder(UUID orderId);
+    @ApiResourceNotFound
+    @Operation(summary = "Cancel Order", description = "Cancels an order by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "204", description = "Order cancelled successfully")
+    @DeleteMapping(value = "/{id}/cancel")
+    void cancelOrder(@Parameter(description = "ID of the order to cancel", required = true)
+                     @PathVariable("id") UUID id);
 }
-

@@ -10,7 +10,7 @@ import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
 import com.ecommerce.paymentservice.repository.PaymentRepository;
-import com.ecommerce.shared.exception.ResourceNotFoundException;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

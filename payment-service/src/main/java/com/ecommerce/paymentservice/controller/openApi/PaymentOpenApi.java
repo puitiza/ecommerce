@@ -7,12 +7,10 @@ import com.ecommerce.paymentservice.model.request.RefundRequest;
 import com.ecommerce.paymentservice.model.response.PaymentAuthorizationResponse;
 import com.ecommerce.paymentservice.model.response.PaymentResponse;
 import com.ecommerce.paymentservice.model.response.RefundResponse;
-import com.ecommerce.shared.openapi.ResponseApiTemplate;
-import com.ecommerce.shared.openapi.responses.ApiErrorGetResponses;
-import com.ecommerce.shared.openapi.responses.ApiErrorPostResponses;
+import com.ecommerce.shared.interfaces.openapi.response.ApiResourceNotFound;
+import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -22,35 +20,33 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 public interface PaymentOpenApi {
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Process Payment", description = "Processes a payment for an order")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Payment processed successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentResponse.class))}),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.RATE_LIMIT)))
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
     PaymentResponse processPayment(PaymentRequest paymentRequest);
 
-    @ApiErrorGetResponses
+    @ApiResourceNotFound
     @Operation(summary = "Get Payment Details", description = "Gets details of a specific payment")
     @ApiResponse(responseCode = "200", description = "Payment details retrieved successfully",
             content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentTransactionDetails.class))})
     PaymentTransactionDetails getPaymentDetails(UUID paymentId);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Authorize Payment", description = "Authorizes a payment for an order")
     @ApiResponse(responseCode = "200", description = "Payment authorization successful",
             content = {@Content(mediaType = "application/json", schema = @Schema(implementation = PaymentAuthorizationResponse.class))})
     PaymentAuthorizationResponse authorizePayment(PaymentAuthorizationRequest authorizationRequest);
 
-    @ApiErrorPostResponses
+    @ApiValidationErrors
     @Operation(summary = "Initiate Refund", description = "Initiates a refund for a payment")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Refund initiated successfully",
                     content = {@Content(mediaType = "application/json", schema = @Schema(implementation = RefundResponse.class))}),
-            @ApiResponse(responseCode = "404", description = "Payment not found",
-                    content = @Content(examples = @ExampleObject(value = ResponseApiTemplate.NOT_FOUND)))
+            @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     RefundResponse initiateRefund(UUID paymentId, RefundRequest refundRequest);
 }

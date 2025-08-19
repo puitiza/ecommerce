@@ -2,6 +2,11 @@ package com.ecommerce.orderservice.domain.event;
 
 import lombok.Getter;
 
+/**
+ * Enum representing types of events in the order lifecycle.
+ * <p>
+ * Each event type corresponds to a Kafka topic, CloudEvent type, and subject for structured event publishing.
+ */
 @Getter
 public enum OrderEventType {
 

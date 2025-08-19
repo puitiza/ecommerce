@@ -3,7 +3,7 @@ package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.exception.EventPublishingException;
 import com.ecommerce.orderservice.domain.model.Order;
-import com.ecommerce.orderservice.domain.port.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.out.OrderEventPublisherPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
@@ -116,11 +116,11 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
                     .build();
 
             kafkaTemplate.send(eventType.getTopic(), order.id().toString(), cloudEvent);
-            log.info("Sent '{}' event to Kafka for order ID: {}", eventType.getEventType(), order.id());
+            log.info("Sent '{}' to Kafka for order ID: {}", eventType.getEventType(), order.id());
 
         } catch (Exception e) {
-            log.error("Error serializing or sending CloudEvent for order {}", order.id(), e);
-            throw new EventPublishingException("Failed to serialize or publish event for order " + order.id(), e);
+            log.error("Failed to publish {} event for order ID: {}", eventType.getEventType(), order.id(), e);
+            throw new EventPublishingException("Failed to publish %s event for order %s".formatted(eventType.getEventType(), order.id()), e);
         }
     }
 }

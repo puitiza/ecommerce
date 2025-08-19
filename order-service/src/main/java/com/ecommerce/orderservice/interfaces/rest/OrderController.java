@@ -3,63 +3,66 @@ package com.ecommerce.orderservice.interfaces.rest;
 import com.ecommerce.orderservice.application.dto.OrderPageResponse;
 import com.ecommerce.orderservice.application.dto.OrderRequest;
 import com.ecommerce.orderservice.application.dto.OrderResponse;
-import com.ecommerce.orderservice.application.service.OrderService;
+import com.ecommerce.orderservice.domain.port.in.OrderUseCase;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * REST controller for handling order-related HTTP requests.
+ * This class implements the {@link OrderOpenApi} to inherit CRUD operations
+ * Spring and OpenAPI documentation, ensuring a clean and focused implementation.
+ * <p>
+ * NOTE: Parameter-level annotations (e.g., {@code @Valid}, {@code @RequestBody},
+ * {@code @PathVariable}, {@code @RequestParam}) are NOT inherited from the interface.
+ * They must be duplicated in the implementing methods to ensure Spring correctly
+ * handles request processing, binding, and validation at runtime.
+ */
 @Slf4j
 @RestController
-@RequestMapping("/orders")
-public record OrderController(OrderService orderService) implements OrderOpenApi {
+@RequiredArgsConstructor
+public class OrderController implements OrderOpenApi {
+
+    private final OrderUseCase orderUseCase;
 
     @Override
-    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse createOrder(@Valid @RequestBody OrderRequest request) {
-        log.info("CREATING ORDER: {}", request);
-        return orderService.createOrder(request);
+    public OrderResponse create(@Valid @RequestBody OrderRequest request) {
+        log.info("Creating order: {}", request);
+        return orderUseCase.createOrder(request);
     }
 
     @Override
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderPageResponse getOrders(@RequestParam(defaultValue = "0") int page,
-                                       @RequestParam(defaultValue = "10") int size) {
-        log.info("RETRIEVING ORDERS FOR PAGE {} WITH SIZE {}", page, size);
-        return new OrderPageResponse(orderService.getAllOrders(page, size));
+    public OrderPageResponse getAll(@RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "10") int size) {
+        log.info("Retrieving orders for page {} with size {}", page, size);
+        return new OrderPageResponse(orderUseCase.getAllOrders(page, size));
     }
 
     @Override
-    @GetMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderResponse getOrderById(@PathVariable UUID orderId) {
-        log.info("GETTING ORDER WITH ID {}", orderId);
-        return orderService.getOrderById(orderId);
+    public OrderResponse getById(@PathVariable("id") UUID id) {
+        log.info("Retrieving order with ID: {}", id);
+        return orderUseCase.getOrderById(id);
     }
 
     @Override
-    @PutMapping(value = "/{orderId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public OrderResponse updateOrder(@PathVariable UUID orderId, @Valid @RequestBody OrderRequest request) {
-        log.info("UPDATING ORDER WITH ID {}: {}", orderId, request);
-        return orderService.updateOrder(orderId, request);
+    public OrderResponse update(@PathVariable("id") UUID id, @Valid @RequestBody OrderRequest request) {
+        log.info("Updating order with ID: {} with request: {}", id, request);
+        return orderUseCase.updateOrder(id, request);
     }
 
     @Override
-    @DeleteMapping(value = "/{orderId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteOrder(@PathVariable UUID orderId) {
-        log.info("DELETING ORDER WITH ID {}", orderId);
-        orderService.deleteOrder(orderId);
+    public void delete(@PathVariable("id") UUID id) {
+        log.info("Deleting order with ID: {}", id);
+        orderUseCase.deleteOrder(id);
     }
 
     @Override
-    @PostMapping(value = "/{orderId}/cancel")
-    public void cancelOrder(@PathVariable UUID orderId) {
-        log.info("CANCELLING ORDER WITH ID {}", orderId);
-        orderService.cancelOrder(orderId);
+    public void cancelOrder(@PathVariable("id") UUID id) {
+        log.info("Cancelling order with ID: {}", id);
+        orderUseCase.cancelOrder(id);
     }
 
     @GetMapping("/orders/search")

@@ -1,7 +1,7 @@
 package com.ecommerce.apigateway;
 
 import com.ecommerce.apigateway.properties.SecurityProperties;
-import com.ecommerce.shared.SharedLibraryConfig;
+import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;

@@ -3,8 +3,9 @@ package com.ecommerce.orderservice.infrastructure.configuration;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
-import com.ecommerce.shared.exception.ErrorResponseBuilder;
-import com.ecommerce.shared.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.domain.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -34,7 +35,7 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
      * The `ex.getError()` method is used to retrieve the correct ExceptionError code.
      */
     @ExceptionHandler({OrderValidationException.class, OrderCancellationException.class, OrderUpdateException.class})
-    public ResponseEntity<Object> handleOrderCancellationException(OrderCancellationException ex, WebRequest request) {
+    public ResponseEntity<Object> handleServiceExceptions(ServiceException ex, WebRequest request) {
         return errorResponseBuilder.build(ex, request, ex.getError(), null, ex.getMessage(), ex.getMessageArgs());
     }
 }

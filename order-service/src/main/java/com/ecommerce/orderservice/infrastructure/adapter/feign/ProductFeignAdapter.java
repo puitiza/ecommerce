@@ -1,9 +1,9 @@
 package com.ecommerce.orderservice.infrastructure.adapter.feign;
 
 import com.ecommerce.orderservice.application.dto.*;
-import com.ecommerce.orderservice.application.port.out.ProductServicePort;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
-import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.orderservice.domain.port.out.ProductServicePort;
+import com.ecommerce.shared.domain.exception.ExceptionError;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class ProductFeignAdapter implements ProductServicePort {
     private OrderValidationException handleError(String errorMessage, List<Long> productIds, Throwable t) {
         String details = t.getMessage() != null ? t.getMessage() : errorMessage + " for products: " + productIds;
         String productIdsStr = productIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        log.error("{} for products {}: {}", errorMessage, productIds, t.getMessage(), t);
+        log.error("Fallback triggered for products {}. Original exception: {}: {}", productIds, t.getClass().getName(), t.getMessage());
 
         if (t instanceof FeignException feign) {
             switch (feign.status()) {
