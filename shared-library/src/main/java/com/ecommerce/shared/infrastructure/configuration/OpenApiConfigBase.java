@@ -20,8 +20,8 @@ public class OpenApiConfigBase {
 
     private static final String SECURITY_SCHEME_NAME = "security_auth";
 
-    @Value("${keycloak.realm.url:}")
-    private String keycloakRealmUrl;
+    @Value("${keycloak.realm.external-url:${keycloak.realm.url}}")
+    private String externalKeycloakRealmUrl;
 
     private final ServiceConfig serviceConfig;
 
@@ -48,7 +48,7 @@ public class OpenApiConfigBase {
                                             .type(SecurityScheme.Type.OAUTH2)
                                             .flows(new OAuthFlows()
                                                     .clientCredentials(new OAuthFlow()
-                                                            .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
+                                                            .tokenUrl(externalKeycloakRealmUrl + "/protocol/openid-connect/token")
                                                             .scopes(new Scopes().addString("openid", "OpenID scope"))))))
                     .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
         }
