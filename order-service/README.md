@@ -33,6 +33,8 @@ transitions and robust error handling for production readiness.
     - [Observability Enhancements](#observability-enhancements)
     - [Kafka Enhancements](#kafka-enhancements)
     - [Security Enhancements](#security-enhancements)
+    - [Clean Architecture Structure](#clean-architecture-structure)
+    - [Exception Handling](#exception-handling)
 8. [Resources](#resources)
 
 ---
@@ -461,6 +463,27 @@ The service uses Spring Kafka’s `DefaultErrorHandler` for robust message proce
             - path: /actuator/refresh
               methods: [POST]
       ```
+
+---
+
+### Clean Architecture Structure
+
+- **application**: DTOs, use cases.
+- **domain**: Entities, enums, ports.
+- **infrastructure**: Adapters (e.g., Feign), configurations (e.g., Jackson).
+- **interfaces**: Adapters for external protocols:
+    - **rest**: REST controllers (`OrderController`), OpenAPI (`OrderOpenApi`), exception handling (
+      `OrderExceptionHandler`).
+    - **graphql**: GraphQL resolvers (`OrderResolver`), exception handling (`OrderGraphQLExceptionHandler`).
+    - **grpc**: gRPC services (`OrderGrpcService`), exception handling (`OrderGrpcExceptionInterceptor`).
+
+---
+
+### Exception Handling
+
+- REST: `OrderExceptionHandler` in `interfaces.rest` handles HTTP responses.
+- GraphQL/gRPC: Protocol-specific handlers in `interfaces.graphql` and `interfaces.grpc`.
+- Domain exceptions (e.g., `OrderValidationException`) are reused across protocols.
 
 ---
 

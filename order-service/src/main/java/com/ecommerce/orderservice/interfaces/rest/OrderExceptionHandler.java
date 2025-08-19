@@ -1,4 +1,4 @@
-package com.ecommerce.orderservice.infrastructure.configuration;
+package com.ecommerce.orderservice.interfaces.rest;
 
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
@@ -19,12 +19,12 @@ import org.springframework.web.context.request.WebRequest;
  * It extends the shared GlobalExceptionHandler to centralize common logic
  * while handling specific domain exceptions.
  */
-@Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
+@Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
-public class ExceptionHandlerConfig extends GlobalExceptionHandler {
+public class OrderExceptionHandler extends GlobalExceptionHandler {
 
-    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder) {
+    public OrderExceptionHandler(ErrorResponseBuilder errorResponseBuilder) {
         super(errorResponseBuilder);
     }
 
