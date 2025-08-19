@@ -1,10 +1,15 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.application.exception;
 
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
+import com.ecommerce.shared.domain.exception.ServiceException;
+import com.ecommerce.shared.domain.model.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -16,9 +21,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.List;
 
 /**
- * Global exception handler providing a centralized way to handle common
- * Spring MVC and custom exceptions. This class serves as the base
- * for specific service exception handlers.
+ * Centralized exception handler for Spring MVC applications.
+ * Handles common Spring and custom exceptions, producing standardized error responses.
  */
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -26,8 +30,13 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     protected final ErrorResponseBuilder errorResponseBuilder;
 
     /**
-     * Handles validation exceptions from @Valid annotations on method arguments.
-     * It formats the response to be clean and easy to consume.
+     * Handles validation errors from @Valid annotations.
+     *
+     * @param ex      The validation exception.
+     * @param headers HTTP headers.
+     * @param status  HTTP status code.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -38,8 +47,7 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
         List<ErrorResponse.ValidationError> validationErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> new ErrorResponse.ValidationError(
                         fieldError.getField(),
-                        fieldError.getDefaultMessage()
-                ))
+                        fieldError.getDefaultMessage()))
                 .toList();
 
         String message;
@@ -47,7 +55,7 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
 
         if (validationErrors.size() > 1) {
             message = "Validation failed for multiple fields.";
-            details = "Multiple validation errors occurred. Please check the 'errors' field for details on each validation failure.";
+            details = "Multiple validation errors occurred. Please check the 'errors' field for details";
         } else {
             ErrorResponse.ValidationError firstError = validationErrors.getFirst();
             message = firstError.message();
@@ -64,7 +72,13 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     /**
-     * Handles type mismatch exceptions for request parameters or path variables.
+     * Handles type mismatch errors for request parameters or path variables.
+     *
+     * @param ex      The type mismatch exception.
+     * @param headers HTTP headers.
+     * @param status  HTTP status code.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(
@@ -79,7 +93,13 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     /**
-     * Handles exceptions for missing required request parameters.
+     * Handles missing request parameter errors.
+     *
+     * @param ex      The missing parameter exception.
+     * @param headers HTTP headers.
+     * @param status  HTTP status code.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @Override
     protected ResponseEntity<Object> handleMissingServletRequestParameter(
@@ -93,8 +113,30 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     /**
-     * Catches and handles all custom ServiceExceptions. Subclasses should define their specific
-     * ExceptionError, which is then used by the ErrorResponseBuilder.
+     * Handles JSON parsing errors.
+     *
+     * @param ex      The JSON parsing exception.
+     * @param headers HTTP headers.
+     * @param status  HTTP status code.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
+     */
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            @NonNull HttpMessageNotReadableException ex,
+            @NonNull HttpHeaders headers,
+            @NonNull HttpStatusCode status,
+            @NonNull WebRequest request) {
+        String details = "Invalid JSON format: " + ex.getMessage();
+        return errorResponseBuilder.build(ex, request, ExceptionError.VALIDATION_ERROR, null, details);
+    }
+
+    /**
+     * Handles custom service exceptions.
+     *
+     * @param ex      The service exception.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @ExceptionHandler(ServiceException.class)
     public ResponseEntity<Object> handleServiceException(ServiceException ex, WebRequest request) {
@@ -102,7 +144,11 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     /**
-     * Handles not-found resource exceptions.
+     * Handles resource not found exceptions.
+     *
+     * @param ex      The not found exception.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
@@ -110,7 +156,11 @@ public abstract class GlobalExceptionHandler extends ResponseEntityExceptionHand
     }
 
     /**
-     * The ultimate catch-all for any other unexpected exceptions.
+     * Handles unexpected exceptions.
+     *
+     * @param ex      The unexpected exception.
+     * @param request The web request.
+     * @return A ResponseEntity with the error response.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpectedExceptions(Exception ex, WebRequest request) {

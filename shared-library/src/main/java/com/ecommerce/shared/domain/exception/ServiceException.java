@@ -1,10 +1,14 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.domain.exception;
 
 import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Base exception class for service-specific errors.
+ * Provides error code, message, and metadata for consistent error handling.
+ */
 @Getter
 public abstract class ServiceException extends RuntimeException {
     private final ExceptionError error;

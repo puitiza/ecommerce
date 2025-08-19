@@ -13,7 +13,7 @@ import com.ecommerce.orderservice.domain.port.out.UserAuthenticationPort;
 import com.ecommerce.orderservice.domain.service.OrderDomainService;
 import com.ecommerce.orderservice.infrastructure.adapter.persistence.mapper.OrderMapper;
 import com.ecommerce.orderservice.infrastructure.adapter.security.dto.UserAuthenticationDetails;
-import com.ecommerce.shared.exception.ExceptionError;
+import com.ecommerce.shared.domain.exception.ExceptionError;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

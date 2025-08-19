@@ -1,37 +1,89 @@
 # E-commerce Microservices
 
-This is a personal project to explore microservices architecture, built with **Spring Boot 3.0**, **Gradle**, **Docker**, and **Kubernetes**. The project simulates an e-commerce platform where users can register, log in, browse products, manage shopping carts, create orders, process payments, and track shipments through a secure API Gateway.
+---
 
-[![Build Status](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml/badge.svg)](https://github.com/javiertuya/samples-test-spring/actions/workflows/build.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=my%3Asamples-test-spring&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=my%3Asamples-test-spring)
-[![Javadoc](https://img.shields.io/badge/%20-javadoc-blue)](https://javiertuya.github.io/samples-test-spring/)
+## Table of Contents
 
-![Architecture Diagram](/config/images/Architecture_Software_final.png)
+1. [Project Overview](#project-overview)
+2. [Architecture Overview](#architecture-overview)
+3. [Microservices](#microservices)
+4. [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Local Setup](#local-setup)
+    - [Keycloak Configuration](#keycloak-configuration)
+    - [Testing the API](#testing-the-api)
+5. [Deployment](#deployment)
+    - [Local Deployment with Docker](#local-deployment-with-docker)
+    - [Production Deployment with Kubernetes](#production-deployment-with-kubernetes)
+6. [Security](#security)
+7. [Monitoring and Tracing](#monitoring-and-tracing)
+8. [CI/CD Pipeline](#cicd-pipeline)
+9. [Troubleshooting](#troubleshooting)
+    - [Keycloak Issues](#keycloak-issues)
+    - [Docker Networking Issues](#docker-networking-issues)
+    - [Service Discovery Issues](#service-discovery-issues)
+10. [Contributing](#contributing)
+11. [Future Enhancements](#future-enhancements)
+12. [Resources](#resources)
+13. [License](#license)
 
-## About the Project
+---
 
-This project demonstrates a microservices-based e-commerce platform using modern technologies:
-- **Spring Boot 3.0**: Framework for building microservices with Java 21.
-- **Gradle**: Build tool for dependency management and multi-module project structure.
-- **Spring Cloud Config**: Centralized configuration management (see [config-server/README.md](config-server/README.md)).
-- **Eureka Server**: Service discovery for dynamic routing (see [service-registry/README.md](service-registry/README.md)).
-- **Spring Cloud Gateway**: API Gateway for request routing, authentication, and rate limiting (see [api-gateway/README.md](api-gateway/README.md)).
-- **Kafka**: Asynchronous event-driven communication between services.
+## Project Overview
+
+This project demonstrates a microservices-based e-commerce platform built with modern technologies. It showcases best
+practices for microservices architecture, including service discovery, centralized configuration, event-driven
+communication, and containerized deployment. Key features include:
+
+- **User Management**: Register, log in, and manage profiles with OAuth2 authentication via Keycloak.
+- **Product Catalog**: Browse, create, and manage products with inventory tracking.
+- **Order Processing**: Create, validate, and manage orders with a state machine.
+- **Payment Integration**: Process payments via external gateways (e.g., Stripe).
+- **Shopping Cart**: Manage user carts with Redis for fast access.
+- **Shipment Tracking**: Handle order fulfillment and shipping.
+- **Notifications**: Send email, SMS, or push notifications for order events.
+
+The project is designed for scalability, resiliency, and maintainability, with monitoring and tracing for observability
+in both local and production environments.
+
+---
+
+## Architecture Overview
+
+The platform follows a microservices architecture, with each service independently deployable and communicating via REST
+APIs or Kafka events. The architecture diagram below illustrates the components and their interactions:
+
+![Architecture Diagram](config/images/Architecture_Software_final.png)
+
+### Core Technologies
+
+- **Spring Boot 3.0**: Java 21-based framework for microservices.
+- **Gradle**: Build automation for multi-module projects.
+- **Spring Cloud Config**: Centralized configuration management (
+  see [config-server/README.md](config-server/README.md)).
+- **Eureka Server**: Service discovery for dynamic routing (
+  see [service-registry/README.md](service-registry/README.md)).
+- **Spring Cloud Gateway**: API Gateway for request routing, authentication, and rate limiting (
+  see [api-gateway/README.md](api-gateway/README.md)).
+- **Apache Kafka**: Event-driven communication using CloudEvents.
 - **Keycloak**: OAuth2-based authentication and authorization.
-- **Docker & Kubernetes**: Containerization and orchestration for local and cloud deployments.
-- **Monitoring & Tracing**:
-    - Local: Zipkin (tracing), Prometheus (metrics), Grafana (visualization), AKHQ (Kafka monitoring).
-    - Dev/Prod: Azure Application Insights and Azure Monitor for tracing, metrics, and logs.
+- **Docker & Kubernetes**: Containerization and orchestration.
+- **Databases**: MySQL, PostgreSQL, Redis for persistent and temporary storage.
+- **Monitoring**: Zipkin, Prometheus, Grafana (local); Azure Application Insights, Azure Monitor (dev/prod).
 
-For detailed multi-module setup, see [docs/multi-module.md](config/docs/multi-module.md).
+For details on the multi-module setup, see [docs/multi-module.md](config/docs/multi-module.md).
 
-## Services
+---
+
+## Microservices
+
+The platform consists of configuration and core business services, each with specific responsibilities and storage:
 
 | Service Type               | Service Name         | Description                                                               | Storage               | Documentation                                                    |
 |----------------------------|----------------------|---------------------------------------------------------------------------|-----------------------|------------------------------------------------------------------|
 | **Configuration Services** | Config Server        | Centralized configuration management for all services.                    | -                     | [config-server/README.md](config-server/README.md)               |
 |                            | Eureka Server        | Service registry for dynamic discovery of microservices.                  | -                     | [service-registry/README.md](service-registry/README.md)         |
-|                            | API Gateway          | Routes requests and handles authentication/authorization with Keycloak.   | Redis (rate limiting) | [api-gateway/README.md](api-gateway/README.md)                   |
+|                            | API Gateway          | Routes requests, handles authentication/authorization with Keycloak.      | Redis (rate limiting) | [api-gateway/README.md](api-gateway/README.md)                   |
 | **Core Business Services** | User Service         | Manages user registration, login, and role-based authorization.           | PostgreSQL + Keycloak | [user-service/README.md](user-service/README.md)                 |
 |                            | Product Service      | CRUD operations for products and inventory management.                    | MySQL                 | [product-service/README.md](product-service/README.md)           |
 |                            | Order Service        | Processes orders with state machine, validation, and payment integration. | MySQL                 | [order-service/README.md](order-service/README.md)               |
@@ -42,110 +94,46 @@ For detailed multi-module setup, see [docs/multi-module.md](config/docs/multi-mo
 
 For details on the order lifecycle, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
-## Quick Start
+---
 
-Get the project running locally in a few steps:
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/puitiza/ecommerce.git
-   cd ecommerce
-   ```
-
-2. **Start the Services**:
-   ```bash
-   docker-compose up --build -d
-   ```
-
-3. **Configure Keycloak for HTTP Access**:
-   The Keycloak `master` realm requires configuration to allow HTTP in development:
-   ```bash
-   docker exec -it keycloak-server /bin/bash
-   /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin
-   /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
-   exit
-   ```
-
-4. **Access the Keycloak Admin Console**:
-   Open `http://localhost:9090/admin` and log in with:
-    - Username: `admin`
-    - Password: `admin`
-
-5. **Test the API Gateway**:
-   Access Swagger UI at `http://localhost:8090/swagger-ui.html` to test endpoints.
-
-## Setup and Installation
-
-**Important**: The local setup uses HTTP for development. In production, enable HTTPS and configure Keycloak’s `sslRequired` to `external` or `all`. See [docs/production-setup.md](config/docs/production-setup.md).
+## Getting Started
 
 ### Prerequisites
-- Java 21
-- Gradle 8.0+
-- Docker and Docker Compose
-- Docker Desktop with Kubernetes enabled
-- Postman (optional for testing)
+
+- **Java 21**
+- **Gradle 8.0+**
+- **Docker** and **Docker Compose**
+- **Docker Desktop** with Kubernetes enabled
+- **Postman** (optional for API testing)
 
 ### Local Setup
+
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/puitiza/ecommerce.git
    cd ecommerce
    ```
 
-2. **Running the Application**:
-    - **Build and start all services:**
-      ```bash
-      docker-compose up --build -d
-      ```
-    - **Stop and remove all services:**
-      ```bash
-      docker-compose down
-      ```
-    - **Stop and remove all services and volumes (clean up):**
-      ```bash
-      docker-compose down -v
-      ```
-    
-    #### **Developer Workflow (Advanced)**
-    For faster iterations during development, you can manage services individually:
-    
-   - **Rebuild and restart a single service (e.g., `order-service`):**
-      ```bash
-      docker-compose up --build --no-deps -d order-service
-      ```
-   - **Rebuild, remove and restart a service and its database (e.g., `order-service` and `mysql`):**
-      ```bash
-      docker-compose down -v order-service mysql && docker-compose up --build -d order-service mysql
-      ```
-   - **View logs for a specific service:**
-      ```bash
-      docker-compose logs <service-name>
-      ```
-
-3. **Access Services**:
-    - API Gateway: `http://localhost:8090`
-    - Swagger UI: `http://localhost:8090/swagger-ui.html`
-    - Keycloak Admin Console: `http://localhost:9090/admin`
-    - Eureka Dashboard: `http://localhost:8761`
-    - Order Service: `http://localhost:8090/orders` (via API Gateway)
-    - Payment Service: `http://localhost:8090/payments` (via API Gateway)
-    - Product Service: `http://localhost:8090/products` (via API Gateway)
-
-4. **Test Endpoints**:
-   Import the Postman collection from `postman/ecommerce-collection.json` or use Swagger UI.
-
-### Setting Up Keycloak for Local Development
-Keycloak provides OAuth2-based authentication for the `user-service`, `order-service`, `payment-service`, `product-service`, and API Gateway. The `ecommerce` realm is imported from `config/imports/realm-export.json` with `sslRequired: "none"` for HTTP access. The `master` realm (used for the admin console) requires manual configuration to allow HTTP.
-
-**Note**: This HTTP setup is for **development only**. In production, configure HTTPS and set `sslRequired` to `external` or `all`.
-
-1. **Start the Keycloak Server**:
-   Ensure the Keycloak server and PostgreSQL database are running:
+2. **Start Services with Docker Compose**:
    ```bash
    docker-compose up --build -d
    ```
 
-2. **Configure the `master` Realm for HTTP Access**:
+3. **Verify Services**:
+    - API Gateway: `http://localhost:8090`
+    - Swagger UI: `http://localhost:8090/swagger-ui.html`
+    - Eureka Dashboard: `http://localhost:8761`
+    - Keycloak Admin Console: `http://localhost:9090/admin` (Username: `admin`, Password: `admin`)
+
+### Keycloak Configuration
+
+Keycloak provides OAuth2 authentication for secure access. For local development, configure the `master` realm to allow
+HTTP:
+
+1. **Start Keycloak**:
+   Ensure Keycloak and PostgreSQL are running via `docker-compose up -d`.
+
+2. **Configure `master` Realm**:
    ```bash
    docker exec -it keycloak-server /bin/bash
    /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin
@@ -153,28 +141,59 @@ Keycloak provides OAuth2-based authentication for the `user-service`, `order-ser
    exit
    ```
 
-3. **Access the Keycloak Admin Console**:
-   Open `http://localhost:9090/admin` and log in with:
-    - Username: `admin`
-    - Password: `admin`
-
-4. **Test the `ecommerce` Realm**:
-   Test with the `api-gateway-client`:
+3. **Test the `ecommerce` Realm**:
    ```bash
    http://localhost:9090/realms/ecommerce/protocol/openid-connect/auth?client_id=api-gateway-client&response_type=code&redirect_uri=http://localhost:8090
    ```
 
-For Keycloak integration details, see individual service README's.
+> **Note**: HTTP is for development only. In production, enable HTTPS and set `sslRequired` to `external` or `all`.
+> See [docs/production-setup.md](config/docs/production-setup.md).
 
-### Troubleshooting Keycloak
-- **HTTPS Required Error**: Ensure the `kcadm.sh` commands were executed. Verify `sslRequired` is `None` in the `master` realm (Realm Settings > Login).
-- **Client ID Null Error**: Check the `security-admin-console` client in the `master` realm has valid redirect URIs (`http://localhost:9090/admin/master/console/*`).
-- **External IP Issues**: Access `http://localhost:9090` directly, avoid proxies/VPNs, and clear browser cache.
+### Testing the API
 
-### Kubernetes Setup
-See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes and Azure deployment instructions.
+- **Swagger UI**: Access at `http://localhost:8090/swagger-ui.html` to test endpoints.
+- **Postman**: Import `postman/ecommerce-collection.json` for pre-configured API tests.
 
-## Roles and Permissions
+---
+
+## Deployment
+
+### Local Deployment with Docker
+
+Run the entire stack locally using Docker Compose:
+
+```bash
+  docker-compose up --build -d
+```
+
+To stop and clean up:
+
+```bash
+  docker-compose down -v
+```
+
+For advanced developer workflows (e.g., rebuilding a single service),
+see [docs/developer-workflow.md](config/docs/developer-workflow.md).
+
+### Production Deployment with Kubernetes
+
+Deploy to Kubernetes (local Docker Desktop or Azure AKS) with the provided manifests.
+See [docs/production-setup.md](config/docs/production-setup.md) for detailed instructions.
+
+---
+
+## Security
+
+- **Authentication**: Keycloak with OAuth2 and JWT for all client-facing endpoints (except `POST /users/signup`,
+  `POST /users/login`).
+- **Authorization**: Role-based access for `ADMIN` and `USER` roles (
+  see [Roles and Permissions](#roles-and-permissions)).
+- **Rate Limiting**: Configured in API Gateway with Redis to prevent abuse.
+- **Secrets Management**: Planned integration with Azure Key Vault for sensitive data.
+- **HTTPS**: Planned for production to secure communication.
+
+### Roles and Permissions
+
 - **ADMIN**:
     - **User Service**: View all user details, update/delete users.
     - **Product Service**: Create, update, and delete products.
@@ -194,69 +213,122 @@ See [docs/production-setup.md](config/docs/production-setup.md) for Kubernetes a
     - All client-facing endpoints (except `POST /users/signup`, `POST /users/login`) require a JWT token from Keycloak.
     - Service-to-service communication uses API keys or Kubernetes network policies.
 
+---
+
 ## Business Logic
+
 See individual service READMES for detailed business logic:
+
 - [order-service/README.md](order-service/README.md)
 - [payment-service/README.md](payment-service/README.md)
 - [product-service/README.md](product-service/README.md)
-  
+
 For the order lifecycle, see [docs/order-state-machine.md](config/docs/order-state-machine.md).
 
 ## Testing
+
 - **Unit Tests**: JUnit 5 and Mockito for service logic.
 - **Integration Tests**: Testcontainers for databases and Kafka.
 - **Load Tests**: JMeter for API endpoint performance.
 - **Configuration**: Run tests with `./gradlew test`.
 
+---
+
 ## Monitoring and Tracing
+
 - **Local**:
     - **Zipkin**: Distributed tracing (`http://localhost:9411`).
     - **Prometheus**: Metrics collection (`http://localhost:9090`).
     - **Grafana**: Metrics visualization (`http://localhost:3000`).
     - **AKHQ**: Kafka topic monitoring (`http://localhost:8081`).
 - **Dev/Prod**:
-    - **Azure Application Insights**: Tracing.
-    - **Azure Monitor**: Metrics and logs.
+    - **Azure Application Insights**: Tracing and diagnostics.
+    - **Azure Monitor**: Metrics and log aggregation.
 
-## Troubleshooting
-- **Keycloak Issues**: See [Troubleshooting Keycloak](#troubleshooting-keycloak).
-- **Service Discovery**: If services fail to register with Eureka, check logs (`docker-compose logs service-registry`) and ensure the Eureka server is running at `http://localhost:8761`.
-- **Database Connection Errors**: Verify PostgreSQL/MySQL/Redis containers are running (`docker ps`) and check credentials in `docker-compose.yml`.
-- **API Gateway Errors**: Ensure the API Gateway is configured with Keycloak’s token endpoint and client credentials (see [api-gateway/README.md](api-gateway/README.md)).
+---
 
-## CI/CD
-- **Pipeline**: GitHub Actions for building, testing, and deploying.
+## CI/CD Pipeline
+
+- **Tool**: GitHub Actions for automated build, test, and deployment.
 - **Steps**:
-    - Run unit and integration tests with Gradle and Testcontainers.
-    - Perform code quality analysis with SonarQube.
-    - Build and push Docker images to Docker Hub.
-    - Deploy to Kubernetes (local Docker Desktop or Azure AKS).
+    1. Run unit and integration tests with Gradle and Testcontainers.
+    2. Perform code quality checks with SonarQube.
+    3. Build and push Docker images to Docker Hub.
+    4. Deploy to Kubernetes (local or Azure AKS).
 - **Configuration**: See `.github/workflows/build.yml`.
 
-## Security
-- **Authentication**: Keycloak with OAuth2 and JWT for client-facing endpoints.
-- **Secrets**: Planned integration with Azure Key Vault for sensitive data (e.g., database passwords, Keycloak client secrets).
-- **HTTPS**: Planned for production.
-- **Rate Limiting**: Configured in API Gateway to prevent abuse.
+---
 
-## Production Deployment
-For production setup with Azure, Kubernetes, and Application Insights, see [docs/production-setup.md](config/docs/production-setup.md).
+## Troubleshooting
 
-## Future Enhancements
-- **Review Service**: Manage product reviews and ratings (MongoDB).
-- **Recommendation Service**: Suggest products based on user behavior (Neo4j or machine learning).
-- **Analytics Service**: Analyze user and product data (Kafka Streams or Spark).
-- **Internationalization**: Support multiple languages and currencies.
-- **Fraud Detection**: Integrate Stripe Radar or custom rules for payment validation.
-- **Multi-Module Enhancements**: Shared DTOs, exceptions, and utilities in the `share-library` module (see [docs/multi-module.md](config/docs/multi-module.md)).
+### Keycloak Issues
+
+- **HTTPS Required Error**: Ensure `sslRequired` is set to `NONE` in the `master` realm (
+  see [Keycloak Configuration](#keycloak-configuration)).
+- **Client ID Null Error**: Verify `security-admin-console` client redirect URIs in Keycloak (
+  `http://localhost:9090/admin/master/console/*`).
+- **External IP Issues**: Access `http://localhost:9090` directly and clear browser cache.
+
+### Docker Networking Issues
+
+If you encounter a `Connection Refused` error or the Keycloak Admin Console fails to load:
+
+1. Add `host.docker.internal` to your hosts file:
+   ```text
+   127.0.0.1 host.docker.internal
+   ```
+2. Update `docker-compose.yml` for Keycloak:
+   ```yaml
+   keycloak-server:
+     environment:
+       KC_HOSTNAME: host.docker.internal
+       KC_HOSTNAME_PORT: 9090
+       KC_HOSTNAME_STRICT: false
+       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
+   ```
+3. Update `KEYCLOAK_SERVER_URL`:
+   ```yaml
+   KEYCLOAK_SERVER_URL: http://host.docker.internal:9090
+   ```
+
+### Service Discovery Issues
+
+- If services fail to register with Eureka, check logs:
+  ```bash
+  docker-compose logs service-registry
+  ```
+- Ensure Eureka is running at `http://localhost:8761`.
+
+For more details, see [Troubleshooting](#troubleshooting) in individual service READMEs.
+
+---
 
 ## Contributing
+
+Contributions are welcome! Follow these steps:
+
 1. Fork the repository.
 2. Create a feature branch (`git checkout -b feature/new-feature`).
-3. Follow coding standards (checkstyle, SonarQube).
-4. Submit a pull request with a clear description of changes.
+3. Adhere to coding standards (Checkstyle, SonarQube).
+4. Submit a pull request with a clear description.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+---
+
+## Future Enhancements
+
+- **Review Service**: Add product reviews and ratings (MongoDB).
+- **Recommendation Service**: Suggest products using Neo4j or machine learning.
+- **Analytics Service**: Analyze user/product data with Kafka Streams or Spark.
+- **Internationalization**: Support multiple languages and currencies.
+- **Fraud Detection**: Integrate Stripe Radar or custom rules.
+- **Shared Library Enhancements**: Expand `share-library` for DTOs and utilities.
+
+---
 
 ## Resources
+
 - **Spring Cloud Config**: [Docker’s Health Check and Spring Boot Apps](https://medium.com/@aleksanderkolata/docker-spring-boot-and-containers-startup-order-39230e5352a4)
 - **Keycloak**:
     - [Users and Client Secrets in Keycloak Realm Exports](https://candrews.integralblue.com/2021/09/users-and-client-secrets-in-keycloak-realm-exports/)
@@ -265,3 +337,21 @@ For production setup with Azure, Kubernetes, and Application Insights, see [docs
 - **Example Projects**:
     - [Blog Application](https://github.com/cokutan/blogapplication/tree/develop)
     - [Spring Boot Microservices with Helm](https://github.com/numerica-ideas/community/tree/master/kubernetes/spring-microservice-deployment-gitlab-helm)
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+### Recommendations for Further Enhancements
+
+- **Create a CONTRIBUTING.md File**: Detail coding standards, pull request templates, and contribution guidelines.
+- **Add a CHANGELOG.md**: Track releases and changes for transparency.
+- **Include Code Snippets**: Add examples of API calls or key configurations in relevant sections.
+- **Visual Aids**: Consider adding more diagrams (e.g., sequence diagrams for order lifecycle) in `config/images/`.
+- **Badges for Coverage**: Add a code coverage badge (e.g., Codecov) if integrated with CI/CD.
+- **Collapsible Sections**: Use `<details><summary>` tags for optional content like advanced workflows if hosted on
+  GitHub.

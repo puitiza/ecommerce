@@ -1,31 +1,39 @@
-package com.ecommerce.shared.openapi;
+package com.ecommerce.shared.infrastructure.configuration;
 
+import com.ecommerce.shared.infrastructure.openapi.ServiceConfig;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.*;
-import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Base configuration for OpenAPI documentation.
+ * Provides a reusable OpenAPI bean with optional OAuth2 security.
+ */
 @Configuration
 public class OpenApiConfigBase {
 
     private static final String SECURITY_SCHEME_NAME = "security_auth";
 
-    @Value("${keycloak.realm.url:}")
-    private String keycloakRealmUrl;
+    @Value("${keycloak.realm.external-url:${keycloak.realm.url}}")
+    private String externalKeycloakRealmUrl;
 
     private final ServiceConfig serviceConfig;
 
-    protected OpenApiConfigBase(ServiceConfig serviceConfig) {
+    public OpenApiConfigBase(ServiceConfig serviceConfig) {
         this.serviceConfig = serviceConfig;
     }
 
+    /**
+     * Configures an OpenAPI bean with service metadata and optional OAuth2 security.
+     *
+     * @return An OpenAPI instance.
+     */
     @Bean
     public OpenAPI openApi() {
         OpenAPI openAPI = new OpenAPI()
@@ -40,11 +48,8 @@ public class OpenApiConfigBase {
                                             .type(SecurityScheme.Type.OAUTH2)
                                             .flows(new OAuthFlows()
                                                     .clientCredentials(new OAuthFlow()
-                                                            .tokenUrl(keycloakRealmUrl + "/protocol/openid-connect/token")
-                                                            .scopes(new Scopes().addString("openid", "openid scope"))
-                                                    )
-                                            )
-                            ))
+                                                            .tokenUrl(externalKeycloakRealmUrl + "/protocol/openid-connect/token")
+                                                            .scopes(new Scopes().addString("openid", "OpenID scope"))))))
                     .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
         }
 
@@ -58,10 +63,9 @@ public class OpenApiConfigBase {
                 .version(serviceConfig.version());
     }
 
-    private List<Server> getServers() {
+    private List<io.swagger.v3.oas.models.servers.Server> getServers() {
         return serviceConfig.servers().stream()
                 .map(ServiceConfig.ServerConfig::toServer)
-                .collect(Collectors.toList());
+                .toList();
     }
-
 }

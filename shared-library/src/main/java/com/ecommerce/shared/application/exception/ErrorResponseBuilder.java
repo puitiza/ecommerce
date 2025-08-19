@@ -1,5 +1,7 @@
-package com.ecommerce.shared.exception;
+package com.ecommerce.shared.application.exception;
 
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.domain.model.ErrorResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +18,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Builds standardized error responses for API exceptions.
+ * Supports both Spring MVC and WebFlux contexts.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -31,6 +37,17 @@ public class ErrorResponseBuilder {
 
     private final MessageSource messageSource;
 
+    /**
+     * Builds an error response for the given exception and context.
+     *
+     * @param exception        The exception to handle.
+     * @param requestContext   The request context (WebRequest or ServerWebExchange).
+     * @param error            The error code and status.
+     * @param validationErrors List of validation errors, if any.
+     * @param details          Additional error details.
+     * @param messageArgs      Arguments for message formatting.
+     * @return A ResponseEntity containing the error response.
+     */
     public ResponseEntity<Object> build(Exception exception, Object requestContext, ExceptionError error,
                                         List<ErrorResponse.ValidationError> validationErrors,
                                         String details, Object... messageArgs) {
@@ -38,7 +55,7 @@ public class ErrorResponseBuilder {
         String message = messageSource.getMessage(error.getKey() + ".msg", messageArgs, "Unexpected error", locale);
         String errorCode = messageSource.getMessage(error.getKey() + ".code", null, error.getKey(), locale);
 
-        TraceInfo traceInfo = getTraceInfo(exception, requestContext);
+        List<String> stackTraceList = getStackTrace(exception, requestContext);
 
         ErrorResponse errorResponse = new ErrorResponse(
                 error.getHttpStatus().value(),
@@ -46,23 +63,21 @@ public class ErrorResponseBuilder {
                 message,
                 details,
                 ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-                traceInfo.stackTraceList(),
+                stackTraceList,
                 validationErrors
         );
 
         return ResponseEntity.status(error.getHttpStatus()).body(errorResponse);
     }
 
-    private TraceInfo getTraceInfo(Exception exception, Object requestContext) {
+    private List<String> getStackTrace(Exception exception, Object requestContext) {
         if (!shouldIncludeStackTrace(requestContext)) {
-            return new TraceInfo(null);
+            return null;
         }
-
-        List<String> stackTraceList = Arrays.stream(exception.getStackTrace())
+        return Arrays.stream(exception.getStackTrace())
                 .limit(stackTraceDepth)
                 .map(StackTraceElement::toString)
                 .toList();
-        return new TraceInfo(stackTraceList);
     }
 
     private boolean shouldIncludeStackTrace(Object requestContext) {
@@ -75,8 +90,5 @@ public class ErrorResponseBuilder {
             }
             default -> false;
         };
-    }
-
-    private record TraceInfo(List<String> stackTraceList) {
     }
 }
