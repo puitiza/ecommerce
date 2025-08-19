@@ -1,7 +1,6 @@
 package com.ecommerce.productservice.service;
 
-import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
-import com.ecommerce.productservice.model.dto.ProductDto;
+import com.ecommerce.productservice.model.dto.*;
 
 import java.util.List;
 
@@ -19,4 +18,9 @@ public interface ProductService {
     ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity);
 
     void updateProductInventory(Long id, Integer updatedInventory);
+
+    BatchProductResponse verifyAndGetProducts(BatchProductRequest request);
+
+    List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request);
+
 }

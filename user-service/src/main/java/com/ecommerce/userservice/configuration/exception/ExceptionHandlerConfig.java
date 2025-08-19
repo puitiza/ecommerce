@@ -1,8 +1,8 @@
 package com.ecommerce.userservice.configuration.exception;
 
-import com.ecommerce.shared.exception.ErrorResponseBuilder;
-import com.ecommerce.shared.exception.ExceptionError;
-import com.ecommerce.shared.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
+import com.ecommerce.shared.domain.exception.ExceptionError;
+import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
 import com.ecommerce.userservice.configuration.exception.handler.InvalidUserException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -24,6 +24,6 @@ public class ExceptionHandlerConfig extends GlobalExceptionHandler {
     @ExceptionHandler({AuthenticationException.class, InvalidUserException.class})
     public ResponseEntity<Object> handleInvalidUserException(InvalidUserException ex, WebRequest request) {
         log.error("Invalid user: {}", ex.getMessage(), ex);
-        return errorResponseBuilder.build(ex, request, ExceptionError.USER_USERNAME_FOUND, null, ex.getMessageArgs());
+        return errorResponseBuilder.build(ex, request, ExceptionError.USER_USERNAME_FOUND, null, ex.getMessage());
     }
 }

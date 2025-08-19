@@ -5,7 +5,8 @@ bootJar {
 
 dependencies {
     applyOpenApiDependencies(dependencies)
-    // Common dependencies needed for the shared library
+
+    // Lombok for reducing boilerplate
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 

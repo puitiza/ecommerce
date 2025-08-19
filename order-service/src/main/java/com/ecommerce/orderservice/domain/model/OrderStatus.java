@@ -1,0 +1,16 @@
+package com.ecommerce.orderservice.domain.model;
+
+public enum OrderStatus {
+    CREATED,
+    VALIDATION_PENDING,
+    VALIDATION_SUCCEEDED,
+    VALIDATION_FAILED,
+    PAYMENT_PENDING,
+    PAYMENT_SUCCEEDED,
+    PAYMENT_FAILED,
+    SHIPPING_PENDING,
+    SHIPPING_SUCCEEDED,
+    SHIPPING_FAILED,
+    FULFILLED,
+    CANCELLED
+}

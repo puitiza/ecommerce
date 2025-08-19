@@ -2,7 +2,7 @@ spring:
   application:
     name: order-service
   profiles:
-    active: prod
+    active: dev
   config:
     import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8885}
   security:
@@ -19,21 +19,45 @@ spring:
     hibernate:
       ddl-auto: update
   kafka:
+    client-id: order-service
     bootstrap-servers: ${KAFKA_SERVER_URL:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.cloudevents.kafka.CloudEventSerializer
       properties:
-        retry-backoff-ms: 10000
-        retries: 10
+        max.request.size: 1000000 # Max size of a single request (1MB)
+        metadata.max.idle.ms: 180000 # Time to wait for metadata (3min)
+        request.timeout.ms: 30000 # Timeout for a request to the server
+        retry.backoff.ms: 10000 # Time to wait before retrying.
+        retries: 10         # Number of retries on failed requests.
+    consumer:
+      group-id: order-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+      properties:
+        metadata.max.age.ms: 180000
+        connections.max.idle.ms: 180000
+      auto-offset-reset: latest # Where to start consuming if no offset is committed.
+      enable-auto-commit: false # Disable auto-commit for manual offset control.
+      max-poll-records: 100  # Max records to fetch in a single poll.
+      fetch-min-size: 1      # Min data to wait for in bytes.
+      fetch-max-wait: 500    # Max time to wait for min data.
 
-permit-urls:
-  swagger:
-    /orders/v3/api-docs/**,
-    /orders/swagger-ui/**,
-    /orders/swagger-ui.html,
-    /favicon.ico
+# Publicly accessible URLs (Swagger and actuator endpoints)
+security:
+  permit-urls:
+    swagger:
+      - /orders/v3/api-docs/**
+      - /orders/swagger-ui/**
+      - /orders/swagger-ui.html
+      - /favicon.ico
+    actuator:
+      - /actuator/health/**
+      - /actuator/info/**
+      - /actuator/env/**
+      - /actuator/configprops/**
 
+# Springdoc OpenAPI and Swagger UI configuration
 springdoc:
   base-path: /orders
   api-docs:
@@ -45,7 +69,9 @@ springdoc:
 
 openapi:
   title: Order Service APIs
-  description: This lists all the Order Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.
+  description: This API enables CRUD operations for order management in a microservices environment, with features like paginated getAllOrders,
+    circuit breakers for resilient calls to product and payment services, OAuth2-secured endpoints using client ID and secret,
+    actuator-based health monitoring, and Spring State Machine for handling order state transitions.
   version: v1.0
   securityEnabled: true
   servers:
@@ -53,3 +79,13 @@ openapi:
       url: ${GATEWAY_URL:http://localhost:8090}
     - description: local
       url: ${ORDER_SERVICE_URL:http://localhost:3001}
+
+# Circuit Breaker configuration for fault-tolerant service interactions
+resilience4j.circuitbreaker:
+  instances:
+    productServiceCircuit:
+      slidingWindowSize: 10     # Number of calls to record and analyze.
+      failureRateThreshold: 50  # Threshold (in %) at which the circuit opens.
+      waitDurationInOpenState: 10000  # Time the circuit stays open before transitioning to HALF_OPEN.
+      permittedNumberOfCallsInHalfOpenState: 3 # Number of calls allowed to test the service's health.
+      registerHealthIndicator: true   # Enables the actuator health endpoint.

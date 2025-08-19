@@ -19,7 +19,7 @@ spring:
 management:
   tracing:
     sampling:
-      probability: 1.0 # Sample ALL requests for traces (high overhead in production)
+      probability: 1.0 # Sample ALL requests for traces (only for dev)
   zipkin:
     tracing: # Send tracing data to Zipkin server at this address
       endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
@@ -35,10 +35,14 @@ configuration:
 
 # Keycloak Central Configuration
 keycloak:
-  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}
+  internal:
+    server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}  # For Backend (fetch JWKS, issuer-uri)
+  external:
+    server-url: http://localhost:9090  # For Swagger (Token URL accessible from Browser) eg. http://host.docker.internal:9090
   realm:
     name: ecommerce
-    url: ${keycloak.server-url}/realms/${keycloak.realm.name}
+    url: ${keycloak.internal.server-url}/realms/${keycloak.realm.name} #Use internal for spring.security.oauth2.resourceserver.jwt.issuer-uri
+    external-url: ${keycloak.external.server-url}/realms/${keycloak.realm.name} #Use external for Swagger UI
   client-secrets: # Map of Secrets per Customer (if they are different)
     product-service: tu_secreto_product
     order-service: tu_secreto_order

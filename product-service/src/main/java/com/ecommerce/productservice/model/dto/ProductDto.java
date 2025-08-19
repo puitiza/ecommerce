@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -26,7 +27,7 @@ public class ProductDto {
 
     @NotNull(message = "price field not should be null or empty")
     @Schema(name = "price", description = "Price of the product", example = "29.99", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Double price;
+    private BigDecimal price;
 
     @Schema(name = "inventory", description = "Current inventory level of the product", example = "100")
     private Integer inventory;

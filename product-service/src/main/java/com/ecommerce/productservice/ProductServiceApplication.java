@@ -1,7 +1,7 @@
 package com.ecommerce.productservice;
 
-import com.ecommerce.shared.SharedLibraryConfig;
-import com.ecommerce.shared.openapi.OpenApiConfigBase;
+import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
+import com.ecommerce.shared.infrastructure.configuration.OpenApiConfigBase;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

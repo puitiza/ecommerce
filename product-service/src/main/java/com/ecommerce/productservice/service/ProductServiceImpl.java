@@ -2,22 +2,28 @@ package com.ecommerce.productservice.service;
 
 import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
 import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
-import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
-import com.ecommerce.productservice.model.dto.ProductDto;
+import com.ecommerce.productservice.model.dto.*;
 import com.ecommerce.productservice.model.entity.ProductEntity;
 import com.ecommerce.productservice.repository.ProductRepository;
-import com.ecommerce.shared.exception.ResourceNotFoundException;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public record ProductServiceImpl(ProductRepository repository, ModelMapper modelMapper) implements ProductService {
+@RequiredArgsConstructor
+public class ProductServiceImpl implements ProductService {
+
+    private final ProductRepository repository;
+    private final ModelMapper modelMapper;
 
     @Override
     public ProductDto createProduct(ProductDto productDto) {
@@ -96,6 +102,55 @@ public record ProductServiceImpl(ProductRepository repository, ModelMapper model
             log.error("Failed to update inventory: {}", ex.getMessage());
             throw new ProductUpdateException("Failed to update product inventory", ex);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BatchProductResponse verifyAndGetProducts(BatchProductRequest request) {
+        // Fetch products in one query
+        List<Long> productIds = request.items().stream().map(BatchProductItemRequest::productId).toList();
+        List<ProductEntity> products = repository.findAllByIdIn(productIds);
+        Map<Long, ProductEntity> productMap = products.stream()
+                .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        // Process each item
+        List<BatchProductItemResponse> responses = request.items().stream().map(item -> {
+            var product = productMap.get(item.productId());
+            if (product == null) {
+                return new BatchProductItemResponse(item.productId(), null, null, false, 0, "Product not found");
+            }
+            boolean isAvailable = product.getInventory() >= item.quantity();
+            String error = isAvailable ? null : "Insufficient stock. Available: " + product.getInventory();
+            return new BatchProductItemResponse(
+                    item.productId(),
+                    product.getName(),
+                    product.getPrice(),
+                    isAvailable,
+                    product.getInventory(),
+                    error
+            );
+        }).toList();
+
+        return new BatchProductResponse(responses);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request) {
+        List<Long> productIds = request.productIds();
+        List<ProductEntity> products = repository.findAllByIdIn(productIds);
+        Map<Long, ProductEntity> productMap = products.stream()
+                .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        return productIds.stream()
+                .map(id -> {
+                    ProductEntity entity = productMap.get(id);
+                    if (entity == null) {
+                        return new BatchProductDetailsResponse(null, String.format("Product not found with ID: %s", id));
+                    }
+                    return new BatchProductDetailsResponse(modelMapper.map(entity, ProductDto.class), null);
+                })
+                .toList();
     }
 
 }
