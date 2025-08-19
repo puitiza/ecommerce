@@ -9,19 +9,20 @@ Gateway-level errors (401/403/429/503/500) are in [curl-gateway-scenarios.md](cu
 - **Authentication**: Replace `••••••` with a valid JWT token in the `Authorization` header.
 - **Content Type**: Requests use `application/json` where applicable.
 - **Error Codes**:
-    - `ORD-xxx`: Order-specific errors (e.g., `ORD-002` for duplicate products, `ORD-004` for product availability
-      issues).
-    - `GEN-xxx`: General errors from the order context (e.g., `GEN-001` for validation, `GEN-002` for not found).
-- **Tracing**: Add `?trace=true` to the URL for detailed stack traces in development mode (not recommended for
-  production).
-- **HTTP Statuses**: Most scenarios return 400 (validation errors), 422 (semantic/business rule errors), or 404 (not
-  found).
+    - `ORD-xxx`: Order-specific errors (e.g., `ORD-001` for invalid order data, `ORD-002` for duplicate products,
+      `ORD-004` for product availability issues).
+    - `GEN-xxx`: General errors (e.g., `GEN-001` for validation, `GEN-002` for not found).
+- **Tracing**: Add `?trace=true` for detailed stack traces in development mode (not recommended for production).
+- **HTTP Statuses**:
+    - 400: Syntax errors (e.g., invalid JSON, missing fields).
+    - 422: Semantic/business rule violations (e.g., duplicate products, product not found).
+    - 404: Resource not found.
 
 ## Order Creation Scenarios
 
-### Scenario 1: Create Order - Product Not Found
+### Scenario 1: Create Order - Product Not Found (Multiple Products)
 
-**Description**: Attempt to create an order with a non-existent product ID, expecting 404 Not Found.
+**Description**: Attempt to create an order with multiple non-existent product IDs, expecting 422 Unprocessable Entity.
 
 **Curl Command**:
 
@@ -31,8 +32,8 @@ curl --location 'http://localhost:8090/orders' \
 --header 'Authorization: Bearer ••••••' \
 --data '{
     "items": [
-      { "productId": 2, "quantity": 10 },
-      { "productId": 3, "quantity": 5 }
+      { "productId": 2, "quantity": 6 },
+      { "productId": 40, "quantity": 1 }
     ],
     "shippingAddress": "123 Main St, Anytown, CA 12345"
 }'
@@ -42,28 +43,102 @@ curl --location 'http://localhost:8090/orders' \
 
 ```json
 {
-  "status": 404,
-  "errorCode": "GEN-002",
-  "message": "Product with id 999 not found",
-  "timestamp": "2025-08-12T16:17:54.863491508Z"
+  "status": 422,
+  "errorCode": "ORD-004",
+  "message": "Could not verify product availability for productId: 2,40",
+  "details": "Product ID 2: Product not found; Product ID 40: Product not found",
+  "timestamp": "2025-08-17T21:44:52.967880971Z"
 }
 ```
 
 **Notes**:
 
-- Tests product lookup failure in the product service.
-- Error code `GEN-002` indicates a resource not found, handled by the order service.
+- Tests product lookup failure for multiple products.
+- Uses `ORD-004` (`ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED`) for consistency.
+- HTTP 422 is used for semantic errors (product not found).
 
-### Scenario 2: Create Order - Missing Shipping Address
+### Scenario 2: Create Order - Product Not Found (Single Product)
 
-**Description**: Attempt to create an order without a shipping address, expecting 400 Bad Request for validation error.
+**Description**: Attempt to create an order with one non-existent product ID, expecting 422 Unprocessable Entity.
+
+**Curl Command**:
+
+```bash
+curl --location 'http://localhost:8090/orders' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer ••••••' \
+--data '{
+    "items": [
+      { "productId": 2, "quantity": 6 },
+      { "productId": 40, "quantity": 1 }
+    ],
+    "shippingAddress": "123 Main St, Anytown, CA 12345"
+}'
+```
+
+**Expected Response**:
+
+```json
+{
+  "status": 422,
+  "errorCode": "ORD-004",
+  "message": "Could not verify product availability for productId: 40",
+  "details": "Product ID 40: Product not found",
+  "timestamp": "2025-08-18T14:57:14.01312388Z"
+}
+```
+
+**Notes**:
+
+- Tests product lookup failure for a single product.
+- Uses `ORD-004` for consistency.
+- HTTP 422 distinguishes semantic errors from syntax errors.
+
+### Scenario 3: Create Order - Malformed JSON
+
+**Description**: Attempt to create an order with invalid JSON, expecting 400 Bad Request.
+
+**Curl Command**:
+
+```bash
+curl --location 'http://localhost:8090/orders' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer ••••••' \
+--data '{
+    "items": [
+      { "productId": 2, "quantity": 6 },
+      { "productId": '
+}'
+```
+
+**Expected Response**:
+
+```json
+{
+  "status": 400,
+  "errorCode": "GEN-001",
+  "message": "Validation error: {0}",
+  "details": "Invalid JSON format: JSON parse error: Unexpected end-of-input within/between Object entries",
+  "timestamp": "2025-08-19T16:58:47.797368428Z"
+}
+```
+
+**Notes**:
+
+- Tests JSON parsing validation.
+- Error code `GEN-001` indicates a syntactic error.
+- HTTP 400 is appropriate for syntax issues.
+
+### Scenario 4: Create Order - Missing Shipping Address
+
+**Description**: Attempt to create an order without a shipping address, expecting 400 Bad Request.
 
 **Curl Command**:
 
 ```bash
 curl --location 'http://localhost:8090/orders?trace=true' \
 --header 'Content-Type: application/json' \
---header 'Authorization: ••••••' \
+--header 'Authorization: Bearer ••••••' \
 --data '{
     "items": [
       { "quantity": 10 },
@@ -82,8 +157,7 @@ curl --location 'http://localhost:8090/orders?trace=true' \
   "details": "Multiple validation errors occurred. Please check the 'errors' field for details on each validation failure.",
   "timestamp": "2025-08-17T01:27:37.057551096Z",
   "stackTrace": [
-    "org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.resolveArgument(RequestResponseBodyMethodProcessor.java:159)",
-    "org.springframework.web.method.support.HandlerMethodArgumentResolverComposite.resolveArgument(HandlerMethodArgumentResolverComposite.java:122)",
+    "org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.resolveArgument(...)",
     "..."
   ],
   "errors": [
@@ -105,14 +179,13 @@ curl --location 'http://localhost:8090/orders?trace=true' \
 
 **Notes**:
 
-- Tests JSON schema validation for the request body.
-- Error code `GEN-001` indicates a syntactic validation failure.
-- HTTP 400 is appropriate for syntax errors.
+- Tests JSON schema validation.
+- Error code `GEN-001` for syntactic validation failure.
+- HTTP 400 is appropriate.
 
-### Scenario 3: Create Order - Duplicate Product ID
+### Scenario 5: Create Order - Duplicate Product ID
 
-**Description**: Attempt to create an order with duplicate product IDs, expecting a 422 Unprocessable Entity for a
-business rule violation.
+**Description**: Attempt to create an order with duplicate product IDs, expecting 422 Unprocessable Entity.
 
 **Curl Command**:
 
@@ -142,14 +215,12 @@ curl --location 'http://localhost:8090/orders' \
 
 **Notes**:
 
-- Error code `ORD-002` is specific to the order service for duplicate product validation.
-- HTTP 422 is used to indicate a semantic/business rule violation, distinguishing it from syntax errors (400).
+- Error code `ORD-002` for duplicate product validation.
+- HTTP 422 for semantic/business rule violation.
 
-## Error Handling Scenarios
+### Scenario 6: Get Order by ID - Invalid UUID Format
 
-### Scenario 4: Get Order by ID - Invalid UUID Format
-
-**Description**: Attempt to retrieve an order with an invalid UUID format, expecting a 400 Bad Request.
+**Description**: Attempt to retrieve an order with an invalid UUID format, expecting 400 Bad Request.
 
 **Curl Command**:
 
@@ -173,12 +244,12 @@ curl --location 'http://localhost:8090/orders/0' \
 **Notes**:
 
 - Tests path variable validation for UUID format.
-- Error code `GEN-001` indicates a syntactic validation error.
-- HTTP 400 is appropriate for syntax-related issues.
+- Error code `GEN-001` for syntactic validation error.
+- HTTP 400 is appropriate.
 
-### Scenario 5: Search Orders - Missing Required Parameter
+### Scenario 7: Search Orders - Missing Required Parameter
 
-**Description**: Attempt to search orders without the required `active` query parameter, expecting a 400 Bad Request.
+**Description**: Attempt to search orders without the required `active` query parameter, expecting 400 Bad Request.
 
 **Curl Command**:
 
@@ -202,18 +273,17 @@ curl --location 'http://localhost:8090/orders/search' \
 **Notes**:
 
 - Tests query parameter validation.
-- Error code `GEN-001` is used for syntactic validation failures.
+- Error code `GEN-001` for syntactic validation failure.
 - HTTP 400 is appropriate.
 
-### Scenario 6: Search Orders - Invalid Path with Trace (Dev Mode)
+### Scenario 8: Get Paginated Orders
 
-**Description**: Attempt to search orders with an invalid path and enable stack trace for debugging, expecting a 400 Bad
-Request.
+**Description**: Retrieve paginated orders with valid parameters, expecting 200 OK.
 
 **Curl Command**:
 
 ```bash
-curl --location 'http://localhost:8090/orders/search?trace=true' \
+curl --location 'http://localhost:8090/orders?page=0&size=10&active=true' \
 --header 'Authorization: Bearer ••••••'
 ```
 
@@ -221,40 +291,50 @@ curl --location 'http://localhost:8090/orders/search?trace=true' \
 
 ```json
 {
-  "status": 400,
-  "errorCode": "GEN-001",
-  "message": "Validation error: Invalid value 'search' for parameter 'orderId'. Expected type: UUID",
-  "details": "Method parameter 'orderId': Failed to convert value of type 'java.lang.String' to required type 'java.util.UUID'; Invalid UUID string: search",
-  "timestamp": "2025-08-12T16:32:43.658896086Z",
-  "stackTrace": [
-    "org.springframework.web.method.annotation.AbstractNamedValueMethodArgumentResolver.convertIfNecessary(...)",
-    "org.springframework.web.method.annotation.AbstractNamedValueMethodArgumentResolver.resolveArgument(...)",
-    "..."
-  ]
+  "content": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "status": "CREATED",
+      "items": [
+        {
+          "productId": 1,
+          "quantity": 5
+        }
+      ],
+      "shippingAddress": "123 Main St, Anytown, CA 12345"
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "offset": 0,
+    "paged": true,
+    "unpaged": false
+  },
+  "totalElements": 1,
+  "totalPages": 1
 }
 ```
 
 **Notes**:
 
-- Tests dev-mode tracing for debugging invalid path parameters.
-- Error code `GEN-001` indicates a syntactic validation error.
-- Stack trace is included only when `?trace=true` is provided (not for production).
+- Tests pagination with `page`, `size`, and `active` parameters.
+- Returns `OrderPageResponse` with paginated data.
 
-### Scenario 7: Create Order - Product Availability Check Failed
+### Scenario 9: Update Order - Invalid Status Transition
 
-**Description**: Attempt to create an order where the product service fails to verify product availability (e.g., due to
-a 4xx or 5xx error from the product service, excluding 503).
+**Description**: Attempt to update an order to an invalid status, expecting 422 Unprocessable Entity.
 
 **Curl Command**:
 
 ```bash
-curl --location 'http://localhost:8090/orders' \
+curl --location --request PUT 'http://localhost:8090/orders/123e4567-e89b-12d3-a456-426614174000' \
 --header 'Content-Type: application/json' \
 --header 'Authorization: Bearer ••••••' \
 --data '{
+    "status": "FULFILLED",
     "items": [
-        {"productId": 2, "quantity": 10},
-        {"productId": 3, "quantity": 5}
+      { "productId": 1, "quantity": 5 }
     ],
     "shippingAddress": "123 Main St, Anytown, CA 12345"
 }'
@@ -264,40 +344,78 @@ curl --location 'http://localhost:8090/orders' \
 
 ```json
 {
-  "status": 400,
-  "errorCode": "ORD-004",
-  "message": "Could not verify product availability for productId: 2,3",
-  "details": "product-service executing POST http://product-service/products/batch",
-  "timestamp": "2025-08-16T23:07:14.171330717Z"
+  "status": 422,
+  "errorCode": "ORD-003",
+  "message": "Invalid status transition for order 123e4567-e89b-12d3-a456-426614174000",
+  "details": "Cannot transition from CREATED to FULFILLED",
+  "timestamp": "2025-08-19T17:00:00.123456789Z"
 }
 ```
 
 **Notes**:
 
-- Triggered when the product service returns a 4xx or 5xx error (excluding 503) during availability checks.
-- Error code `ORD-004` corresponds to `ExceptionError.ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED`.
-- Consider using HTTP 422 for semantic errors (e.g., business rule violations) instead of 400 to distinguish from syntax
-  errors.
+- Tests state machine validation (e.g., invalid transition via `OrderStateMachineConfig`).
+- Error code `ORD-003` for invalid status transitions.
+- HTTP 422 for semantic errors.
 
-## Other Endpoints
+### Scenario 10: Cancel Order - Order Not Found
 
-- **GET /orders**: Retrieve paginated orders (add scenarios for pagination parameters).
-- **PUT /orders/{id}**: Update an existing order (add scenarios for valid/invalid updates).
-- **DELETE /orders/{id}**: Cancel an order (add scenarios for valid/invalid cancellations).
+**Description**: Attempt to cancel a non-existent order, expecting 404 Not Found.
+
+**Curl Command**:
+
+```bash
+curl --location --request DELETE 'http://localhost:8090/orders/999e9999-e89b-12d3-a456-426614174999' \
+--header 'Authorization: Bearer ••••••'
+```
+
+**Expected Response**:
+
+```json
+{
+  "status": 404,
+  "errorCode": "GEN-002",
+  "message": "Order with id 999e9999-e89b-12d3-a456-426614174999 not found",
+  "timestamp": "2025-08-19T17:05:00.123456789Z"
+}
+```
+
+**Notes**:
+
+- Tests resource not found for order cancellation.
+- Error code `GEN-002` for not found errors.
+- HTTP 404 is appropriate.
 
 ## Notes on Error Codes and Statuses
 
 - **Order-Specific Errors** (`ORD-xxx`):
-    - `ORD-002`: Duplicate product IDs in the order (422).
-    - `ORD-004`: Product availability check failed (400, consider 422 for semantic errors).
+    - `ORD-001`: Invalid order data (400, consider 422 for product not found).
+    - `ORD-002`: Duplicate product IDs (422).
+    - `ORD-003`: Invalid status transition (422).
+    - `ORD-004`: Product availability check failed (422).
 - **General Errors** (`GEN-xxx`):
     - `GEN-001`: Syntactic validation errors (400).
     - `GEN-002`: Resource not found (404).
 - **HTTP Status Recommendations**:
-    - Use 400 for syntax errors (e.g., invalid JSON, missing required fields).
-    - Use 422 for semantic/business rule violations (e.g., duplicate products, product availability issues).
-    - Use 404 for resource not found (e.g., product or order not found).
+    - 400: Syntax errors (invalid JSON, missing fields).
+    - 422: Semantic/business rule violations (product not found, duplicate products, invalid transitions).
+    - 404: Resource not found.
 - **Feign Exception Handling**:
-    - The `ProductFeignAdapter` maps Feign 503/-1 to `ORD-004` with `SERVICE_UNAVAILABLE` (400, consider 503).
-    - Other Feign 4xx/5xx errors map to `ORD-004` with `ORDER_PRODUCT_AVAILABILITY_CHECK_FAILED` (400, consider 422).
+    - `ProductFeignAdapter` maps Feign 503/-1 to `SERVICE_UNAVAILABLE` (consider 503 instead of 400).
+    - Other Feign 4xx/5xx errors map to `ORD-004` (422).
     - Non-Feign errors map to `INTERNAL_SERVER_ERROR` (500).
+
+## Testing Instructions
+
+- **Run Services**:
+  ```bash
+  cd api-gateway && gradlew bootRun
+  cd order-service && gradlew bootRun
+  ```
+- **Access Swagger UI**:
+    - Gateway: `http://localhost:8090/swagger-ui.html`
+    - Order Service: `http://localhost:8090/orders/swagger-ui.html`
+- **Test Scenarios**:
+    - Replace `••••••` with a valid JWT token from Keycloak.
+    - Use tools like Postman or curl to execute the commands.
+    - Verify error codes, messages, and HTTP statuses match expected responses.
