@@ -38,7 +38,7 @@ keycloak:
   internal:
     server-url: ${KEYCLOAK_SERVER_URL:http://localhost:9090}  # For Backend (fetch JWKS, issuer-uri)
   external:
-    server-url: http://host.docker.internal:9090  # For Swagger (Token URL accessible from Browser)
+    server-url: http://localhost:9090  # For Swagger (Token URL accessible from Browser) eg. http://host.docker.internal:9090
   realm:
     name: ecommerce
     url: ${keycloak.internal.server-url}/realms/${keycloak.realm.name} #Use internal for spring.security.oauth2.resourceserver.jwt.issuer-uri
