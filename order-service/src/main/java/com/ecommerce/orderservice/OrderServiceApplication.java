@@ -1,6 +1,7 @@
 package com.ecommerce.orderservice;
 
 import com.ecommerce.orderservice.infrastructure.properties.SecurityProperties;
+import com.ecommerce.shared.infrastructure.configuration.JacksonConfig;
 import com.ecommerce.shared.infrastructure.configuration.OpenApiConfigBase;
 import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
 import org.springframework.boot.SpringApplication;
@@ -14,7 +15,7 @@ import org.springframework.context.annotation.Import;
 @EnableDiscoveryClient
 @SpringBootApplication
 @EnableConfigurationProperties(SecurityProperties.class)
-@Import({SharedLibraryConfig.class, OpenApiConfigBase.class})
+@Import({SharedLibraryConfig.class, OpenApiConfigBase.class, JacksonConfig.class})
 public class OrderServiceApplication {
 
     public static void main(String[] args) {
