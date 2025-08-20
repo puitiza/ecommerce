@@ -10,8 +10,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Table of Contents
 
 1. [Unreleased](#unreleased)
-2. [0.2.0] - 2025-08-19
-3. [0.1.0] - 2025-06-01
+2. [0.1.7] - 2025-08-19
+3. [0.1.6] - 2025-08-15
+4. [0.1.5] - 2025-08-10
+5. [0.1.4] - 2025-08-05
+6. [0.1.3] - 2025-07-15
+7. [0.1.2] - 2025-07-01
+8. [0.1.1] - 2025-06-15
+9. [0.1.0] - 2025-06-01
 
 ---
 
@@ -32,31 +38,53 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.2.0] - 2025-08-19
+## [0.1.7] - 2025-08-19
 
 ### Added
 
-- Retry logic for payment processing in `payment-service` (#123).
-- Kafka Dead Letter Topic handling for `order-service` (#125).
-- Developer workflow documentation ([docs/developer-workflow.md](../docs/developer-workflow.md)).
-- Support for HTTP in Keycloak `master` realm for local development (#130).
+- Clean architecture for order-service (tag: v0.1.7-clean-architecture, PR #8).
 
-### Changed
+## [0.1.6] - 2025-08-15
 
-- Updated `api-gateway` rate limiting to use Redis with dynamic configuration (#128).
-- Refactored `share-library` to include shared DTOs and exceptions (#126).
+### Added
 
-### Fixed
+- Clean architecture improvements in order-service (tag: v0.1.6-clean-architecture-v2, PR #7).
 
-- NullPointerException in `OrderEventProcessor` when handling invalid events (#124).
-- Eureka registration timeout for `product-service` under high load (#129).
+## [0.1.5] - 2025-08-10
 
----
+### Added
+
+- SOLID principles in order-service (tag: v0.1.5-solid-principles, PR #6).
+
+## [0.1.4] - 2025-08-05
+
+### Added
+
+- Improved share-library module with shared DTOs and utilities (tag: v0.1.4-shared-library, PR #5).
+
+## [0.1.3] - 2025-07-15
+
+### Added
+
+- Clean architecture initial implementation (tag: v0.1.3-clean-architecture, PR #4).
+
+## [0.1.2] - 2025-07-01
+
+### Added
+
+- Product-service with MySQL integration (tag: v0.1.2-product-service, PR #3).
+
+## [0.1.1] - 2025-06-15
+
+### Added
+
+- User-service with Keycloak integration (tag: v0.1.1-user-keycloak, PR #2).
 
 ## [0.1.0] - 2025-06-01
 
 ### Added
 
+- Reorganized project folder structure (tag: v0.1.0-reorder-folder, PR #1).
 - Initial microservices: `config-server`, `eureka-server`, `api-gateway`, `user-service`, `product-service`,
   `order-service`, `payment-service`, `cart-service`, `shipment-service`, `notification-service`.
 - Spring Cloud Config for centralized configuration.
@@ -67,13 +95,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Monitoring with Zipkin, Prometheus, Grafana, and AKHQ.
 - CI/CD pipeline with GitHub Actions.
 
-### Changed
+---
 
-- N/A
+### Notes
 
-### Fixed
-
-- N/A
+- **Versioning**: Uses `0.1.x` (0.1.0 to 0.1.7) for initial development, aligning with Semantic Versioning.
+- **Tags**: Adjusted to match versions (e.g., `v0.1.5-solid-principles` instead of `v0.2.1-solid-principles` to avoid
+  jumps).
+- **PRs**: Reflects your log (`PR #1` to `#8`) with commit hashes (`a8d5526` to `becdd99`).
+- **Unreleased**: Kept planned features (review and recommendation services).
+- **Removed**: Duplicate versions (`[0.2.0]`, `[0.1.0]`), hypothetical entries (`#123`, `#124`), and instructional
+  sections.
 
 ---
 
