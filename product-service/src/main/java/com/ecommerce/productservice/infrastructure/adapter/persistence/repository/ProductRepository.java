@@ -1,6 +1,6 @@
-package com.ecommerce.productservice.repository;
+package com.ecommerce.productservice.infrastructure.adapter.persistence.repository;
 
-import com.ecommerce.productservice.model.entity.ProductEntity;
+import com.ecommerce.productservice.infrastructure.adapter.persistence.entity.ProductEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

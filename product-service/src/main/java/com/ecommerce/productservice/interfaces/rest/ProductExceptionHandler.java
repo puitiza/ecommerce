@@ -1,10 +1,10 @@
-package com.ecommerce.productservice.configuration.exception;
+package com.ecommerce.productservice.interfaces.rest;
 
-import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
-import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
+import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
+import com.ecommerce.productservice.domain.exception.ProductUpdateException;
 import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
-import com.ecommerce.shared.domain.exception.ExceptionError;
 import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
+import com.ecommerce.shared.domain.exception.ExceptionError;
 import com.ecommerce.shared.domain.exception.ServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -17,8 +17,8 @@ import org.springframework.web.context.request.WebRequest;
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
-public class ExceptionHandlerConfig extends GlobalExceptionHandler {
-    public ExceptionHandlerConfig(ErrorResponseBuilder errorResponseBuilder) {
+public class ProductExceptionHandler extends GlobalExceptionHandler {
+    public ProductExceptionHandler(ErrorResponseBuilder errorResponseBuilder) {
         super(errorResponseBuilder);
     }
 

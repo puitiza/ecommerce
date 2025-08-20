@@ -15,8 +15,8 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'io.github.openfeign:feign-micrometer' // Zipkin for feign
     implementation 'io.github.resilience4j:resilience4j-spring-boot3'
-    implementation 'io.cloudevents:cloudevents-kafka:2.5.0' // Cloudevents properties
-    implementation 'io.cloudevents:cloudevents-json-jackson:2.5.0'//Cloudevents For Deserialization
+    implementation 'io.cloudevents:cloudevents-kafka:4.0.1' // Cloudevents properties
+    implementation 'io.cloudevents:cloudevents-json-jackson:4.0.1'//Cloudevents For Deserialization
 
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'

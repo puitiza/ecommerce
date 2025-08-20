@@ -1,8 +1,8 @@
-package com.ecommerce.productservice.controller.openApi;
+package com.ecommerce.productservice.interfaces.rest;
 
-import com.ecommerce.productservice.model.dto.ProductAvailabilityDto;
-import com.ecommerce.productservice.model.dto.ProductDto;
-import com.ecommerce.productservice.model.request.OrderItemRequest;
+import com.ecommerce.productservice.application.dto.OrderItemRequest;
+import com.ecommerce.productservice.application.dto.ProductAvailabilityDto;
+import com.ecommerce.productservice.application.dto.ProductDto;
 import com.ecommerce.shared.interfaces.openapi.CrudOpenApi;
 import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;

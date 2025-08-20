@@ -1,9 +1,7 @@
-package com.ecommerce.productservice.controller;
+package com.ecommerce.productservice.interfaces.rest;
 
-import com.ecommerce.productservice.controller.openApi.ProductOpenApi;
-import com.ecommerce.productservice.model.dto.*;
-import com.ecommerce.productservice.model.request.OrderItemRequest;
-import com.ecommerce.productservice.service.ProductService;
+import com.ecommerce.productservice.application.dto.*;
+import com.ecommerce.productservice.application.service.ProductApplicationService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,7 +13,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/products")
-public record ProductController(ProductService productService) implements ProductOpenApi {
+public record ProductController(ProductApplicationService productService) implements ProductOpenApi {
 
     @Override
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)

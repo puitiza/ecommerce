@@ -1,10 +1,10 @@
-package com.ecommerce.productservice.service;
+package com.ecommerce.productservice.application.service;
 
-import com.ecommerce.productservice.configuration.exception.handler.InvalidInventoryException;
-import com.ecommerce.productservice.configuration.exception.handler.ProductUpdateException;
-import com.ecommerce.productservice.model.dto.*;
-import com.ecommerce.productservice.model.entity.ProductEntity;
-import com.ecommerce.productservice.repository.ProductRepository;
+import com.ecommerce.productservice.application.dto.*;
+import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
+import com.ecommerce.productservice.domain.exception.ProductUpdateException;
+import com.ecommerce.productservice.infrastructure.adapter.persistence.entity.ProductEntity;
+import com.ecommerce.productservice.infrastructure.adapter.persistence.repository.ProductRepository;
 import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProductServiceImpl implements ProductService {
+public class ProductApplicationServiceImpl implements ProductApplicationService {
 
     private final ProductRepository repository;
     private final ModelMapper modelMapper;

@@ -1,4 +1,4 @@
-package com.ecommerce.productservice.configuration.security;
+package com.ecommerce.productservice.infrastructure.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

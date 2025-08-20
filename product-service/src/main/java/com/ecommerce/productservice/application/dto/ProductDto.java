@@ -1,4 +1,4 @@
-package com.ecommerce.productservice.model.dto;
+package com.ecommerce.productservice.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

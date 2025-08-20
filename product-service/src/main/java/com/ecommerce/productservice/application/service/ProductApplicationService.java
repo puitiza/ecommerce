@@ -1,10 +1,10 @@
-package com.ecommerce.productservice.service;
+package com.ecommerce.productservice.application.service;
 
-import com.ecommerce.productservice.model.dto.*;
+import com.ecommerce.productservice.application.dto.*;
 
 import java.util.List;
 
-public interface ProductService {
+public interface ProductApplicationService {
     ProductDto createProduct(ProductDto product);
 
     List<ProductDto> getAllProducts();

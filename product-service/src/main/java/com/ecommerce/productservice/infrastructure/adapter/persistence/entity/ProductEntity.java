@@ -1,4 +1,4 @@
-package com.ecommerce.productservice.model.entity;
+package com.ecommerce.productservice.infrastructure.adapter.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
