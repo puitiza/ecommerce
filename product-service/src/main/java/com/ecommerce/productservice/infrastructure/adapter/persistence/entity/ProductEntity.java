@@ -14,10 +14,17 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Entity representing a product in the database.
+ * <p>
+ * The {@code @DynamicUpdate} annotation optimizes SQL UPDATE statements by
+ * including only the columns that have changed, which is useful for
+ * entities with many fields.
+ */
 @Getter
 @Setter
-@Entity(name = "products")
 @DynamicUpdate
+@Entity(name = "products")
 public class ProductEntity {
 
     @Id
@@ -40,17 +47,26 @@ public class ProductEntity {
     private Set<String> categories;
 
     /**
-     * Maps the Map<String, Object> to a JSONB column in PostgreSQL using Hibernate's native support.
-     * The @JdbcTypeCode specifies the SQL type, and @Type handles the mapping.
+     * Maps a Map<String, Object> to a JSONB column in PostgreSQL.This allows for storing flexible, schemaless additional data.
+     * The {@code @JdbcTypeCode(SqlTypes.JSON)} annotation handles the conversion between the Java Map and the
+     * PostgreSQL JSONB type.
      */
     @Column(columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> additionalData;
 
+    /**
+     * The date and time when the product was first created.
+     * Automatically set by Hibernate upon insertion.
+     */
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * The date and time when the product was last updated.
+     * Automatically updated by Hibernate on any entity modification.
+     */
     @UpdateTimestamp
     @Column
     private LocalDateTime updatedAt;

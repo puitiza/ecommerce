@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of {@link ProductApplicationService}, handling product-related business logic.
+ * Delegates persistence operations to {@link ProductRepositoryPort} and maps DTOs using {@link ProductMapper}.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,14 +39,14 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductResponse> getAllPaginatedList(int page, int size) {
+    public Page<ProductResponse> findAllPaginated(int page, int size) {
         Page<Product> productsPage = productRepositoryPort.findAll(page, size);
         return productsPage.map(mapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProductResponse getProductById(Long id) {
+    public ProductResponse findById(Long id) {
         Product product = productRepositoryPort.findById(id);
         return mapper.toResponse(product);
     }
@@ -69,6 +73,14 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         productRepositoryPort.delete(id);
     }
 
+    /**
+     * Verifies the availability of a batch of products by checking their
+     * inventory levels. It fetches all required products in a single query
+     * to optimize performance, then processes each item.
+     *
+     * @param request The batch request containing product IDs and quantities.
+     * @return A response containing a list of products with their availability status.
+     */
     @Override
     @Transactional(readOnly = true)
     public BatchProductResponse verifyAndGetProducts(BatchProductRequest request) {
@@ -99,7 +111,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request) {
+    public List<BatchProductDetailsResponse> findProductDetails(BatchProductDetailsRequest request) {
         Map<Long, Product> productMap = productRepositoryPort.findAllByIds(request.productIds())
                 .stream()
                 .collect(Collectors.toMap(Product::id, p -> p));

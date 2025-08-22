@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Set;
 
-@Schema(description = "Request object for creating a new product", requiredMode = Schema.RequiredMode.REQUIRED)
+@Schema(description = "Request object for creating or updating a product", requiredMode = Schema.RequiredMode.REQUIRED)
 public record ProductRequest(
 
         @NotBlank(message = "name field not should be null or empty")
@@ -37,7 +37,7 @@ public record ProductRequest(
         @Schema(description = "List of categories the product belongs to", example = "[\"Clothing\", \"T-Shirts\"]")
         Set<String> categories,
 
-        @Schema(description = "Additional product metadata", example = "{\"color\": \"Black\", \"storage\": \"128GB\"}")
+        @Schema(description = "Additional product metadata (stored as JSONB)", example = "{\"color\": \"Black\", \"storage\": \"128GB\"}")
         Map<String, Object> additionalData
 ) {
 }

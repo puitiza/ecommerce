@@ -25,7 +25,7 @@ public class ProductController implements ProductOpenApi {
     @Override
     public ProductResponse getById(@PathVariable Long id) {
         log.info("Retrieving product with ID: {}", id);
-        return productUseCase.getProductById(id);
+        return productUseCase.findById(id);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class ProductController implements ProductOpenApi {
     public ProductPageResponse getAll(@RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "10") int size) {
         log.info("Retrieving product for page {} with size {}", page, size);
-        var paginatedList = productUseCase.getAllPaginatedList(page, size);
+        var paginatedList = productUseCase.findAllPaginated(page, size);
         return new ProductPageResponse(paginatedList);
     }
 
@@ -57,7 +57,7 @@ public class ProductController implements ProductOpenApi {
     @Override
     public List<BatchProductDetailsResponse> getProductDetails(@Valid @RequestBody BatchProductDetailsRequest request) {
         log.info("Retrieving products in Batch: {}", request.productIds());
-        return productUseCase.getProductDetails(request);
+        return productUseCase.findProductDetails(request);
     }
 
     @GetMapping("/color/{color}")

@@ -24,7 +24,16 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     private final ProductJpaRepository jpaRepository;
     private final ProductMapper mapper;
 
-    //saveAndFlush fixed the createdAt and updatedAt issue
+    /**
+     * Saves a new product to the database. The `saveAndFlush` method
+     * ensures that the entity is immediately persisted and the database
+     * transaction is synchronized. This is important for retrieving
+     * auto-generated fields like the 'createdAt' and 'updatedAt' timestamps
+     * or the product ID immediately after saving.
+     *
+     * @param product The product domain model to save.
+     * @return The saved product with updated state from the database.
+     */
     @Override
     public Product save(Product product) {
         var productEntity = mapper.toEntity(product);
@@ -77,14 +86,23 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
                 .map(mapper::toDomain);
     }
 
-    @Cacheable("products")
     @Override
+    @Cacheable(value = "products", unless = "#result.isEmpty()")
     public List<Product> findAllByIds(List<Long> ids) {
         return jpaRepository.findAllByIdIn(ids)
                 .stream()
                 .map(mapper::toDomain).toList();
     }
 
+    /**
+     * Retrieves products by color with pagination, using a native SQL query to
+     * extract the color from the JSONB {@code additionalData} column.
+     *
+     * @param color the color to filter by
+     * @param page  the page number (0-based)
+     * @param size  the number of items per page
+     * @return a paginated list of products matching the color
+     */
     @Override
     public Page<Product> findByColor(String color, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);

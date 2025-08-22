@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
  * and processing events from internal systems (e.g., Kafka)
  * and applies {@link SerializationFeature} and {@link DeserializationFeature}
  * add @JsonIgnoreProperties(ignoreUnknown = true) globally for DTOs.
+ * but does not affect database operations such as timestamp persistence (handled by Hibernate).
  */
 @Configuration
 public class JacksonConfig {
