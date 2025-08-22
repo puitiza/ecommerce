@@ -1,54 +1,90 @@
 package com.ecommerce.productservice.interfaces.rest;
 
-import com.ecommerce.productservice.application.dto.OrderItemRequest;
-import com.ecommerce.productservice.application.dto.ProductAvailabilityDto;
-import com.ecommerce.productservice.application.dto.ProductDto;
+import com.ecommerce.productservice.application.dto.*;
 import com.ecommerce.shared.interfaces.openapi.CrudOpenApi;
+import com.ecommerce.shared.interfaces.openapi.ListableCrudOpenApi;
 import com.ecommerce.shared.interfaces.openapi.response.ApiValidationErrors;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@SuppressWarnings("unused")
-public interface ProductOpenApi extends CrudOpenApi<ProductDto, ProductDto, Long> {
+@RequestMapping("/products")
+public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequest, Long>, ListableCrudOpenApi<ProductPageResponse> {
 
     @Override
-    @Operation(summary = "Create Product", description = "Creates a new product", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "201", description = "Product created successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
-    ProductDto create(ProductDto resource);
-
-    //@Override
-    @Operation(summary = "Retrieve All Products", description = "Retrieves all products", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Products retrieved successfully", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductDto.class))))
-    List<ProductDto> getAll();
-
-    @Override
-    @Operation(summary = "Retrieve Product by ID", description = "Retrieves a product by its ID", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Product retrieved successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
-    ProductDto getById(Long id);
+    @Operation(summary = "Create Product", description = "Creates a new product",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(
+            responseCode = "201", description = "Product created successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductResponse.class)))
+    ProductResponse create(@Parameter(description = "Product details to create", required = true)
+                           @RequestBody ProductRequest request);
 
     @Override
-    @Operation(summary = "Update Product", description = "Updates an existing product", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Product updated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductDto.class)))
-    ProductDto update(Long id, ProductDto resource);
+    @Operation(summary = "Retrieve Product by ID", description = "Retrieves the details of an order by its ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(
+            responseCode = "200", description = "Product retrieved successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductResponse.class)))
+    ProductResponse getById(@Parameter(description = "ID of the order to retrieve", required = true)
+                            @PathVariable("id") Long id);
 
     @Override
-    @Operation(summary = "Delete Product", description = "Deletes a product by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @Operation(summary = "Update Product", description = "Updates an existing order by its ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(
+            responseCode = "200", description = "Product updated successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductResponse.class)))
+    ProductResponse update(@Parameter(description = "ID of the order to update", required = true)
+                           @PathVariable("id") Long id,
+                           @Parameter(description = "Updated order details", required = true)
+                           @RequestBody ProductRequest request);
+
+    @Override
+    @Operation(summary = "Delete Product", description = "Deletes a product by its ID",
+            security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Product deleted successfully")
-    void delete(Long id);
+    void delete(@Parameter(description = "ID of the order to delete", required = true)
+                @PathVariable("id") Long id);
+
+    @Override
+    @Operation(summary = "Retrieve All Products", description = "Retrieves all products with pagination",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(
+            responseCode = "200", description = "Products retrieved successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ProductPageResponse.class)))
+    ProductPageResponse getAll(@Parameter(description = "Page number for pagination", example = "0")
+                               @RequestParam(defaultValue = "0") int page,
+                               @Parameter(description = "Number of items per page", example = "10")
+                               @RequestParam(defaultValue = "10") int size);
 
     @ApiValidationErrors
-    @Operation(summary = "Verify Product Availability", description = "Verifies if a product is available for an order", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "200", description = "Availability verified successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductAvailabilityDto.class)))
-    ProductAvailabilityDto verifyProductAvailability(OrderItemRequest orderItemRequest);
+    @Operation(summary = "Verify and Get Products in Batch", description = "Retrieves all products verified in Inventory",
+            security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping(value = "/batch", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    BatchProductResponse verifyAndGetProducts(@Parameter(description = "Batch product resource details", required = true)
+                                              @RequestBody BatchProductRequest request);
 
     @ApiValidationErrors
-    @Operation(summary = "Update Product Inventory", description = "Updates the inventory of a product", security = @SecurityRequirement(name = "security_auth"))
-    @ApiResponse(responseCode = "204", description = "Inventory updated successfully")
-    void updateProductInventory(Long id, Integer updatedInventory);
+    @Operation(summary = "Get Products in Batch", description = "Get products in Batch",
+            security = @SecurityRequirement(name = "security_auth"))
+    @PostMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    List<BatchProductDetailsResponse> getProductDetails(@Parameter(description = "Batch product resource details", required = true)
+                                                        @RequestBody BatchProductDetailsRequest request);
+
 }

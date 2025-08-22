@@ -83,9 +83,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-#    healthcheck:
-#      <<: *default-healthcheck
-#      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
+  #    healthcheck:
+  #      <<: *default-healthcheck
+  #      test: [ "CMD", "curl", "-f", "http://localhost:8090/actuator/health" ]
 
   zipkin:
     <<: *default-service
@@ -97,22 +97,21 @@ services:
       <<: *default-healthcheck
       test: [ "CMD", "curl", "-f", "http://localhost:9411/actuator/health" ]
 
-  mysql-product-db:
+  postgres-product-db:
     <<: *default-service
-    container_name: mysql-product-db
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PRODUCT_ROOT_PASSWORD}
-      MYSQL_DATABASE: product_db
-      MYSQL_USER: ${MYSQL_PRODUCT_USER}
-      MYSQL_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
+    container_name: postgres-product-db
+    image: postgres:17.6
     ports:
-      - "3306:3306" # Remove in prod
+      - "5431:5432" # Remove in prod, distinct port to avoid conflict
     volumes:
-      - mysql_product_data:/var/lib/mysql
+      - postgres_product_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: ${POSTGRES_PRODUCT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD}
     healthcheck:
       <<: *default-healthcheck
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_PRODUCT_USER}", "-p${MYSQL_PRODUCT_PASSWORD}" ]
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_PRODUCT_USER}", "-d", "product_db" ]
 
   mysql-order-db:
     <<: *default-service
@@ -160,9 +159,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ORDER_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       KAFKA_SERVER_URL: kafka:29092
-#    healthcheck:
-#      <<: *default-healthcheck
-#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+  #    healthcheck:
+  #      <<: *default-healthcheck
+  #      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
 
   product-service:
     <<: *default-service
@@ -183,17 +182,17 @@ services:
       zipkin:
         condition: service_started
         restart: true
-      mysql-product-db:
+      postgres-product-db:
         condition: service_healthy
     environment:
       <<: *default-environment
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-product-db:3306/product_db?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_PRODUCT_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PRODUCT_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-product-db:5432/product_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_PRODUCT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-#    healthcheck:
-#      <<: *default-healthcheck
-#      test: [ "CMD", "curl", "-f", "http://localhost:4005/actuator/health" ]
+  #    healthcheck:
+  #      <<: *default-healthcheck
+  #      test: [ "CMD", "curl", "-f", "http://localhost:4005/actuator/health" ]
 
   user-service:
     <<: *default-service
@@ -218,9 +217,9 @@ services:
         condition: service_healthy
     environment:
       <<: *default-environment
-#    healthcheck:
-#      <<: *default-healthcheck
-#      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
+  #    healthcheck:
+  #      <<: *default-healthcheck
+  #      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
 
   payment-service:
     <<: *default-service
@@ -249,9 +248,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PAYMENT_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PAYMENT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-#    healthcheck:
-#      <<: *default-healthcheck
-#      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
+  #    healthcheck:
+  #      <<: *default-healthcheck
+  #      test: [ "CMD", "curl", "-f", "http://localhost:8087/actuator/health" ]
 
   postgres-keycloak-db:
     <<: *default-service
@@ -384,7 +383,7 @@ volumes:
     driver: local
   postgres_payment_data:
     driver: local
-  mysql_product_data:
+  postgres_product_data: # New volume for product DB
     driver: local
   mysql_order_data:
     driver: local

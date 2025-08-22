@@ -1,20 +1,18 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
-import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
-import com.ecommerce.productservice.domain.exception.ProductUpdateException;
-import com.ecommerce.productservice.infrastructure.adapter.persistence.entity.ProductEntity;
-import com.ecommerce.productservice.infrastructure.adapter.persistence.repository.ProductRepository;
-import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
+import com.ecommerce.productservice.domain.model.Product;
+import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
+import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -22,86 +20,62 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductApplicationServiceImpl implements ProductApplicationService {
 
-    private final ProductRepository repository;
-    private final ModelMapper modelMapper;
+    private final ProductRepositoryPort productRepositoryPort;
+    private final ProductMapper mapper;
 
     @Override
-    public ProductDto createProduct(ProductDto productDto) {
-        // Convert ProductDto into Product JPA Entity
-        var productEntity = modelMapper.map(productDto, ProductEntity.class);
-        var savedProduct = repository.save(productEntity);
-
-        // Convert Product JPA entity to ProductDto
-        return modelMapper.map(savedProduct, ProductDto.class);
-    }
-
-    @Override
-    public List<ProductDto> getAllProducts() {
-        var products = repository.findAll();
-        return products.stream()
-                .map((product) -> modelMapper.map(product, ProductDto.class))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ProductDto getProductById(Long productId) {
-        var productEntity = repository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
-        return modelMapper.map(productEntity, ProductDto.class);
-    }
-
-    @Override
-    public ProductDto updateProduct(Long id, ProductDto ProductEntity) {
-        var existingProductDto = getProductById(id);
-        var existingProduct = modelMapper.map(existingProductDto, ProductEntity.class);
-
-        existingProduct.setName(ProductEntity.getName());
-        existingProduct.setDescription(ProductEntity.getDescription());
-        existingProduct.setPrice(ProductEntity.getPrice());
-        existingProduct.setInventory(ProductEntity.getInventory());
-        existingProduct.setImage(ProductEntity.getImage());
-        existingProduct.setCategories(ProductEntity.getCategories());
-        //existingProduct.setAdditionalData(ProductEntity.getAdditionalData());
-
-        var updatedProduct = repository.save(existingProduct);
-
-        return modelMapper.map(updatedProduct, ProductDto.class);
-    }
-
-    @Override
-    public void deleteProduct(Long id) {
-        repository.deleteById(id);
-    }
-
-    @Override
-    public ProductAvailabilityDto verifyProductAvailability(Long productId, Integer quantity) {
-        var productEntity = repository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
-        Integer availableQuantity = productEntity.getInventory();
-        return new ProductAvailabilityDto((availableQuantity >= quantity), availableQuantity);
-    }
-
-    @Override
-    public void updateProductInventory(Long productId, Integer updatedInventory) {
-        log.info("Updating inventory for product with ID {} to {}", productId, updatedInventory);
-
-        // Input validation
-        if (updatedInventory < 0) {
-            throw new InvalidInventoryException("Inventory cannot be negative");
+    @Transactional
+    public ProductResponse create(ProductRequest request) {
+        if (productRepositoryPort.existsByName(request.name())) {
+            throw new IllegalArgumentException("Product name already exists: " + request.name());
         }
+        Product product = mapper.toProduct(request, null);
+        Product savedProduct = productRepositoryPort.save(product);
+        return mapper.toResponse(savedProduct);
+    }
 
-        try {
-            var productEntity = repository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product", productId.toString()));
-            // Save updated product
-            productEntity.setInventory(updatedInventory);
-            repository.save(productEntity);
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getAllPaginatedList(int page, int size) {
+        Page<Product> productsPage = productRepositoryPort.findAll(page, size);
+        return productsPage.map(mapper::toResponse);
+    }
 
-            log.info("Inventory updated successfully");
-        } catch (DataAccessException ex) {
-            log.error("Failed to update inventory: {}", ex.getMessage());
-            throw new ProductUpdateException("Failed to update product inventory", ex);
+    @Override
+    @Transactional(readOnly = true)
+    public ProductResponse getProductById(Long id) {
+        Product product = productRepositoryPort.findById(id);
+        return mapper.toResponse(product);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse update(Long id, ProductRequest request) {
+        Optional<Product> existingByName = productRepositoryPort.findByName(request.name());
+        if (existingByName.isPresent() && !existingByName.get().id().equals(id)) {
+            throw new IllegalArgumentException("Product name already exists: " + request.name());
         }
+        Product existing = productRepositoryPort.findById(id);
+        Product updatedProduct = new Product(
+                id,
+                request.name() != null ? request.name() : existing.name(),
+                request.description() != null ? request.description() : existing.description(),
+                request.price() != null ? request.price() : existing.price(),
+                request.inventory() != null ? request.inventory() : existing.inventory(),
+                request.image() != null ? request.image() : existing.image(),
+                request.categories() != null ? request.categories() : existing.categories(),
+                request.additionalData() != null ? request.additionalData() : existing.additionalData(),
+                existing.createdAt(), // Preserve existing createdAt
+                existing.updatedAt()
+        );
+        Product savedProduct = productRepositoryPort.update(id, updatedProduct);
+        return mapper.toResponse(savedProduct);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOrder(Long id) {
+        productRepositoryPort.delete(id);
     }
 
     @Override
@@ -109,48 +83,51 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
     public BatchProductResponse verifyAndGetProducts(BatchProductRequest request) {
         // Fetch products in one query
         List<Long> productIds = request.items().stream().map(BatchProductItemRequest::productId).toList();
-        List<ProductEntity> products = repository.findAllByIdIn(productIds);
-        Map<Long, ProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(ProductEntity::getId, p -> p));
-
+        Map<Long, Product> productMap = productRepositoryPort.findAllByIds(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::id, p -> p));
         // Process each item
         List<BatchProductItemResponse> responses = request.items().stream().map(item -> {
-            var product = productMap.get(item.productId());
+            Product product = productMap.get(item.productId());
             if (product == null) {
                 return new BatchProductItemResponse(item.productId(), null, null, false, 0, "Product not found");
             }
-            boolean isAvailable = product.getInventory() >= item.quantity();
-            String error = isAvailable ? null : "Insufficient stock. Available: " + product.getInventory();
+            boolean isAvailable = product.inventory() >= item.quantity();
+            String error = isAvailable ? null : "Insufficient stock. Available: " + product.inventory();
             return new BatchProductItemResponse(
                     item.productId(),
-                    product.getName(),
-                    product.getPrice(),
+                    product.name(),
+                    product.price(),
                     isAvailable,
-                    product.getInventory(),
+                    product.inventory(),
                     error
             );
         }).toList();
-
         return new BatchProductResponse(responses);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BatchProductDetailsResponse> getProductDetails(BatchProductDetailsRequest request) {
-        List<Long> productIds = request.productIds();
-        List<ProductEntity> products = repository.findAllByIdIn(productIds);
-        Map<Long, ProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(ProductEntity::getId, p -> p));
-
-        return productIds.stream()
+        Map<Long, Product> productMap = productRepositoryPort.findAllByIds(request.productIds())
+                .stream()
+                .collect(Collectors.toMap(Product::id, p -> p));
+        return request.productIds().stream()
                 .map(id -> {
-                    ProductEntity entity = productMap.get(id);
-                    if (entity == null) {
+                    Product product = productMap.get(id);
+                    if (product == null) {
                         return new BatchProductDetailsResponse(null, String.format("Product not found with ID: %s", id));
                     }
-                    return new BatchProductDetailsResponse(modelMapper.map(entity, ProductDto.class), null);
+                    return new BatchProductDetailsResponse(mapper.toResponse(product), null);
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> findByColor(String color, int page, int size) {
+        Page<Product> productsPage = productRepositoryPort.findByColor(color, page, size);
+        return productsPage.map(mapper::toResponse);
     }
 
 }
