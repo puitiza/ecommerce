@@ -32,14 +32,16 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     private final ProductMapper mapper;
 
     /**
-     * Saves a new product to the database. The `saveAndFlush` method
-     * ensures that the entity is immediately persisted and the database
-     * transaction is synchronized. This is important for retrieving
-     * auto-generated fields like the 'createdAt' and 'updatedAt' timestamps
-     * or the product ID immediately after saving.
+     * Saves a product to the database and immediately flushes the changes.
+     * <p>
+     * The {@code saveAndFlush} method ensures that the entity is persisted and
+     * the database transaction is synchronized, allowing immediate retrieval
+     * of auto-generated fields (e.g., {@code id}, {@code createdAt}, {@code updatedAt}).
+     * This is critical for ensuring consistency in event-driven workflows.
+     * </p>
      *
      * @param product The product domain model to save.
-     * @return The saved product with updated state from the database.
+     * @return The saved product with updated database-generated fields.
      */
     @Override
     public Product save(Product product) {

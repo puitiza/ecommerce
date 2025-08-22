@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Schema(description = "Request object for fetching product details in batch")
-public record BatchProductDetailsRequest(
+public record ProductBatchDetailsRequest(
 
         @Schema(description = "List of product IDs", example = "[1, 2, 3]")
         @NotNull(message = "The list of product IDs cannot be null")

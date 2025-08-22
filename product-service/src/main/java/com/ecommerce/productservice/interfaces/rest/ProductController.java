@@ -58,13 +58,13 @@ public class ProductController implements ProductOpenApi {
     }
 
     @Override
-    public BatchProductResponse verifyAndGetProducts(@Valid @RequestBody BatchProductRequest request) {
+    public ProductBatchValidationResponse verifyAndGetProducts(@Valid @RequestBody ProductBatchValidationRequest request) {
         log.info("Verify Products in Batch: {}", request.toString());
         return productUseCase.verifyAndGetProducts(request);
     }
 
     @Override
-    public List<BatchProductDetailsResponse> findProductDetailsByIds(@Valid @RequestBody BatchProductDetailsRequest request) {
+    public List<ProductBatchDetailsResponse> findProductDetailsByIds(@Valid @RequestBody ProductBatchDetailsRequest request) {
         log.info("Retrieving products in Batch: {}", request.productIds());
         return productUseCase.findProductDetails(request);
     }

@@ -65,7 +65,7 @@ public interface ProductUseCase {
      * @param request the batch request containing product IDs and quantities
      * @return a response with availability details for each product
      */
-    BatchProductResponse verifyAndGetProducts(BatchProductRequest request);
+    ProductBatchValidationResponse verifyAndGetProducts(ProductBatchValidationRequest request);
 
     /**
      * Retrieves details for a batch of products.
@@ -73,7 +73,7 @@ public interface ProductUseCase {
      * @param request the request containing product IDs
      * @return a list of product details or errors for non-existent products
      */
-    List<BatchProductDetailsResponse> findProductDetails(BatchProductDetailsRequest request);
+    List<ProductBatchDetailsResponse> findProductDetails(ProductBatchDetailsRequest request);
 
     /**
      * Retrieves products filtered by color with pagination.

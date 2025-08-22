@@ -28,3 +28,4 @@ Add the library to your microservice's `build.gradle`:
 
 ```groovy
 implementation project(':shared-library')
+```

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 @Schema(description = "Request object for an product item")
-public record BatchProductItemRequest(
+public record ProductBatchItemRequest(
         @NotNull(message = "Product ID is required")
         @Schema(description = "ID of the product", example = "1")
         Long productId,

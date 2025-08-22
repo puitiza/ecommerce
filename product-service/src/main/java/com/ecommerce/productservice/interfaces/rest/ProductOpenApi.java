@@ -76,16 +76,16 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
             security = @SecurityRequirement(name = "security_auth"))
     @PostMapping(value = "/batch", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    BatchProductResponse verifyAndGetProducts(@Parameter(description = "Batch product resource details", required = true)
-                                              @RequestBody BatchProductRequest request);
+    ProductBatchValidationResponse verifyAndGetProducts(@Parameter(description = "Batch product resource details", required = true)
+                                              @RequestBody ProductBatchValidationRequest request);
 
     @ApiValidationErrors
     @Operation(summary = "Get Products in Batch", description = "Get products in Batch",
             security = @SecurityRequirement(name = "security_auth"))
     @PostMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    List<BatchProductDetailsResponse> findProductDetailsByIds(@Parameter(description = "Batch product resource details", required = true)
-                                                              @RequestBody BatchProductDetailsRequest request);
+    List<ProductBatchDetailsResponse> findProductDetailsByIds(@Parameter(description = "Batch product resource details", required = true)
+                                                              @RequestBody ProductBatchDetailsRequest request);
 
     @Operation(summary = "Get Products in Batch", description = "Get products in Batch",
             security = @SecurityRequirement(name = "security_auth"))

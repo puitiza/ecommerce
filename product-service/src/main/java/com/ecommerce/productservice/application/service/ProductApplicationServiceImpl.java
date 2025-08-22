@@ -1,6 +1,7 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
+import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
 import com.ecommerce.productservice.domain.model.Product;
 import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
@@ -84,21 +85,21 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
      */
     @Override
     @Transactional(readOnly = true)
-    public BatchProductResponse verifyAndGetProducts(BatchProductRequest request) {
+    public ProductBatchValidationResponse verifyAndGetProducts(ProductBatchValidationRequest request) {
         // Fetch products in one query
-        List<Long> productIds = request.items().stream().map(BatchProductItemRequest::productId).toList();
+        List<Long> productIds = request.items().stream().map(ProductBatchItemRequest::productId).toList();
         Map<Long, Product> productMap = productRepositoryPort.findAllByIds(productIds)
                 .stream()
                 .collect(Collectors.toMap(Product::id, p -> p));
         // Process each item
-        List<BatchProductItemResponse> responses = request.items().stream().map(item -> {
+        List<ProductBatchItemResponse> responses = request.items().stream().map(item -> {
             Product product = productMap.get(item.productId());
             if (product == null) {
-                return new BatchProductItemResponse(item.productId(), null, null, false, 0, "Product not found");
+                return new ProductBatchItemResponse(item.productId(), null, null, false, 0, "Product not found");
             }
             boolean isAvailable = product.inventory() >= item.quantity();
             String error = isAvailable ? null : "Insufficient stock. Available: " + product.inventory();
-            return new BatchProductItemResponse(
+            return new ProductBatchItemResponse(
                     item.productId(),
                     product.name(),
                     product.price(),
@@ -107,12 +108,12 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
                     error
             );
         }).toList();
-        return new BatchProductResponse(responses);
+        return new ProductBatchValidationResponse(responses);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BatchProductDetailsResponse> findProductDetails(BatchProductDetailsRequest request) {
+    public List<ProductBatchDetailsResponse> findProductDetails(ProductBatchDetailsRequest request) {
         Map<Long, Product> productMap = productRepositoryPort.findAllByIds(request.productIds())
                 .stream()
                 .collect(Collectors.toMap(Product::id, p -> p));
@@ -120,9 +121,9 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
                 .map(id -> {
                     Product product = productMap.get(id);
                     if (product == null) {
-                        return new BatchProductDetailsResponse(null, String.format("Product not found with ID: %s", id));
+                        return new ProductBatchDetailsResponse(null, String.format("Product not found with ID: %s", id));
                     }
-                    return new BatchProductDetailsResponse(mapper.toResponse(product), null);
+                    return new ProductBatchDetailsResponse(mapper.toResponse(product), null);
                 })
                 .toList();
     }
@@ -134,5 +135,9 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         return productsPage.map(mapper::toResponse);
     }
 
+    @Override
+    public void publishProductEvent(Product product, ProductEventType eventType) {
+
+    }
 }
 

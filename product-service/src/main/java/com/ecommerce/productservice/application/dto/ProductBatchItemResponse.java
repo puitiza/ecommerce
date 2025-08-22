@@ -2,7 +2,7 @@ package com.ecommerce.productservice.application.dto;
 
 import java.math.BigDecimal;
 
-public record BatchProductItemResponse(
+public record ProductBatchItemResponse(
         Long productId,
         String name,
         BigDecimal price,
