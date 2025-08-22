@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -51,30 +50,22 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
     @Override
     @Transactional
     public ProductResponse update(Long id, ProductRequest request) {
-        Optional<Product> existingByName = productRepositoryPort.findByName(request.name());
-        if (existingByName.isPresent() && !existingByName.get().id().equals(id)) {
-            throw new IllegalArgumentException("Product name already exists: " + request.name());
-        }
+        // Validate uniqueness of the name
+        productRepositoryPort.findByName(request.name())
+                .filter(product -> !product.id().equals(id))
+                .ifPresent(product -> {
+                    throw new IllegalArgumentException("Product name already exists: " + request.name());
+                });
+
         Product existing = productRepositoryPort.findById(id);
-        Product updatedProduct = new Product(
-                id,
-                request.name() != null ? request.name() : existing.name(),
-                request.description() != null ? request.description() : existing.description(),
-                request.price() != null ? request.price() : existing.price(),
-                request.inventory() != null ? request.inventory() : existing.inventory(),
-                request.image() != null ? request.image() : existing.image(),
-                request.categories() != null ? request.categories() : existing.categories(),
-                request.additionalData() != null ? request.additionalData() : existing.additionalData(),
-                existing.createdAt(), // Preserve existing createdAt
-                existing.updatedAt()
-        );
+        Product updatedProduct = existing.updateFrom(request);
         Product savedProduct = productRepositoryPort.update(id, updatedProduct);
         return mapper.toResponse(savedProduct);
     }
 
     @Override
     @Transactional
-    public void deleteOrder(Long id) {
+    public void delete(Long id) {
         productRepositoryPort.delete(id);
     }
 

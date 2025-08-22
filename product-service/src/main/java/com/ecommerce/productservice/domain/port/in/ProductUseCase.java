@@ -15,7 +15,7 @@ public interface ProductUseCase {
 
     ProductResponse update(Long id, ProductRequest request);
 
-    void deleteOrder(Long id);
+    void delete(Long id);
 
     BatchProductResponse verifyAndGetProducts(BatchProductRequest request);
 

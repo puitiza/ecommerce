@@ -7,6 +7,7 @@ import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.Pr
 import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -22,7 +23,6 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     private final ProductJpaRepository jpaRepository;
     private final ProductMapper mapper;
-    //private final EntityManager entityManager;
 
     //saveAndFlush fixed the createdAt and updatedAt issue
     @Override
@@ -56,13 +56,11 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     @Override
     public Product update(Long id, Product product) {
-        if (!jpaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product", id.toString());
-        }
-        ProductEntity updatedEntity = mapper.toEntity(product);
-        updatedEntity.setId(id); // Ensure the ID remains unchanged
-        ProductEntity savedEntity = jpaRepository.saveAndFlush(updatedEntity);
-        //entityManager.refresh(savedEntity); // Refresh entity to sync with DB
+        ProductEntity existingEntity = jpaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
+        // Update fields from the input Product
+        ProductEntity productUpdated = mapper.setEntityFields(existingEntity, product);
+        ProductEntity savedEntity = jpaRepository.saveAndFlush(productUpdated);
         log.info("Updated entity: id={}, createdAt={}, updatedAt={}",
                 savedEntity.getId(), savedEntity.getCreatedAt(), savedEntity.getUpdatedAt());
         return mapper.toDomain(savedEntity);
@@ -79,6 +77,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
                 .map(mapper::toDomain);
     }
 
+    @Cacheable("products")
     @Override
     public List<Product> findAllByIds(List<Long> ids) {
         return jpaRepository.findAllByIdIn(ids)

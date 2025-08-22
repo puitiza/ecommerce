@@ -42,14 +42,7 @@ public class ProductMapper {
     public ProductEntity toEntity(Product product) {
         ProductEntity entity = new ProductEntity();
         entity.setId(product.id());
-        entity.setName(product.name());
-        entity.setDescription(product.description());
-        entity.setPrice(product.price());
-        entity.setInventory(product.inventory());
-        entity.setImage(product.image());
-        entity.setCategories(product.categories());
-        entity.setAdditionalData(product.additionalData());
-        return entity;
+        return this.setEntityFields(entity, product);
     }
 
     public Product toDomain(ProductEntity entity) {
@@ -65,5 +58,16 @@ public class ProductMapper {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
+    }
+
+    public ProductEntity setEntityFields(ProductEntity entity, Product domain) {
+        entity.setName(domain.name());
+        entity.setDescription(domain.description());
+        entity.setPrice(domain.price());
+        entity.setInventory(domain.inventory());
+        entity.setImage(domain.image());
+        entity.setCategories(domain.categories());
+        entity.setAdditionalData(domain.additionalData());
+        return entity;
     }
 }

@@ -37,7 +37,7 @@ public class ProductController implements ProductOpenApi {
     @Override
     public void delete(@PathVariable Long id) {
         log.info("Deleting product with ID: {}", id);
-        productUseCase.deleteOrder(id);
+        productUseCase.delete(id);
     }
 
     @Override
