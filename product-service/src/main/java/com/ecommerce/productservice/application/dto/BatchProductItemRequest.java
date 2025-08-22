@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-@Schema(description = "Request object for an order item")
+@Schema(description = "Request object for an product item")
 public record BatchProductItemRequest(
         @NotNull(message = "Product ID is required")
         @Schema(description = "ID of the product", example = "1")

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepositoryPort {
-    Product save(Product order);
+    Product save(Product product);
 
     Product findById(Long id);
 

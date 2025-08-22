@@ -31,32 +31,32 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
                            @RequestBody ProductRequest request);
 
     @Override
-    @Operation(summary = "Retrieve Product by ID", description = "Retrieves the details of an order by its ID",
+    @Operation(summary = "Retrieve Product by ID", description = "Retrieves the details of an product by its ID",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(
             responseCode = "200", description = "Product retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ProductResponse.class)))
-    ProductResponse getById(@Parameter(description = "ID of the order to retrieve", required = true)
+    ProductResponse getById(@Parameter(description = "ID of the product to retrieve", required = true)
                             @PathVariable("id") Long id);
 
     @Override
-    @Operation(summary = "Update Product", description = "Updates an existing order by its ID",
+    @Operation(summary = "Update Product", description = "Updates an existing product by its ID",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(
             responseCode = "200", description = "Product updated successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ProductResponse.class)))
-    ProductResponse update(@Parameter(description = "ID of the order to update", required = true)
+    ProductResponse update(@Parameter(description = "ID of the product to update", required = true)
                            @PathVariable("id") Long id,
-                           @Parameter(description = "Updated order details", required = true)
+                           @Parameter(description = "Updated product details", required = true)
                            @RequestBody ProductRequest request);
 
     @Override
     @Operation(summary = "Delete Product", description = "Deletes a product by its ID",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "204", description = "Product deleted successfully")
-    void delete(@Parameter(description = "ID of the order to delete", required = true)
+    void delete(@Parameter(description = "ID of the product to delete", required = true)
                 @PathVariable("id") Long id);
 
     @Override

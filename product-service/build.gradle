@@ -4,7 +4,6 @@ dependencies {
     applyTracingDependencies(dependencies)
     applySecurityDependencies(dependencies)
     applyOpenApiDependencies(dependencies)
-    applyModelMapperDependencies(dependencies)
 
     // Service-specific dependencies
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

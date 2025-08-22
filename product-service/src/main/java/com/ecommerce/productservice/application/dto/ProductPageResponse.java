@@ -7,13 +7,13 @@ import java.util.List;
 
 @Schema(description = "Paginated response for lists of products")
 public record ProductPageResponse(
-        @Schema(description = "List of orders in the current page")
+        @Schema(description = "List of products in the current page")
         List<ProductResponse> content,
         @Schema(description = "Current page number", example = "0")
         int pageNumber,
         @Schema(description = "Number of items per page", example = "10")
         int pageSize,
-        @Schema(description = "Total number of orders", example = "100")
+        @Schema(description = "Total number of products", example = "100")
         long totalElements,
         @Schema(description = "Total number of pages", example = "10")
         int totalPages

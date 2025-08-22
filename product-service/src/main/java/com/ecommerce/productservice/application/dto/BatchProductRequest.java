@@ -11,7 +11,7 @@ import java.util.List;
 public record BatchProductRequest(
 
         @Valid
-        @Schema(description = "List of items to order", example = "[{productId: 1, quantity: 2}, {productId: 4, quantity: 1}]")
+        @Schema(description = "List of items to product", example = "[{productId: 1, quantity: 2}, {productId: 4, quantity: 1}]")
         @NotNull(message = "The list of items cannot be null")
         @NotEmpty(message = "The list of items cannot be empty")
         List<BatchProductItemRequest> items

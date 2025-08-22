@@ -27,8 +27,8 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     //saveAndFlush fixed the createdAt and updatedAt issue
     @Override
     public Product save(Product product) {
-        var orderEntity = mapper.toEntity(product);
-        var savedEntity = jpaRepository.saveAndFlush(orderEntity);
+        var productEntity = mapper.toEntity(product);
+        var savedEntity = jpaRepository.saveAndFlush(productEntity);
         return mapper.toDomain(savedEntity);
     }
 
