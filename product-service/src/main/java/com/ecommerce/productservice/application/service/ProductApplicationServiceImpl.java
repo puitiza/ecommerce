@@ -1,6 +1,7 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
+import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
 import com.ecommerce.productservice.domain.model.Product;
 import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
 import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductMapper;
@@ -30,7 +31,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
     @Transactional
     public ProductResponse create(ProductRequest request) {
         if (productRepositoryPort.existsByName(request.name())) {
-            throw new IllegalArgumentException("Product name already exists: " + request.name());
+            throw new DuplicateProductNameException(request.name());
         }
         Product product = mapper.toProduct(request, null);
         Product savedProduct = productRepositoryPort.save(product);

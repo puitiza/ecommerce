@@ -1,6 +1,8 @@
 package com.ecommerce.productservice.interfaces.rest;
 
+import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
 import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
+import com.ecommerce.productservice.domain.exception.InvalidProductDataException;
 import com.ecommerce.productservice.domain.exception.ProductUpdateException;
 import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
@@ -30,5 +32,15 @@ public class ProductExceptionHandler extends GlobalExceptionHandler {
     @ExceptionHandler(ProductUpdateException.class)
     public ResponseEntity<Object> handleProductUpdateException(ServiceException ex, WebRequest request) {
         return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_UPDATE_FAILED, null, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateProductNameException.class)
+    public ResponseEntity<Object> handleDuplicateProductNameException(ServiceException ex, WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_DUPLICATE_NAME, null, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidProductDataException.class)
+    public ResponseEntity<Object> handleInvalidProductDataException(ServiceException ex, WebRequest request) {
+        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_VALIDATION, null, ex.getMessage());
     }
 }

@@ -37,8 +37,8 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
             responseCode = "200", description = "Product retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ProductResponse.class)))
-    ProductResponse getById(@Parameter(description = "ID of the product to retrieve", required = true)
-                            @PathVariable("id") Long id);
+    ProductResponse findById(@Parameter(description = "ID of the product to retrieve", required = true)
+                             @PathVariable("id") Long id);
 
     @Override
     @Operation(summary = "Update Product", description = "Updates an existing product by its ID",
@@ -66,10 +66,10 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
             responseCode = "200", description = "Products retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ProductPageResponse.class)))
-    ProductPageResponse getAll(@Parameter(description = "Page number for pagination", example = "0")
-                               @RequestParam(defaultValue = "0") int page,
-                               @Parameter(description = "Number of items per page", example = "10")
-                               @RequestParam(defaultValue = "10") int size);
+    ProductPageResponse findAllPaginated(@Parameter(description = "Page number for pagination", example = "0")
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @Parameter(description = "Number of items per page", example = "10")
+                                         @RequestParam(defaultValue = "10") int size);
 
     @ApiValidationErrors
     @Operation(summary = "Verify and Get Products in Batch", description = "Retrieves all products verified in Inventory",
@@ -84,7 +84,18 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
             security = @SecurityRequirement(name = "security_auth"))
     @PostMapping(value = "/details", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    List<BatchProductDetailsResponse> getProductDetails(@Parameter(description = "Batch product resource details", required = true)
-                                                        @RequestBody BatchProductDetailsRequest request);
+    List<BatchProductDetailsResponse> findProductDetailsByIds(@Parameter(description = "Batch product resource details", required = true)
+                                                              @RequestBody BatchProductDetailsRequest request);
+
+    @Operation(summary = "Get Products in Batch", description = "Get products in Batch",
+            security = @SecurityRequirement(name = "security_auth"))
+    @GetMapping(value = "/color/{color}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.OK)
+    ProductPageResponse findByColor(@Parameter(description = "Color products", required = true)
+                                    @PathVariable String color,
+                                    @Parameter(description = "Page number for pagination", example = "0")
+                                    @RequestParam(defaultValue = "0") int page,
+                                    @Parameter(description = "Number of items per page", example = "10")
+                                    @RequestParam(defaultValue = "10") int size);
 
 }

@@ -37,9 +37,9 @@ public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, U
     @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = OrderPageResponse.class)))
-    OrderPageResponse getAll(@Parameter(description = "Page number for pagination", example = "0")
+    OrderPageResponse findAllPaginated(@Parameter(description = "Page number for pagination", example = "0")
                              @RequestParam(defaultValue = "0") int page,
-                             @Parameter(description = "Number of items per page", example = "10")
+                                       @Parameter(description = "Number of items per page", example = "10")
                              @RequestParam(defaultValue = "10") int size);
 
     @Override
@@ -47,7 +47,7 @@ public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, U
     @ApiResponse(responseCode = "200", description = "Order retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = OrderResponse.class)))
-    OrderResponse getById(@Parameter(description = "ID of the order to retrieve", required = true)
+    OrderResponse findById(@Parameter(description = "ID of the order to retrieve", required = true)
                           @PathVariable("id") UUID id);
 
     @Override

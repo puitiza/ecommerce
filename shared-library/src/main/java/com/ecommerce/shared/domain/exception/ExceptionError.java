@@ -29,6 +29,8 @@ public enum ExceptionError {
     // Product service errors
     PRODUCT_INVALID_INVENTORY("error.product.invalid_inventory", HttpStatus.BAD_REQUEST),
     PRODUCT_UPDATE_FAILED("error.product.update_failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    PRODUCT_DUPLICATE_NAME("error.product.duplicate_name", HttpStatus.BAD_REQUEST),
+    PRODUCT_VALIDATION("error.product.validation", HttpStatus.BAD_REQUEST),
 
     // User service errors
     USER_USERNAME_FOUND("error.user.username_found", HttpStatus.BAD_REQUEST),

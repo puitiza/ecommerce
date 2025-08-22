@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * JPA repository for managing {@link ProductEntity} persistence.
+ */
 @Repository
 public interface ProductJpaRepository extends JpaRepository<ProductEntity, Long> {
 

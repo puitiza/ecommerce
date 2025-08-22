@@ -35,14 +35,14 @@ public class OrderController implements OrderOpenApi {
     }
 
     @Override
-    public OrderPageResponse getAll(@RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "10") int size) {
+    public OrderPageResponse findAllPaginated(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size) {
         log.info("Retrieving orders for page {} with size {}", page, size);
         return new OrderPageResponse(orderUseCase.getAllOrders(page, size));
     }
 
     @Override
-    public OrderResponse getById(@PathVariable("id") UUID id) {
+    public OrderResponse findById(@PathVariable("id") UUID id) {
         log.info("Retrieving order with ID: {}", id);
         return orderUseCase.getOrderById(id);
     }

@@ -16,6 +16,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Adapter implementing {@link ProductRepositoryPort} for database operations using Spring Data JPA.
+ * Maps between domain models and JPA entities.
+ * <p>
+ * Caching is enabled for {@code findAllByIds} but requires an external cache provider (e.g., Redis).
+ * Ensure {@code spring.cache.type=redis} is set in application properties.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
