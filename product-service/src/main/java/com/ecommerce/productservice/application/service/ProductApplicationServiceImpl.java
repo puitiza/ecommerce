@@ -1,9 +1,10 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
-import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
+import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
 import com.ecommerce.productservice.domain.model.Product;
+import com.ecommerce.productservice.domain.port.out.ProductEventPublisherPort;
 import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
 import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +15,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of {@link ProductApplicationService}, handling product-related business logic.
- * Delegates persistence operations to {@link ProductRepositoryPort} and maps DTOs using {@link ProductMapper}.
+ * Implementation of {@link ProductApplicationService} for managing product-related business logic.
+ * <p>
+ * This service handles CRUD operations, batch validation, inventory reservation, and event publishing.
+ * It delegates persistence to {@link ProductRepositoryPort}, event publishing to {@link ProductEventPublisherPort},
+ * and uses {@link ProductMapper} for DTO conversions. All database operations are transactional.
+ * </p>
  */
 @Slf4j
 @Service
@@ -26,6 +32,7 @@ import java.util.stream.Collectors;
 public class ProductApplicationServiceImpl implements ProductApplicationService {
 
     private final ProductRepositoryPort productRepositoryPort;
+    private final ProductEventPublisherPort eventPublisherPort;
     private final ProductMapper mapper;
 
     @Override
@@ -136,8 +143,39 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
     }
 
     @Override
-    public void publishProductEvent(Product product, ProductEventType eventType) {
+    @Transactional
+    public void validateAndReserveInventory(ProductBatchValidationRequest request, UUID orderId) {
+        try {
+            ProductBatchValidationResponse validationResponse = verifyAndGetProducts(request);
+            boolean allAvailable = validationResponse.products().stream().allMatch(ProductBatchItemResponse::isAvailable);
+            if (!allAvailable) {
+                log.warn("Inventory validation failed for order ID: {}", orderId);
+                eventPublisherPort.publishValidationFailed(orderId);
+                throw new InvalidInventoryException("Inventory validation failed for order ID: %s", orderId);
+            }
 
+            List<Product> products = productRepositoryPort.findAllByIds(
+                    request.items().stream().map(ProductBatchItemRequest::productId).toList()
+            );
+            products.forEach(product -> {
+                var item = request.items().stream()
+                        .filter(i -> i.productId().equals(product.id()))
+                        .findFirst()
+                        .orElseThrow(() -> new InvalidInventoryException("Product not found: %s", product.id()));
+                if (product.inventory() < item.quantity()) {
+                    throw new InvalidInventoryException("Insufficient inventory for product %s: %d available", product.name(), product.inventory());
+                }
+                Product refreshProduct = product.withInventory(item.quantity());
+                productRepositoryPort.update(product.id(), refreshProduct);
+            });
+
+            eventPublisherPort.publishValidationSucceeded(orderId);
+            log.info("Inventory reserved successfully for order ID: {}", orderId);
+        } catch (Exception e) {
+            log.error("Failed to validate and reserve inventory for order ID: {}", orderId, e);
+            eventPublisherPort.publishValidationFailed(orderId);
+            throw e;
+        }
     }
 }
 

@@ -70,4 +70,10 @@ public class ProductEntity {
     @UpdateTimestamp
     @Column
     private LocalDateTime updatedAt;
+
+    /**
+     * Version field for optimistic locking to prevent concurrent modifications.
+     */
+    @Version
+    private Long version;
 }

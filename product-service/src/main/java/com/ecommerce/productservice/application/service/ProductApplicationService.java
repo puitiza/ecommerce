@@ -1,8 +1,9 @@
 package com.ecommerce.productservice.application.service;
 
-import com.ecommerce.productservice.domain.event.ProductEventType;
-import com.ecommerce.productservice.domain.model.Product;
+import com.ecommerce.productservice.application.dto.ProductBatchValidationRequest;
 import com.ecommerce.productservice.domain.port.in.ProductUseCase;
+
+import java.util.UUID;
 
 /**
  * Application service interface for product management, extending core use cases with event-driven logic.
@@ -10,10 +11,10 @@ import com.ecommerce.productservice.domain.port.in.ProductUseCase;
 public interface ProductApplicationService extends ProductUseCase {
 
     /**
-     * Publishes a product-related event to notify other services.
+     * Validates and reserves inventory for a batch of products and publishes the result.
      *
-     * @param product   the product involved in the event
-     * @param eventType the type of event to publish
+     * @param request The batch validation request containing product IDs and quantities.
+     * @param orderId The ID of the order associated with the reservation.
      */
-    void publishProductEvent(Product product, ProductEventType eventType);
+    void validateAndReserveInventory(ProductBatchValidationRequest request, UUID orderId);
 }

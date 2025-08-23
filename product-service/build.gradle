@@ -11,6 +11,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     runtimeOnly 'org.postgresql:postgresql'
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'io.cloudevents:cloudevents-kafka:4.0.1' // Cloudevents properties
+    implementation 'io.cloudevents:cloudevents-json-jackson:4.0.1'//Cloudevents For Deserialization
+
     // Add this line to depend on the shared-library module
     implementation project(':shared-library')
 }

@@ -33,4 +33,10 @@ public record Product(
                 LocalDateTime.now()
         );
     }
+
+    public Product withInventory(Integer quantity) {
+        return new Product(id, name, description, price, (inventory - quantity), image, categories, additionalData,
+                createdAt, LocalDateTime.now()
+        );
+    }
 }

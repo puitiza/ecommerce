@@ -1,7 +1,18 @@
 spring: #This is only to show Database info:
+  datasource:
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
       idle-timeout: 30000
       connection-timeout: 30000
       max-lifetime: 1800000 # Maximum lifetime (ms) of a connection
+  jpa:
+    properties:
+      hibernate: # Tell Hibernate to copy the same
+        connection:
+          url: ${spring.datasource.url}
+          username: ${spring.datasource.username}
+          password: ${spring.datasource.password}
+          autocommit: false
+          isolation: READ_COMMITTED
+          pool_size: ${spring.datasource.hikari.maximum-pool-size}

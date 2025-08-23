@@ -190,6 +190,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_PRODUCT_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      KAFKA_SERVER_URL: kafka:29092
   #    healthcheck:
   #      <<: *default-healthcheck
   #      test: [ "CMD", "curl", "-f", "http://localhost:4005/actuator/health" ]

@@ -14,6 +14,7 @@ spring:
     url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
     username: order_user
     password: order_password
+    driver-class-name: com.mysql.cj.jdbc.Driver # Specifies MySQL JDBC driver
   jpa:
     open-in-view: false
     hibernate:
