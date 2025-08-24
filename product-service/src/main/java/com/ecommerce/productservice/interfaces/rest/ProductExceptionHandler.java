@@ -1,9 +1,7 @@
 package com.ecommerce.productservice.interfaces.rest;
 
 import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
-import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
 import com.ecommerce.productservice.domain.exception.InvalidProductDataException;
-import com.ecommerce.productservice.domain.exception.ProductUpdateException;
 import com.ecommerce.shared.application.exception.ErrorResponseBuilder;
 import com.ecommerce.shared.application.exception.GlobalExceptionHandler;
 import com.ecommerce.shared.domain.exception.ExceptionError;
@@ -22,16 +20,6 @@ import org.springframework.web.context.request.WebRequest;
 public class ProductExceptionHandler extends GlobalExceptionHandler {
     public ProductExceptionHandler(ErrorResponseBuilder errorResponseBuilder) {
         super(errorResponseBuilder);
-    }
-
-    @ExceptionHandler(InvalidInventoryException.class)
-    public ResponseEntity<Object> handleInvalidInventoryException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_INVALID_INVENTORY, null, ex.getMessage());
-    }
-
-    @ExceptionHandler(ProductUpdateException.class)
-    public ResponseEntity<Object> handleProductUpdateException(ServiceException ex, WebRequest request) {
-        return errorResponseBuilder.build(ex, request, ExceptionError.PRODUCT_UPDATE_FAILED, null, ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateProductNameException.class)

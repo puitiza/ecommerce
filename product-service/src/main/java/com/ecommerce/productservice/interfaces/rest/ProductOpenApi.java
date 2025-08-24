@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+//@RequestMapping("/api/products")
 @RequestMapping("/products")
 public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequest, Long>, ListableCrudOpenApi<ProductPageResponse> {
 
@@ -77,7 +78,7 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
     @PostMapping(value = "/batch", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
     ProductBatchValidationResponse verifyAndGetProducts(@Parameter(description = "Batch product resource details", required = true)
-                                              @RequestBody ProductBatchValidationRequest request);
+                                                        @RequestBody ProductBatchValidationRequest request);
 
     @ApiValidationErrors
     @Operation(summary = "Get Products in Batch", description = "Get products in Batch",
@@ -91,11 +92,11 @@ public interface ProductOpenApi extends CrudOpenApi<ProductResponse, ProductRequ
             security = @SecurityRequirement(name = "security_auth"))
     @GetMapping(value = "/color/{color}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    ProductPageResponse findByColor(@Parameter(description = "Color products", required = true)
-                                    @PathVariable String color,
-                                    @Parameter(description = "Page number for pagination", example = "0")
-                                    @RequestParam(defaultValue = "0") int page,
-                                    @Parameter(description = "Number of items per page", example = "10")
-                                    @RequestParam(defaultValue = "10") int size);
+    ProductPageResponse searchProductsByColor(@Parameter(description = "Color products", required = true)
+                                              @PathVariable String color,
+                                              @Parameter(description = "Page number for pagination", example = "0")
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @Parameter(description = "Number of items per page", example = "10")
+                                              @RequestParam(defaultValue = "10") int size);
 
 }

@@ -8,8 +8,7 @@ import lombok.Getter;
  */
 @Getter
 public enum ProductEventType {
-    PRODUCT_VALIDATION_SUCCEEDED("product_validation_succeeded", "ProductValidationSucceededEvent", "product.validation.succeeded"),
-    PRODUCT_VALIDATION_FAILED("product_validation_failed", "ProductValidationFailedEvent", "product.validation.failed"),
+
     PRODUCT_INVENTORY_UPDATED("product_inventory_updated", "ProductInventoryUpdatedEvent", "product.inventory.updated");
 
     private final String topic;

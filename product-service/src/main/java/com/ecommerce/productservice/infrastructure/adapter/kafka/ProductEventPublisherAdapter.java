@@ -3,6 +3,7 @@ package com.ecommerce.productservice.infrastructure.adapter.kafka;
 import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.model.Product;
 import com.ecommerce.productservice.domain.port.out.ProductEventPublisherPort;
+import com.ecommerce.shared.domain.event.OrderEventType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
@@ -49,17 +50,16 @@ public class ProductEventPublisherAdapter implements ProductEventPublisherPort {
 
     @Override
     public void publishValidationSucceeded(UUID orderId) {
-        publishValidationEvent(orderId, ProductEventType.PRODUCT_VALIDATION_SUCCEEDED);
+        publishValidationEvent(orderId, OrderEventType.VALIDATION_SUCCEEDED);
     }
 
     @Override
     public void publishValidationFailed(UUID orderId) {
-        publishValidationEvent(orderId, ProductEventType.PRODUCT_VALIDATION_FAILED);
+        publishValidationEvent(orderId, OrderEventType.VALIDATION_FAILED);
     }
 
-    private void publishValidationEvent(UUID orderId, ProductEventType eventType) {
+    private void publishValidationEvent(UUID orderId, OrderEventType eventType) {
         try {
-            // Minimal payload with only orderId
             Map<String, UUID> payload = Map.of("orderId", orderId);
             PojoCloudEventData<Map<String, UUID>> cloudEventData = PojoCloudEventData.wrap(payload, objectMapper::writeValueAsBytes);
             CloudEvent cloudEvent = CloudEventBuilder.v1()

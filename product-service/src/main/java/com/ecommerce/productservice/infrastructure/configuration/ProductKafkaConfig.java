@@ -57,8 +57,6 @@ public class ProductKafkaConfig {
     @Bean
     public NewTopic[] productTopics() {
         return new NewTopic[]{
-                TopicBuilder.name(ProductEventType.PRODUCT_VALIDATION_SUCCEEDED.getTopic()).partitions(1).replicas(1).build(),
-                TopicBuilder.name(ProductEventType.PRODUCT_VALIDATION_FAILED.getTopic()).partitions(1).replicas(1).build(),
                 TopicBuilder.name(ProductEventType.PRODUCT_INVENTORY_UPDATED.getTopic()).partitions(1).replicas(1).build(),
                 TopicBuilder.name("product-dead-letter-topic").partitions(1).replicas(1).build()
         };

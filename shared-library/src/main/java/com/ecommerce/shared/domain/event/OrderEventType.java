@@ -9,6 +9,7 @@ import lombok.Getter;
 @Getter
 public enum OrderEventType {
     ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
+    ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
     RETRY_VALIDATION("retry_validation", "RetryValidationEvent", "retry.validation"),
     VALIDATION_SUCCEEDED("validation_succeeded", "ValidationSucceededEvent", "validation.succeeded"),
     VALIDATION_FAILED("validation_failed", "ValidationFailedEvent", "validation.failed");

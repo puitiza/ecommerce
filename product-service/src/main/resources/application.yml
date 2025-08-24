@@ -14,7 +14,7 @@ spring:
     url: jdbc:postgresql://localhost:5431/product_db
     username: product_user
     password: product_password
-    driver-class-name: org.postgresql.Driver # Specifies POSTGRESQL JDBC driver
+    driver-class-name: org.postgresql.Driver
   jpa:
     open-in-view: false
     hibernate:

@@ -57,12 +57,14 @@ public class ProductController implements ProductOpenApi {
         return new ProductPageResponse(productsPage);
     }
 
+    //change to @PostMapping("/verify")
     @Override
     public ProductBatchValidationResponse verifyAndGetProducts(@Valid @RequestBody ProductBatchValidationRequest request) {
         log.info("Verify Products in Batch: {}", request.toString());
         return productUseCase.verifyAndGetProducts(request);
     }
 
+    //change to @PostMapping("/batch")
     @Override
     public List<ProductBatchDetailsResponse> findProductDetailsByIds(@Valid @RequestBody ProductBatchDetailsRequest request) {
         log.info("Retrieving products in Batch: {}", request.productIds());
@@ -70,10 +72,10 @@ public class ProductController implements ProductOpenApi {
     }
 
     @Override
-    public ProductPageResponse findByColor(@PathVariable String color,
-                                           @RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "20") int size) {
-        log.info("Retrieving products with color {} for page {} with size {}", color, page, size);
+    public ProductPageResponse searchProductsByColor(@PathVariable String color,
+                                                     @RequestParam(defaultValue = "0") int page,
+                                                     @RequestParam(defaultValue = "20") int size) {
+        log.info("Searching products by color: {}, page: {}, size: {}", color, page, size);
         var paginatedList = productUseCase.findByColor(color, page, size);
         return new ProductPageResponse(paginatedList);
     }

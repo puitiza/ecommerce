@@ -28,7 +28,7 @@ import java.util.Set;
 public class ProductEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -68,7 +68,6 @@ public class ProductEntity {
      * Automatically updated by Hibernate on any entity modification.
      */
     @UpdateTimestamp
-    @Column
     private LocalDateTime updatedAt;
 
     /**
