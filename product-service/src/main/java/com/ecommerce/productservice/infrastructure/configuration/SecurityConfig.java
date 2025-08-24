@@ -1,6 +1,7 @@
 package com.ecommerce.productservice.infrastructure.configuration;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.ecommerce.productservice.infrastructure.properties.SecurityProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,23 +14,22 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${permit-urls.swagger:[]}")
-    private  String[] permitUrlList;
+    private final SecurityProperties securityProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests((authz) -> authz
-                        .requestMatchers(HttpMethod.GET, permitUrlList).permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/user/**").hasRole("USER")
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests((authz) -> {
+                    // Permit URLs dynamically from securityProperties
+                    securityProperties.permitUrls().forEach((category, paths) ->
+                            paths.forEach(path -> authz.requestMatchers(HttpMethod.GET, path).permitAll()));
+                    authz.anyRequest().authenticated(); // All other requests require authentication
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }

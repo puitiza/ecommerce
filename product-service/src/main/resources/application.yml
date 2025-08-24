@@ -46,13 +46,21 @@ spring:
       fetch-min-size: 1
       fetch-max-wait: 500
 
-permit-urls:
-  swagger:
-    /products/v3/api-docs/**,
-    /products/swagger-ui/**,
-    /products/swagger-ui.html,
-    /favicon.ico
+# Publicly accessible URLs (Swagger and actuator endpoints)
+security:
+  permit-urls:
+    swagger:
+      - /products/v3/api-docs/**
+      - /products/swagger-ui/**
+      - /products/swagger-ui.html
+      - /favicon.ico
+    actuator:
+      - /actuator/health/**
+      - /actuator/info/**
+      - /actuator/env/**
+      - /actuator/configprops/**
 
+# Springdoc OpenAPI and Swagger UI configuration
 springdoc:
   base-path: /products
   api-docs:
@@ -64,7 +72,8 @@ springdoc:
 
 openapi:
   title: Product Service APIs
-  description: This lists all the Product Service API Calls. The Calls are OAuth2 secured, so please use your client ID and Secret to test them out.
+  description: This lists all the Product Service API Calls. The Calls are OAuth2 secured, so please use your client ID
+    and Secret to test them out.
   version: v1.0
   securityEnabled: true
   servers:

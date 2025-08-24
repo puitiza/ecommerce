@@ -1,15 +1,18 @@
 package com.ecommerce.productservice;
 
+import com.ecommerce.productservice.infrastructure.properties.SecurityProperties;
 import com.ecommerce.shared.infrastructure.configuration.JacksonConfig;
 import com.ecommerce.shared.infrastructure.configuration.OpenApiConfigBase;
 import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Import;
 
 @EnableDiscoveryClient
 @SpringBootApplication
+@EnableConfigurationProperties(SecurityProperties.class)
 @Import({SharedLibraryConfig.class, OpenApiConfigBase.class, JacksonConfig.class})
 public class ProductServiceApplication {
 
