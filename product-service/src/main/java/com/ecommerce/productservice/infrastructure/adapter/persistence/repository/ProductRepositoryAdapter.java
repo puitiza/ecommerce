@@ -3,7 +3,7 @@ package com.ecommerce.productservice.infrastructure.adapter.persistence.reposito
 import com.ecommerce.productservice.domain.model.Product;
 import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
 import com.ecommerce.productservice.infrastructure.adapter.persistence.entity.ProductEntity;
-import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductMapper;
+import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductEntityMapper;
 import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ import java.util.Optional;
 public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     private final ProductJpaRepository jpaRepository;
-    private final ProductMapper mapper;
+    private final ProductEntityMapper mapper;
 
     /**
      * Saves a product to the database and immediately flushes the changes.
@@ -74,14 +74,9 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
     @Override
     public Product update(Long id, Product product) {
-        ProductEntity existingEntity = jpaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
-        // Update fields from the input Product
-        ProductEntity productUpdated = mapper.setEntityFields(existingEntity, product);
-        ProductEntity savedEntity = jpaRepository.saveAndFlush(productUpdated);
-        log.info("Updated entity: id={}, createdAt={}, updatedAt={}",
-                savedEntity.getId(), savedEntity.getCreatedAt(), savedEntity.getUpdatedAt());
-        return mapper.toDomain(savedEntity);
+        ProductEntity entity = mapper.toEntity(product);
+        entity.setId(id);
+        return mapper.toDomain(jpaRepository.save(entity));
     }
 
     @Override
@@ -100,7 +95,8 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     public List<Product> findAllByIds(List<Long> ids) {
         return jpaRepository.findAllByIdIn(ids)
                 .stream()
-                .map(mapper::toDomain).toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     /**

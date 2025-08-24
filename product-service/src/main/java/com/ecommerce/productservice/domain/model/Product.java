@@ -17,7 +17,8 @@ public record Product(
         Set<String> categories,
         Map<String, Object> additionalData,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Long version
 ) {
     public Product updateFrom(ProductRequest request) {
         return new Product(
@@ -30,13 +31,14 @@ public record Product(
                 request.categories() != null ? request.categories() : this.categories,
                 request.additionalData() != null ? request.additionalData() : this.additionalData,
                 this.createdAt,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                version
         );
     }
 
     public Product withInventory(Integer quantity) {
         return new Product(id, name, description, price, (inventory - quantity), image, categories, additionalData,
-                createdAt, LocalDateTime.now()
+                createdAt, LocalDateTime.now(), version
         );
     }
 }

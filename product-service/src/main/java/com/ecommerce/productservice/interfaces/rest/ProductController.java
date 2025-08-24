@@ -71,6 +71,8 @@ public class ProductController implements ProductOpenApi {
         return productUseCase.findProductDetails(request);
     }
 
+    //add new @PostMapping("/reserve")
+
     @Override
     public ProductPageResponse searchProductsByColor(@PathVariable String color,
                                                      @RequestParam(defaultValue = "0") int page,

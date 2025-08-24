@@ -1,6 +1,7 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
+import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
 import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
 import com.ecommerce.productservice.domain.model.Product;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,6 +45,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         }
         Product product = mapper.toProduct(request, null);
         Product savedProduct = productRepositoryPort.save(product);
+        eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
         return mapper.toResponse(savedProduct);
     }
 
@@ -73,6 +76,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         Product existing = productRepositoryPort.findById(id);
         Product updatedProduct = existing.updateFrom(request);
         Product savedProduct = productRepositoryPort.update(id, updatedProduct);
+        eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
         return mapper.toResponse(savedProduct);
     }
 
@@ -80,6 +84,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
     @Transactional
     public void delete(Long id) {
         productRepositoryPort.delete(id);
+        //eventPublisherPort.publish();
     }
 
     /**
@@ -165,8 +170,20 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
                 if (product.inventory() < item.quantity()) {
                     throw new InvalidInventoryException("Insufficient inventory for product %s: %d available", product.name(), product.inventory());
                 }
-                Product refreshProduct = product.withInventory(item.quantity());
-                productRepositoryPort.update(product.id(), refreshProduct);
+                Product updatedProduct = new Product(
+                        product.id(),
+                        product.name(),
+                        product.description(),
+                        product.price(),
+                        product.inventory() - item.quantity(),
+                        product.image(),
+                        product.categories(),
+                        product.additionalData(),
+                        product.createdAt(),
+                        LocalDateTime.now(),
+                        product.version()
+                );
+                productRepositoryPort.update(product.id(), updatedProduct);
             });
 
             eventPublisherPort.publishValidationSucceeded(orderId);

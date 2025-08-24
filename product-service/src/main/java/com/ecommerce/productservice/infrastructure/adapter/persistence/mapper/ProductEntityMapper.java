@@ -7,6 +7,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductEntityMapper {
 
+    /**
+     * Converts a {@link ProductEntity} to a {@link Product} domain model.
+     *
+     * @param entity the JPA entity
+     * @return the product domain model
+     */
     public Product toDomain(ProductEntity entity) {
         return new Product(
                 entity.getId(),
@@ -18,10 +24,17 @@ public class ProductEntityMapper {
                 entity.getCategories(),
                 entity.getAdditionalData(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 
+    /**
+     * Converts a {@link Product} domain model to a {@link ProductEntity}.
+     *
+     * @param product the product domain model
+     * @return the JPA entity
+     */
     public ProductEntity toEntity(Product product) {
         ProductEntity entity = new ProductEntity();
         entity.setId(product.id());
@@ -34,6 +47,8 @@ public class ProductEntityMapper {
         entity.setAdditionalData(product.additionalData());
         entity.setCreatedAt(product.createdAt());
         entity.setUpdatedAt(product.updatedAt());
+        entity.setVersion(product.version());
         return entity;
     }
+
 }
