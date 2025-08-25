@@ -7,6 +7,7 @@ import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.Pr
 import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -114,5 +116,26 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         Page<ProductEntity> entities = jpaRepository.findByColor(color, pageable);
         return new PageImpl<>(entities.getContent().stream().map(mapper::toDomain).toList(),
                 pageable, entities.getTotalElements());
+    }
+
+    @Override
+    @CacheEvict(value = "products", allEntries = true) // Clear cache for all products
+    public List<Product> updateStockInBatch(Map<Long, Integer> productIdToStock) {
+        List<ProductEntity> entities = jpaRepository.findAllByIdIn(productIdToStock.keySet().stream().toList()).stream()
+                .map(entity -> {
+                    Product product = mapper.toDomain(entity);
+                    Integer newInventory = productIdToStock.get(product.id());
+                    if (newInventory == null) {
+                        return entity; // No update needed
+                    }
+                    Product updatedProduct = product.updateInventory(newInventory);
+                    ProductEntity updatedEntity = mapper.toEntity(updatedProduct);
+                    updatedEntity.setId(product.id());
+                    return updatedEntity;
+                })
+                .toList();
+        List<ProductEntity> savedEntities = jpaRepository.saveAllAndFlush(entities);
+        log.info("Batch updated stock for {} products", productIdToStock.size());
+        return savedEntities.stream().map(mapper::toDomain).toList();
     }
 }

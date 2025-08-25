@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
 import com.ecommerce.orderservice.domain.event.OrderEventType;
-import com.ecommerce.orderservice.domain.model.Order;
+import com.ecommerce.shared.domain.event.OrderEventPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.CloudEventUtils;
@@ -71,21 +71,23 @@ public class OrderEventListener {
             log.warn("Received event on unknown topic: {}", topic);
             return;
         }
-        extractOrderFromEvent(cloudEvent)
-                .ifPresentOrElse(order -> eventProcessor.processEvent(order, eventType),
-                        () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
+        extractOrderPayloadFromEvent(cloudEvent).ifPresentOrElse(
+                payload -> eventProcessor.processEvent(payload, eventType),
+                () -> log.warn("Could not extract order payload from CloudEvent with type: {}", cloudEvent.getType())
+        );
     }
 
-    private Optional<Order> extractOrderFromEvent(CloudEvent event) {
+    private Optional<OrderEventPayload> extractOrderPayloadFromEvent(CloudEvent event) {
         if (event == null || event.getData() == null) {
             log.warn("Invalid CloudEvent or data is null");
             return Optional.empty();
         }
         try {
-            PojoCloudEventData<Order> deserializedData = CloudEventUtils.mapData(event, PojoCloudEventDataMapper.from(objectMapper, Order.class));
+            PojoCloudEventData<OrderEventPayload> deserializedData = CloudEventUtils.mapData(
+                    event, PojoCloudEventDataMapper.from(objectMapper, OrderEventPayload.class));
             return Optional.ofNullable(deserializedData).map(PojoCloudEventData::getValue);
         } catch (Exception e) {
-            log.error("Error deserializing Order from CloudEvent", e);
+            log.error("Error deserializing OrderEventPayload from CloudEvent", e);
             return Optional.empty();
         }
     }

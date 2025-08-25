@@ -29,30 +29,33 @@ The `order-service` then listens for these responses and updates its state machi
 ```mermaid
 stateDiagram-v2
     [*] --> CREATED: Order Placed
-    CREATED --> VALIDATION_PENDING: OrderCreated Event
+    CREATED --> VALIDATION_PENDING: OrderCreated Event [Timeout 30s]
     CREATED --> CREATED: OrderUpdated Event
     state Validation {
         VALIDATION_PENDING --> VALIDATION_SUCCEEDED: ValidationSucceeded Event
         VALIDATION_PENDING --> VALIDATION_FAILED: ValidationFailed Event
-        VALIDATION_FAILED --> VALIDATION_PENDING: RetryValidation Event
+        VALIDATION_FAILED --> VALIDATION_PENDING: RetryValidation Event [<=3 attempts]
+        VALIDATION_FAILED --> CANCELLED: AutoCancel Event [After 3 failed attempts]
     }
     VALIDATION_SUCCEEDED --> PAYMENT_PENDING: PaymentStart Event
     state Payment {
         PAYMENT_PENDING --> PAYMENT_SUCCEEDED: PaymentSucceeded Event
         PAYMENT_PENDING --> PAYMENT_FAILED: PaymentFailed Event
-        PAYMENT_FAILED --> PAYMENT_PENDING: RetryPayment Event
+        PAYMENT_FAILED --> PAYMENT_PENDING: RetryPayment Event [<=3 attempts]
+        PAYMENT_FAILED --> CANCELLED: AutoCancel Event [After 3 failed attempts]
     }
     PAYMENT_SUCCEEDED --> SHIPPING_PENDING: ShipmentStart Event
     state Shipping {
         SHIPPING_PENDING --> SHIPPING_SUCCEEDED: ShipmentSucceeded Event
         SHIPPING_PENDING --> SHIPPING_FAILED: ShipmentFailed Event
-        SHIPPING_FAILED --> SHIPPING_PENDING: RetryShipment Event
+        SHIPPING_FAILED --> SHIPPING_PENDING: RetryShipment Event [<=3 attempts]
+        SHIPPING_FAILED --> CANCELLED: AutoCancel Event [After 3 failed attempts]
     }
     SHIPPING_SUCCEEDED --> FULFILLED: Delivered Event
     CREATED --> CANCELLED: Cancel Event
-    VALIDATION_PENDING --> CANCELLED: Cancel Event
-    PAYMENT_PENDING --> CANCELLED: Cancel Event (Refund)
-    SHIPPING_PENDING --> CANCELLED: Cancel Event (Refund + Reverse Shipment)
+    VALIDATION_PENDING --> CANCELLED: Cancel Event [Restock]
+    PAYMENT_PENDING --> CANCELLED: Cancel Event [Restock + Refund]
+    SHIPPING_PENDING --> CANCELLED: Cancel Event [Restock + Refund + Reverse Shipment]
     [*] --> CANCELLED: Cancel Event
 ```
 
@@ -62,23 +65,26 @@ stateDiagram-v2
 
 This table details the transitions, events, actions, and saga-related logic for each step in the order lifecycle.
 
-| Source State           | Event                  | Target State           | Action(s)                                                                                                     | Retries          | Timeouts    |
-|------------------------|------------------------|------------------------|---------------------------------------------------------------------------------------------------------------|------------------|-------------|
-| `CREATED`              | `ORDER_CREATED`        | `VALIDATION_PENDING`   | Publishes `OrderCreatedEvent` to trigger stock validation in the product service.                             | N/A              | 30 seconds  |
-| `CREATED`              | `ORDER_UPDATED`        | `CREATED`              | Publishes `OrderUpdatedEvent` for external notifications without changing the state.                          | N/A              | N/A         |
-| `VALIDATION_PENDING`   | `VALIDATION_SUCCEEDED` | `VALIDATION_SUCCEEDED` | Publishes `PaymentStartEvent` to initiate the payment process.                                                | N/A              | N/A         |
-| `VALIDATION_PENDING`   | `VALIDATION_FAILED`    | `VALIDATION_FAILED`    | Logs the failure and prepares for a possible retry or cancellation.                                           | N/A              | N/A         |
-| `VALIDATION_FAILED`    | `RETRY_VALIDATION`     | `VALIDATION_PENDING`   | Retries the validation process. The guard checks the retry count.                                             | Up to 3 attempts | 30 seconds  |
-| `VALIDATION_SUCCEEDED` | `PAYMENT_START`        | `PAYMENT_PENDING`      | Publishes `PaymentStartEvent` to request payment from the payment service.                                    | N/A              | 60 seconds  |
-| `PAYMENT_PENDING`      | `PAYMENT_SUCCEEDED`    | `PAYMENT_SUCCEEDED`    | Publishes `ShipmentStartEvent` to begin the shipping process.                                                 | N/A              | N/A         |
-| `PAYMENT_PENDING`      | `PAYMENT_FAILED`       | `PAYMENT_FAILED`       | Logs the payment failure and prepares for a possible retry or cancellation.                                   | N/A              | N/A         |
-| `PAYMENT_FAILED`       | `RETRY_PAYMENT`        | `PAYMENT_PENDING`      | Retries the payment process. The guard checks the retry count.                                                | Up to 3 attempts | 60 seconds  |
-| `PAYMENT_SUCCEEDED`    | `SHIPMENT_START`       | `SHIPPING_PENDING`     | Publishes `ShipmentStartEvent` to request shipment from the shipment service.                                 | N/A              | 120 seconds |
-| `SHIPPING_PENDING`     | `SHIPMENT_SUCCEEDED`   | `SHIPPING_SUCCEEDED`   | Publishes `DeliveredEvent` to signal the completion of the shipping phase.                                    | N/A              | N/A         |
-| `SHIPPING_PENDING`     | `SHIPMENT_FAILED`      | `SHIPPING_FAILED`      | Logs the shipment failure and prepares for a possible retry or cancellation.                                  | N/A              | N/A         |
-| `SHIPPING_FAILED`      | `RETRY_SHIPMENT`       | `SHIPPING_PENDING`     | Retries the shipment process. The guard checks the retry count.                                               | Up to 3 attempts | 120 seconds |
-| `SHIPPING_SUCCEEDED`   | `DELIVERED`            | `FULFILLED`            | Logs the final fulfillment of the order, ending the saga.                                                     | N/A              | N/A         |
-| Any `_PENDING` state   | `CANCEL`               | `CANCELLED`            | Publishes a `CancelEvent`, which triggers a refund and/or restock of items via the saga's compensation logic. | N/A              | N/A         |
+| Source State           | Event                  | Target State           | Action(s)                                           | Retries    | Timeout | Compensating Action (on Cancel) |
+|------------------------|------------------------|------------------------|-----------------------------------------------------|------------|---------|---------------------------------|
+| `CREATED`              | `ORDER_CREATED`        | `VALIDATION_PENDING`   | Publish `OrderCreatedEvent` to `product-service`    | N/A        | 30s     | None                            |
+| `CREATED`              | `ORDER_UPDATED`        | `CREATED`              | Publish `OrderUpdatedEvent` for notifications       | N/A        | N/A     | None                            |
+| `VALIDATION_PENDING`   | `VALIDATION_SUCCEEDED` | `VALIDATION_SUCCEEDED` | Publish `PaymentStartEvent` to `payment-service`    | N/A        | 30s     | Restock                         |
+| `VALIDATION_PENDING`   | `VALIDATION_FAILED`    | `VALIDATION_FAILED`    | Log failure, increment retry count                  | N/A        | N/A     | Restock                         |
+| `VALIDATION_FAILED`    | `RETRY_VALIDATION`     | `VALIDATION_PENDING`   | Retry validation (if < 3 attempts)                  | 3 attempts | 30s     | Restock                         |
+| `VALIDATION_FAILED`    | `AUTO_CANCEL`          | `CANCELLED`            | Publish `CancelEvent` (after 3 failed attempts)     | N/A        | N/A     | Restock                         |
+| `VALIDATION_SUCCEEDED` | `PAYMENT_START`        | `PAYMENT_PENDING`      | Publish `PaymentStartEvent` to `payment-service`    | N/A        | 60s     | Restock                         |
+| `PAYMENT_PENDING`      | `PAYMENT_SUCCEEDED`    | `PAYMENT_SUCCEEDED`    | Publish `ShipmentStartEvent` to `shipment-service`  | N/A        | N/A     | Restock + Refund                |
+| `PAYMENT_PENDING`      | `PAYMENT_FAILED`       | `PAYMENT_FAILED`       | Log failure, increment retry count                  | N/A        | N/A     | Restock + Refund                |
+| `PAYMENT_FAILED`       | `RETRY_PAYMENT`        | `PAYMENT_PENDING`      | Retry payment (if < 3 attempts)                     | 3 attempts | 60s     | Restock + Refund                |
+| `PAYMENT_FAILED`       | `AUTO_CANCEL`          | `CANCELLED`            | Publish `CancelEvent` (after 3 failed attempts)     | N/A        | N/A     | Restock + Refund                |
+| `PAYMENT_SUCCEEDED`    | `SHIPMENT_START`       | `SHIPPING_PENDING`     | Publish `ShipmentStartEvent` to `shipment-service`  | N/A        | 120s    | Restock + Refund                |
+| `SHIPPING_PENDING`     | `SHIPMENT_SUCCEEDED`   | `SHIPPING_SUCCEEDED`   | Publish `DeliveredEvent`                            | N/A        | N/A     | Restock + Refund + Reverse      |
+| `SHIPPING_PENDING`     | `SHIPMENT_FAILED`      | `SHIPPING_FAILED`      | Log failure, increment retry count                  | N/A        | N/A     | Restock + Refund + Reverse      |
+| `SHIPPING_FAILED`      | `RETRY_SHIPMENT`       | `SHIPPING_PENDING`     | Retry shipment (if < 3 attempts)                    | 3 attempts | 120s    | Restock + Refund + Reverse      |
+| `SHIPPING_FAILED`      | `AUTO_CANCEL`          | `CANCELLED`            | Publish `CancelEvent` (after 3 failed attempts)     | N/A        | N/A     | Restock + Refund + Reverse      |
+| `SHIPPING_SUCCEEDED`   | `DELIVERED`            | `FULFILLED`            | Log fulfillment, end saga                           | N/A        | N/A     | None                            |
+| Any `_PENDING`         | `CANCEL`               | `CANCELLED`            | Publish `CancelEvent`, trigger compensating actions | N/A        | N/A     | Per state                       |
 
 -----
 
@@ -117,3 +123,19 @@ The `order-service` acts as the orchestrator in this saga by communicating with 
 
 This event-driven architecture ensures loose coupling and high resilience, as each service can operate independently
 while the `order-service` manages the overall flow.
+
+-----
+
+## Key Enhancements:
+
+1. **Automatic Transition to VALIDATION_PENDING**: If an order remains in `CREATED` for 30 seconds without updates, it
+   automatically transitions to `VALIDATION_PENDING` to start the validation process.
+2. **Retry Limits**: After three failed attempts in `VALIDATION_FAILED`, `PAYMENT_FAILED`, or `SHIPPING_FAILED`, the
+   order automatically transitions to `CANCELLED` via an `AutoCancel` event.
+3. **Compensating Actions**:
+    - `VALIDATION_PENDING` cancellation triggers a restock in `product-service`.
+    - `PAYMENT_PENDING` cancellation triggers a restock and a refund in `payment-service`.
+    - `SHIPPING_PENDING` cancellation triggers a restock, refund, and shipment reversal.
+4. **Timeouts**: Each `_PENDING` state has a timeout to prevent orders from being stuck indefinitely.
+5. **Endpoint for Confirmation**: An endpoint in `order-service` to explicitly start the validation process (optional,
+   as the timeout handles automatic transitions).

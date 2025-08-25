@@ -32,30 +32,42 @@ public class OrderDomainServiceImpl implements OrderDomainService {
 
     @Override
     public void sendCreateEvent(Order order) {
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-        sm.startReactively().subscribe();
+        sendEvent(order, OrderEventType.ORDER_CREATED);
+    }
 
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.ORDER_CREATED)
-                .setHeader("order", order)
-                .build();
+    @Override
+    public void sendUpdateEvent(Order order) {
+        sendEvent(order, OrderEventType.ORDER_UPDATED);
+    }
 
-        sm.sendEvent(Mono.just(message)).subscribe();
+    @Override
+    public void sendConfirmEvent(Order order) {
+        sendEvent(order, OrderEventType.ORDER_CREATED); // Same as create to trigger validation
     }
 
     @Override
     public void sendCancelEvent(Order order) {
+        sendEvent(order, OrderEventType.CANCEL);
+    }
+
+    private void sendEvent(Order order, OrderEventType eventType) {
         StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+        sm.startReactively().subscribe();
         Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.CANCEL)
+                .withPayload(eventType)
                 .setHeader("order", order)
                 .build();
         sm.sendEvent(Mono.just(message)).subscribe();
     }
 
-    // Here you can add a method for the update event if you need it in the future,
-    // But for now, the "update" flow is a "create" again.
-
+    /**
+     * Checks if a given event is allowed for the current state of an order.
+     * This is an important part of the domain logic.
+     *
+     * @param order     The order to check.
+     * @param eventType The event to check.
+     * @return True if the transition is allowed, false otherwise.
+     */
     private boolean isEventAllowed(Order order, OrderEventType eventType) {
         StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
         sm.startReactively().subscribe(); // ensures that the machine is in its initial state

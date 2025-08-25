@@ -10,9 +10,20 @@ import lombok.Getter;
 public enum OrderEventType {
     ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
     ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
-    RETRY_VALIDATION("retry_validation", "RetryValidationEvent", "retry.validation"),
     VALIDATION_SUCCEEDED("validation_succeeded", "ValidationSucceededEvent", "validation.succeeded"),
-    VALIDATION_FAILED("validation_failed", "ValidationFailedEvent", "validation.failed");
+    VALIDATION_FAILED("validation_failed", "ValidationFailedEvent", "validation.failed"),
+    RETRY_VALIDATION("retry_validation", "RetryValidationEvent", "retry.validation"),
+    PAYMENT_START("payment_start", "PaymentStartEvent", "payment.start"),
+    PAYMENT_SUCCEEDED("payment_succeeded", "PaymentSucceededEvent", "payment.succeeded"),
+    PAYMENT_FAILED("payment_failed", "PaymentFailedEvent", "payment.failed"),
+    RETRY_PAYMENT("retry_payment", "RetryPaymentEvent", "retry.payment"),
+    SHIPMENT_START("shipment_start", "ShipmentStartEvent", "shipment.start"),
+    SHIPMENT_SUCCEEDED("shipment_succeeded", "ShipmentSucceededEvent", "shipment.succeeded"),
+    SHIPMENT_FAILED("shipment_failed", "ShipmentFailedEvent", "shipment.failed"),
+    RETRY_SHIPMENT("retry_shipment", "RetryShipmentEvent", "retry.shipment"),
+    DELIVERED("delivered", "DeliveredEvent", "order.delivered"),
+    CANCEL("cancel", "CancelEvent", "order.cancel"),
+    AUTO_CANCEL("auto_cancel", "AutoCancelEvent", "order.auto_cancel");
 
     private final String topic;
     private final String eventType;

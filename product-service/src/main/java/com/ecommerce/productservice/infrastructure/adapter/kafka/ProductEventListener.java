@@ -1,7 +1,5 @@
 package com.ecommerce.productservice.infrastructure.adapter.kafka;
 
-import com.ecommerce.productservice.application.dto.ProductBatchItemRequest;
-import com.ecommerce.productservice.application.dto.ProductBatchValidationRequest;
 import com.ecommerce.productservice.application.service.ProductApplicationService;
 import com.ecommerce.shared.domain.event.OrderEventPayload;
 import com.ecommerce.shared.domain.event.OrderEventType;
@@ -21,7 +19,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -41,7 +38,8 @@ public class ProductEventListener {
     // Subset of events that the listener consumes
     private static final OrderEventType[] CONSUMER_EVENTS = {
             OrderEventType.ORDER_CREATED,
-            OrderEventType.RETRY_VALIDATION
+            OrderEventType.RETRY_VALIDATION,
+            OrderEventType.CANCEL
     };
 
     // Map topics to OrderEventType for quick lookup
@@ -70,28 +68,14 @@ public class ProductEventListener {
             return;
         }
         extractOrderPayloadFromEvent(cloudEvent)
-                .ifPresentOrElse(order -> processOrderEvent(order, eventType),
+                .ifPresentOrElse(payload -> {
+                            switch (eventType) {
+                                case ORDER_CREATED, RETRY_VALIDATION -> productService.validateAndReserveStock(payload);
+                                case CANCEL -> productService.restock(payload);
+                                default -> log.warn("Unsupported event type: {}", eventType);
+                            }
+                        },
                         () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
-    }
-
-
-    /**
-     * Processes the order event by delegating to the application service.
-     */
-    private void processOrderEvent(OrderEventPayload payload, OrderEventType eventType) {
-        log.info("Processing {} event for order ID: {}", eventType.getEventType(), payload.id());
-        try {
-            List<ProductBatchItemRequest> items = payload.items().stream()
-                    .map(item -> new ProductBatchItemRequest(item.productId(), item.quantity()))
-                    .toList();
-            ProductBatchValidationRequest request = new ProductBatchValidationRequest(items);
-
-            productService.validateAndReserveInventory(request, payload.id());
-            log.info("Processed {} event for order ID: {}", eventType.getEventType(), payload.id());
-        } catch (Exception e) {
-            log.error("Failed to process {} event for order ID: {}", eventType.getEventType(), payload.id(), e);
-            throw new RuntimeException("Failed to process order event", e);
-        }
     }
 
     /**

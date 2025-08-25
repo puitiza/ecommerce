@@ -54,4 +54,6 @@ public interface OrderUseCase {
     void cancelOrder(UUID id);
 
     void deleteOrder(UUID id);
+
+    OrderResponse confirmOrder(UUID id);
 }

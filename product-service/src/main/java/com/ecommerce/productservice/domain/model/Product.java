@@ -36,9 +36,20 @@ public record Product(
         );
     }
 
-    public Product withInventory(Integer quantity) {
-        return new Product(id, name, description, price, (inventory - quantity), image, categories, additionalData,
-                createdAt, LocalDateTime.now(), version
+    public Product updateInventory(int newInventory) {
+        return new Product(
+                id,
+                name,
+                description,
+                price,
+                newInventory,
+                image,
+                categories,
+                additionalData,
+                createdAt,
+                LocalDateTime.now(),
+                version //version + 1
         );
     }
+
 }

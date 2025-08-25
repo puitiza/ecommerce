@@ -2,7 +2,7 @@ package com.ecommerce.shared.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -12,7 +12,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record OrderEventPayload(
         UUID id,
-        List<OrderItemPayload> items
+        Set<OrderItemPayload> items
 ) {
     public record OrderItemPayload(
             Long productId,

@@ -9,7 +9,6 @@ import lombok.Getter;
  */
 @Getter
 public enum OrderEventType {
-
     ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
     ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
     VALIDATION_SUCCEEDED("validation_succeeded", "ValidationSucceededEvent", "validation.succeeded"),
@@ -24,7 +23,8 @@ public enum OrderEventType {
     SHIPMENT_FAILED("shipment_failed", "ShipmentFailedEvent", "shipment.failed"),
     RETRY_SHIPMENT("retry_shipment", "RetryShipmentEvent", "retry.shipment"),
     DELIVERED("delivered", "DeliveredEvent", "order.delivered"),
-    CANCEL("cancel", "CancelEvent", "order.cancel");
+    CANCEL("cancel", "CancelEvent", "order.cancel"),
+    AUTO_CANCEL("auto_cancel", "AutoCancelEvent", "order.auto_cancel");
 
     private final String topic;
     private final String eventType;
@@ -35,4 +35,5 @@ public enum OrderEventType {
         this.eventType = eventType;
         this.subject = subject;
     }
+
 }

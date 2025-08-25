@@ -1,23 +1,24 @@
 package com.ecommerce.productservice.application.service;
 
 import com.ecommerce.productservice.application.dto.*;
-import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.exception.DuplicateProductNameException;
-import com.ecommerce.productservice.domain.exception.InvalidInventoryException;
+import com.ecommerce.productservice.domain.exception.InvalidProductDataException;
 import com.ecommerce.productservice.domain.model.Product;
+import com.ecommerce.productservice.domain.port.out.OrderEventPublisherPort;
 import com.ecommerce.productservice.domain.port.out.ProductEventPublisherPort;
 import com.ecommerce.productservice.domain.port.out.ProductRepositoryPort;
 import com.ecommerce.productservice.infrastructure.adapter.persistence.mapper.ProductMapper;
+import com.ecommerce.shared.domain.event.OrderEventPayload;
+import com.ecommerce.shared.domain.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 public class ProductApplicationServiceImpl implements ProductApplicationService {
 
     private final ProductRepositoryPort productRepositoryPort;
-    private final ProductEventPublisherPort eventPublisherPort;
+    private final OrderEventPublisherPort eventPublisherPort;
     private final ProductMapper mapper;
 
     @Override
@@ -45,7 +46,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         }
         Product product = mapper.toProduct(request, null);
         Product savedProduct = productRepositoryPort.save(product);
-        eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
+        //eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
         return mapper.toResponse(savedProduct);
     }
 
@@ -76,7 +77,7 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
         Product existing = productRepositoryPort.findById(id);
         Product updatedProduct = existing.updateFrom(request);
         Product savedProduct = productRepositoryPort.update(id, updatedProduct);
-        eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
+        //eventPublisherPort.publish(savedProduct, ProductEventType.PRODUCT_INVENTORY_UPDATED);
         return mapper.toResponse(savedProduct);
     }
 
@@ -149,50 +150,86 @@ public class ProductApplicationServiceImpl implements ProductApplicationService 
 
     @Override
     @Transactional
-    public void validateAndReserveInventory(ProductBatchValidationRequest request, UUID orderId) {
+    public void validateAndReserveStock(OrderEventPayload payload) {
         try {
-            ProductBatchValidationResponse validationResponse = verifyAndGetProducts(request);
-            boolean allAvailable = validationResponse.products().stream().allMatch(ProductBatchItemResponse::isAvailable);
-            if (!allAvailable) {
-                log.warn("Inventory validation failed for order ID: {}", orderId);
-                eventPublisherPort.publishValidationFailed(orderId);
-                throw new InvalidInventoryException("Inventory validation failed for order ID: %s", orderId);
+            // Extract product IDs and quantities
+            Set<Long> productIds = payload.items().stream()
+                    .map(OrderEventPayload.OrderItemPayload::productId)
+                    .collect(Collectors.toSet());
+            Map<Long, Integer> quantities = payload.items().stream()
+                    .collect(Collectors.toMap(
+                            OrderEventPayload.OrderItemPayload::productId,
+                            OrderEventPayload.OrderItemPayload::quantity
+                    ));
+
+            // Batch fetch products
+            List<Product> products = productRepositoryPort.findAllByIds(productIds.stream().toList());
+            if (products.size() != productIds.size()) {
+                throw new ResourceNotFoundException("One or more products not found: ", products.toString());
             }
 
-            List<Product> products = productRepositoryPort.findAllByIds(
-                    request.items().stream().map(ProductBatchItemRequest::productId).toList()
-            );
-            products.forEach(product -> {
-                var item = request.items().stream()
-                        .filter(i -> i.productId().equals(product.id()))
-                        .findFirst()
-                        .orElseThrow(() -> new InvalidInventoryException("Product not found: %s", product.id()));
-                if (product.inventory() < item.quantity()) {
-                    throw new InvalidInventoryException("Insufficient inventory for product %s: %d available", product.name(), product.inventory());
-                }
-                Product updatedProduct = new Product(
-                        product.id(),
-                        product.name(),
-                        product.description(),
-                        product.price(),
-                        product.inventory() - item.quantity(),
-                        product.image(),
-                        product.categories(),
-                        product.additionalData(),
-                        product.createdAt(),
-                        LocalDateTime.now(),
-                        product.version()
-                );
-                productRepositoryPort.update(product.id(), updatedProduct);
-            });
+            // Validate stock
+            Map<Long, Integer> productIdToStock = products.stream()
+                    .collect(Collectors.toMap(
+                            Product::id,
+                            product -> {
+                                int requestedQuantity = quantities.getOrDefault(product.id(), 0);
+                                if (product.inventory() < requestedQuantity) {
+                                    throw new InvalidProductDataException(
+                                            "Insufficient inventory for product ID %d: requested %d, available %d",
+                                            product.id(), requestedQuantity, product.inventory()
+                                    );
+                                }
+                                return product.inventory() - requestedQuantity;
+                            }
+                    ));
 
-            eventPublisherPort.publishValidationSucceeded(orderId);
-            log.info("Inventory reserved successfully for order ID: {}", orderId);
+            // Batch update stock
+            productRepositoryPort.updateStockInBatch(productIdToStock);
+
+            // Publish inventory updated events
+            //updatedProducts.forEach(product -> eventPublisher.publishProductInventoryUpdatedEvent(product.toShared()));
+            eventPublisherPort.publishValidationSucceeded(payload);
+            log.info("Reserved stock for order ID: {}", payload.id());
         } catch (Exception e) {
-            log.error("Failed to validate and reserve inventory for order ID: {}", orderId, e);
-            eventPublisherPort.publishValidationFailed(orderId);
+            log.error("Failed to reserve stock for order ID: {}", payload.id(), e);
+            eventPublisherPort.publishValidationFailed(payload);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public void restock(OrderEventPayload payload) {
+        // Extract product IDs and quantities
+        Set<Long> productIds = payload.items().stream()
+                .map(OrderEventPayload.OrderItemPayload::productId)
+                .collect(Collectors.toSet());
+        Map<Long, Integer> quantities = payload.items().stream()
+                .collect(Collectors.toMap(
+                        OrderEventPayload.OrderItemPayload::productId,
+                        OrderEventPayload.OrderItemPayload::quantity
+                ));
+
+        // Batch fetch products
+        List<Product> products = productRepositoryPort.findAllByIds(productIds.stream().toList());
+        if (products.size() != productIds.size()) {
+            log.warn("One or more products not found for order ID: {}", payload.id());
+        }
+
+        // Prepare stock updates
+        Map<Long, Integer> productIdToStock = products.stream()
+                .collect(Collectors.toMap(
+                        Product::id,
+                        product -> product.inventory() + quantities.getOrDefault(product.id(), 0)
+                ));
+
+        // Batch update stock
+        productRepositoryPort.updateStockInBatch(productIdToStock);
+
+        // Publish inventory updated events
+        //updatedProducts.forEach(product -> eventPublisherPort.publishProductInventoryUpdatedEvent(product.toShared()));
+        log.info("Restocked products for order ID: {}", payload.id());
     }
 }
 

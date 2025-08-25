@@ -3,7 +3,6 @@ package com.ecommerce.productservice.infrastructure.adapter.kafka;
 import com.ecommerce.productservice.domain.event.ProductEventType;
 import com.ecommerce.productservice.domain.model.Product;
 import com.ecommerce.productservice.domain.port.out.ProductEventPublisherPort;
-import com.ecommerce.shared.domain.event.OrderEventType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
@@ -14,7 +13,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -48,33 +46,4 @@ public class ProductEventPublisherAdapter implements ProductEventPublisherPort {
         }
     }
 
-    @Override
-    public void publishValidationSucceeded(UUID orderId) {
-        publishValidationEvent(orderId, OrderEventType.VALIDATION_SUCCEEDED);
-    }
-
-    @Override
-    public void publishValidationFailed(UUID orderId) {
-        publishValidationEvent(orderId, OrderEventType.VALIDATION_FAILED);
-    }
-
-    private void publishValidationEvent(UUID orderId, OrderEventType eventType) {
-        try {
-            Map<String, UUID> payload = Map.of("orderId", orderId);
-            PojoCloudEventData<Map<String, UUID>> cloudEventData = PojoCloudEventData.wrap(payload, objectMapper::writeValueAsBytes);
-            CloudEvent cloudEvent = CloudEventBuilder.v1()
-                    .withId(UUID.randomUUID().toString())
-                    .withType(eventType.getEventType())
-                    .withSource(URI.create("/product-service"))
-                    .withDataContentType("application/json")
-                    .withData(cloudEventData)
-                    .withSubject("com.ecommerce.event.report." + eventType.getSubject())
-                    .build();
-            kafkaTemplate.send(eventType.getTopic(), orderId.toString(), cloudEvent);
-            log.info("Published {} event for order ID: {}", eventType.getEventType(), orderId);
-        } catch (Exception e) {
-            log.error("Failed to publish {} event for order ID: {}", eventType.getEventType(), orderId, e);
-            throw new RuntimeException("Failed to publish product event", e);
-        }
-    }
 }

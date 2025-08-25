@@ -80,7 +80,7 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
         Order savedOrder = orderRepositoryPort.save(order);
         log.debug("Saved Order with ID: {}", savedOrder.id());
 
-        //Trigger the state machine to start the validation saga.
+        //Trigger the state machine to start the validation saga after a delay (handled by state machine timer)
         domainService.sendCreateEvent(savedOrder);
 
         return mapper.toResponse(savedOrder, itemResponses);
@@ -140,6 +140,9 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
         log.debug("Updating order with ID: {}", id);
         UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
         Order order = orderRepositoryPort.findById(id);
+        if (!order.userId().equals(authDetails.userId())) {
+            throw new IllegalArgumentException("Only User can updated the Order: " + order.userId());
+        }
 
         if (!domainService.canUpdate(order)) {
             throw new OrderUpdateException(order.status().toString());
@@ -151,23 +154,10 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
                 .collect(Collectors.toSet());
         BigDecimal newTotal = calculateTotalPrice(itemResponses);
 
-        Order updatedOrder = new Order(
-                order.id(),
-                order.userId(),
-                newItems,
-                order.status(),
-                order.createdAt(),
-                LocalDateTime.now(),
-                newTotal,
-                request.shippingAddress() != null ? request.shippingAddress() : order.shippingAddress()
-        );
-
+        Order updatedOrder = order.updateFrom(request, newItems, newTotal);
         Order savedOrder = orderRepositoryPort.save(updatedOrder);
 
-        // Restart the flow of the state machine with the Order_CREATED event
-        domainService.sendCreateEvent(savedOrder);
-
-        log.debug("Order successfully updated: {}", id);
+        domainService.sendUpdateEvent(savedOrder); // Publish update event
         return mapper.toResponse(savedOrder, itemResponses);
     }
 
@@ -178,7 +168,26 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
      */
     @Override
     public void deleteOrder(UUID id) {
-        // Not implemented. Orders are typically not deleted, only cancelled or fulfilled.
+        throw new UnsupportedOperationException("Order deletion not supported");
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse confirmOrder(UUID id) {
+        log.debug("Confirming order with ID: {}", id);
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
+        Order order = orderRepositoryPort.findById(id);
+        if (!order.userId().equals(authDetails.userId())) {
+            throw new IllegalArgumentException("Only User can updated the Order: " + order.userId());
+        }
+
+        if (order.status() != OrderStatus.CREATED) {
+            throw new OrderValidationException("Order can only be confirmed in CREATED state");
+        }
+
+        domainService.sendConfirmEvent(order); // Explicit confirmation to start validation
+        Order updatedOrder = orderRepositoryPort.findById(id); // Reload to get updated state
+        return enrichOrderWithProductDetails(updatedOrder, authDetails.token());
     }
 
     /**
@@ -192,13 +201,17 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
     public void cancelOrder(UUID id) {
         log.debug("Cancelling order with ID: {}", id);
 
+        UserAuthenticationDetails authDetails = userAuthenticationPort.getUserDetails();
         Order order = orderRepositoryPort.findById(id);
+        if (!order.userId().equals(authDetails.userId())) {
+            throw new IllegalArgumentException("Only User can updated the Order: " + order.userId());
+        }
+
         if (!domainService.canCancel(order)) {
-            throw new OrderCancellationException("Order cannot be canceled in its current state");
+            throw new OrderCancellationException("Order cannot be canceled in its current state: " + order.status());
         }
 
         domainService.sendCancelEvent(order);
-
         log.info("Cancel order sent to state machine for order ID: {}", id);
     }
 
