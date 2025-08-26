@@ -11,6 +11,8 @@ import lombok.Getter;
 public enum OrderEventType {
     ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
     ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
+    AUTO_VALIDATE("auto_validate", "AutoValidateEvent", "order.auto_validate"),
+    CONFIRM_ORDER("confirm_order", "ConfirmOrderEvent", "order.confirm_order"),
     VALIDATION_SUCCEEDED("validation_succeeded", "ValidationSucceededEvent", "validation.succeeded"),
     VALIDATION_FAILED("validation_failed", "ValidationFailedEvent", "validation.failed"),
     RETRY_VALIDATION("retry_validation", "RetryValidationEvent", "retry.validation"),
@@ -35,5 +37,4 @@ public enum OrderEventType {
         this.eventType = eventType;
         this.subject = subject;
     }
-
 }

@@ -46,32 +46,38 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
     @Override
     public void configure(StateMachineTransitionConfigurer<OrderStatus, OrderEventType> transitions) throws Exception {
         transitions
-                // CREATED -> VALIDATION_PENDING
+                // ---- CREATED STATE ----
+
+                // Timer: después de 5 min dispara AUTO_VALIDATE y arranca validación
                 .withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
-                .event(OrderEventType.ORDER_CREATED)
+                .event(OrderEventType.AUTO_VALIDATE)
                 .action(publishEvent(OrderEventType.ORDER_CREATED))
-                .timerOnce(30000)
+                .timerOnce(300000)
 
-                // CREATED -> CREATED (Update)
+                // Confirmación manual: el usuario puede saltar la espera
+                .and().withExternal()
+                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
+                .event(OrderEventType.CONFIRM_ORDER)
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
+
+                // Actualización de la orden (se queda en CREATED y resetea el timer)
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
                 .event(OrderEventType.ORDER_UPDATED)
                 .action(publishEvent(OrderEventType.ORDER_UPDATED))
 
-                // VALIDATION_PENDING -> VALIDATION_SUCCEEDED
+                // ---- VALIDATION ----
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_SUCCEEDED)
                 .event(OrderEventType.VALIDATION_SUCCEEDED)
                 .action(publishEvent(OrderEventType.PAYMENT_START))
 
-                // VALIDATION_PENDING -> VALIDATION_FAILED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_FAILED)
                 .event(OrderEventType.VALIDATION_FAILED)
                 .action(validationFailedAction())
 
-                // VALIDATION_FAILED -> VALIDATION_PENDING (Retry)
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_FAILED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.RETRY_VALIDATION)
@@ -79,32 +85,28 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishEvent(OrderEventType.RETRY_VALIDATION))
                 .timerOnce(30000)
 
-                // VALIDATION_FAILED -> CANCELLED (After 3 retries)
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_FAILED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.AUTO_CANCEL)
                 .action(publishEvent(OrderEventType.CANCEL))
 
-                // VALIDATION_SUCCEEDED -> PAYMENT_PENDING
+                // ---- PAYMENT ----
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_SUCCEEDED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.PAYMENT_START)
                 .action(publishEvent(OrderEventType.PAYMENT_START))
                 .timerOnce(60000)
 
-                // PAYMENT_PENDING -> PAYMENT_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_SUCCEEDED)
                 .event(OrderEventType.PAYMENT_SUCCEEDED)
                 .action(publishEvent(OrderEventType.SHIPMENT_START))
 
-                // PAYMENT_PENDING -> PAYMENT_FAILED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_FAILED)
                 .event(OrderEventType.PAYMENT_FAILED)
                 .action(paymentFailedAction())
 
-                // PAYMENT_FAILED -> PAYMENT_PENDING (Retry)
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_FAILED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.RETRY_PAYMENT)
@@ -112,32 +114,28 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishEvent(OrderEventType.RETRY_PAYMENT))
                 .timerOnce(60000)
 
-                // PAYMENT_FAILED -> CANCELLED (After 3 retries)
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_FAILED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.AUTO_CANCEL)
                 .action(publishEvent(OrderEventType.CANCEL))
 
-                // PAYMENT_SUCCEEDED -> SHIPPING_PENDING
+                // ---- SHIPPING ----
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_SUCCEEDED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.SHIPMENT_START)
                 .action(publishEvent(OrderEventType.SHIPMENT_START))
                 .timerOnce(120000)
 
-                // SHIPPING_PENDING -> SHIPPING_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_SUCCEEDED)
                 .event(OrderEventType.SHIPMENT_SUCCEEDED)
                 .action(publishEvent(OrderEventType.DELIVERED))
 
-                // SHIPPING_PENDING -> SHIPPING_FAILED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_FAILED)
                 .event(OrderEventType.SHIPMENT_FAILED)
                 .action(shipmentFailedAction())
 
-                // SHIPPING_FAILED -> SHIPPING_PENDING (Retry)
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_FAILED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.RETRY_SHIPMENT)
@@ -145,19 +143,17 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishEvent(OrderEventType.RETRY_SHIPMENT))
                 .timerOnce(120000)
 
-                // SHIPPING_FAILED -> CANCELLED (After 3 retries)
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_FAILED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.AUTO_CANCEL)
                 .action(publishEvent(OrderEventType.CANCEL))
 
-                // SHIPPING_SUCCEEDED -> FULFILLED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_SUCCEEDED).target(OrderStatus.FULFILLED)
                 .event(OrderEventType.DELIVERED)
                 .action(fulfilledAction())
 
-                // Cancel Transitions
+                // ---- CANCEL TRANSITIONS ----
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
