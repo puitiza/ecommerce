@@ -10,6 +10,8 @@ import org.springframework.statemachine.StateMachinePersist;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 public class OrderStateMachinePersister implements StateMachinePersist<OrderStatus, OrderEventType, String> {
@@ -17,8 +19,8 @@ public class OrderStateMachinePersister implements StateMachinePersist<OrderStat
     private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
-    public void write(StateMachineContext<OrderStatus, OrderEventType> context, String contextObj) {
-        Order order = orderRepositoryPort.findById(java.util.UUID.fromString(contextObj));
+    public void write(StateMachineContext<OrderStatus, OrderEventType> context, String orderId) {
+        Order order = orderRepositoryPort.findById(UUID.fromString(orderId));
         if (order != null) {
             Order updatedOrder = order.withStatus(context.getState());
             orderRepositoryPort.save(updatedOrder);
@@ -26,8 +28,8 @@ public class OrderStateMachinePersister implements StateMachinePersist<OrderStat
     }
 
     @Override
-    public StateMachineContext<OrderStatus, OrderEventType> read(String contextObj) {
-        Order order = orderRepositoryPort.findById(java.util.UUID.fromString(contextObj));
+    public StateMachineContext<OrderStatus, OrderEventType> read(String orderId) {
+        Order order = orderRepositoryPort.findById(UUID.fromString(orderId));
         if (order != null) {
             return new DefaultStateMachineContext<>(order.status(), null, null, null, null);
         }

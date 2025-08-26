@@ -12,7 +12,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
-import org.springframework.statemachine.support.DefaultStateMachineContext;
+import org.springframework.statemachine.persist.StateMachinePersister;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
@@ -24,19 +24,9 @@ public class OrderEventProcessor {
 
     private final OrderRepositoryPort repositoryPort;
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
+    private final StateMachinePersister<OrderStatus, OrderEventType, String> persister;
     private final KafkaTemplate<String, OrderEventPayload> kafkaTemplate;
 
-    /**
-     * Processes an incoming CloudEvent within a transactional context.
-     * This method advances the order's state machine and persists the new state
-     * to the database. The entire operation is wrapped in a transaction to ensure
-     * that the state machine transition and the database save are atomic.
-     * If the database save fails, the transaction is rolled back, preventing
-     * data inconsistency.
-     *
-     * @param eventPayload The order extracted from the CloudEvent payload.
-     * @param eventType    The type of the event, which triggers the state machine transition.
-     */
     @Transactional
     public void processEvent(OrderEventPayload eventPayload, OrderEventType eventType) {
         Order orderFound = repositoryPort.findById(eventPayload.id());
@@ -45,53 +35,49 @@ public class OrderEventProcessor {
             return;
         }
 
-        log.info("Processing event {} for order ID: {}, current status: {}",
-                eventType, orderFound.id(), orderFound.status());
+        try {
+            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(orderFound.id().toString());
+            persister.restore(sm, orderFound.id().toString());
+            sm.startReactively().subscribe();
 
-        // Create and restore state machine to current order status
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(orderFound.id().toString());
-        sm.getStateMachineAccessor().doWithAllRegions(accessor ->
-                accessor.resetStateMachineReactively(new DefaultStateMachineContext<>(orderFound.status(), null, null, null)).subscribe()
-        );
-        sm.startReactively().subscribe();
-
-        // Defer VALIDATION_SUCCEEDED if not in VALIDATION_PENDING
-        if (eventType == OrderEventType.VALIDATION_SUCCEEDED && orderFound.status() != OrderStatus.VALIDATION_PENDING) {
-            log.warn("Received VALIDATION_SUCCEEDED for order ID: {} in state {}. Re-publishing in 5 seconds.",
-                    orderFound.id(), orderFound.status());
-            // Re-publish to Kafka with a delay
-            new Thread(() -> {
-                try {
-                    Thread.sleep(5000); // Wait 5 seconds
-                    kafkaTemplate.send(eventType.getTopic(), eventPayload.id().toString(), eventPayload);
-                    log.info("Re-published VALIDATION_SUCCEEDED for order ID: {}", eventPayload.id());
-                } catch (InterruptedException e) {
-                    log.error("Failed to re-publish VALIDATION_SUCCEEDED for order ID: {}", eventPayload.id(), e);
-                }
-            }).start();
-            return;
-        }
-
-        sm.getExtendedState().getVariables().put("order", eventPayload);
-
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(eventType)
-                .setHeader("order", eventPayload)
-                .build();
-
-        sm.sendEvent(Mono.just(message))
-                .doOnNext(result -> {
-                    if (sm.getState() == null) {
-                        log.error("State machine failed to transition for event {} on order {}. Current status: {}",
-                                eventType, orderFound.id(), orderFound.status());
-                        return;
+            // Defer VALIDATION_SUCCEEDED if not in VALIDATION_PENDING
+            if (eventType == OrderEventType.VALIDATION_SUCCEEDED && orderFound.status() != OrderStatus.VALIDATION_PENDING) {
+                log.warn("Received VALIDATION_SUCCEEDED for order ID: {} in state {}. Re-publishing in 5 seconds.",
+                        orderFound.id(), orderFound.status());
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(5000);
+                        kafkaTemplate.send(eventType.getTopic(), eventPayload.id().toString(), eventPayload);
+                        log.info("Re-published VALIDATION_SUCCEEDED for order ID: {}", eventPayload.id());
+                    } catch (InterruptedException e) {
+                        log.error("Failed to re-publish VALIDATION_SUCCEEDED for order ID: {}", eventPayload.id(), e);
                     }
-                    Order updatedOrder = orderFound.withStatus(sm.getState().getId());
-                    repositoryPort.save(updatedOrder);
-                    log.info("State machine advanced to {} for order ID: {}", sm.getState().getId(), orderFound.id());
-                })
-                .doOnError(error -> log.error("Failed to send event {} to state machine for order {}: {}",
-                        eventType, orderFound.id(), error.getMessage()))
-                .subscribe();
+                }).start();
+                return;
+            }
+
+            sm.getExtendedState().getVariables().put("order", eventPayload);
+
+            Message<OrderEventType> message = MessageBuilder
+                    .withPayload(eventType)
+                    .setHeader("order", orderFound)
+                    .build();
+
+            sm.sendEvent(Mono.just(message))
+                    .doOnNext(result -> {
+                        try {
+                            persister.persist(sm, orderFound.id().toString());
+                            log.info("Processed event {} -> state {} for order ID: {}",
+                                    eventType, sm.getState().getId(), orderFound.id());
+                        } catch (Exception e) {
+                            log.error("Failed to persist state for order ID: {}", orderFound.id(), e);
+                        }
+                    })
+                    .doOnError(error -> log.error("Failed to send event {} to state machine for order {}: {}",
+                            eventType, orderFound.id(), error.getMessage()))
+                    .subscribe();
+        } catch (Exception e) {
+            log.error("Error processing event {} for order {}", eventType, orderFound.id(), e);
+        }
     }
 }

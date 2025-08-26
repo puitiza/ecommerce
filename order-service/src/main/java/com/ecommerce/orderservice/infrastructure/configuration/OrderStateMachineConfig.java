@@ -4,7 +4,6 @@ import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.port.out.OrderEventPublisherPort;
-import com.ecommerce.orderservice.domain.port.out.OrderRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +17,8 @@ import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 import org.springframework.statemachine.guard.Guard;
+import org.springframework.statemachine.persist.DefaultStateMachinePersister;
+import org.springframework.statemachine.persist.StateMachinePersister;
 import reactor.core.publisher.Mono;
 
 import java.util.EnumSet;
@@ -30,7 +31,7 @@ import java.util.Optional;
 public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<OrderStatus, OrderEventType> {
 
     private final OrderEventPublisherPort eventPublisher;
-    private final OrderRepositoryPort orderRepositoryPort;
+    private final OrderStateMachinePersister delegatePersister;
 
     @Override
     public void configure(StateMachineStateConfigurer<OrderStatus, OrderEventType> states) throws Exception {
@@ -195,10 +196,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                         default -> log.warn("No publisher for event: {}", eventType);
                     }
                     log.info("Published {} for order ID: {}", eventType.getEventType(), order.id());
-                    // Persist the new state
-                    Order updatedOrder = order.withStatus(context.getStateMachine().getState().getId());
-                    orderRepositoryPort.save(updatedOrder);
-                    log.info("Persisted state {} for order ID: {}", context.getStateMachine().getState().getId(), order.id());
                 },
                 () -> log.warn("Null or invalid order for event: {}", eventType.getEventType())
         );
@@ -262,5 +259,10 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
     @Bean
     public Guard<OrderStatus, OrderEventType> shipmentRetryGuard() {
         return createRetryGuard("shipmentRetryCount");
+    }
+
+    @Bean
+    public StateMachinePersister<OrderStatus, OrderEventType, String> persister() {
+        return new DefaultStateMachinePersister<>(delegatePersister);
     }
 }
