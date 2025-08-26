@@ -4,6 +4,7 @@ import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import com.ecommerce.orderservice.domain.port.out.OrderEventPublisherPort;
+import com.ecommerce.orderservice.domain.port.out.OrderRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,7 @@ import java.util.Optional;
 public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<OrderStatus, OrderEventType> {
 
     private final OrderEventPublisherPort eventPublisher;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
     public void configure(StateMachineStateConfigurer<OrderStatus, OrderEventType> states) throws Exception {
@@ -176,7 +178,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishEvent(OrderEventType.CANCEL));
     }
 
-    // Event publication actions, using the Helper Get Order From Context
     private Action<OrderStatus, OrderEventType> publishEvent(OrderEventType eventType) {
         return context -> getOrderFromContext(context).ifPresentOrElse(
                 order -> {
@@ -194,6 +195,10 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                         default -> log.warn("No publisher for event: {}", eventType);
                     }
                     log.info("Published {} for order ID: {}", eventType.getEventType(), order.id());
+                    // Persist the new state
+                    Order updatedOrder = order.withStatus(context.getStateMachine().getState().getId());
+                    orderRepositoryPort.save(updatedOrder);
+                    log.info("Persisted state {} for order ID: {}", context.getStateMachine().getState().getId(), order.id());
                 },
                 () -> log.warn("Null or invalid order for event: {}", eventType.getEventType())
         );
