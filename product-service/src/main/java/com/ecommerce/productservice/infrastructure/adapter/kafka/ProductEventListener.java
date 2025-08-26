@@ -2,7 +2,7 @@ package com.ecommerce.productservice.infrastructure.adapter.kafka;
 
 import com.ecommerce.productservice.application.service.ProductApplicationService;
 import com.ecommerce.shared.domain.event.OrderEventPayload;
-import com.ecommerce.shared.domain.event.OrderEventType;
+import com.ecommerce.shared.domain.event.SharedOrderEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.CloudEventUtils;
@@ -36,22 +36,22 @@ public class ProductEventListener {
     private final ObjectMapper objectMapper;
 
     // Subset of events that the listener consumes
-    private static final OrderEventType[] CONSUMER_EVENTS = {
-            OrderEventType.ORDER_CREATED,
-            OrderEventType.RETRY_VALIDATION,
-            OrderEventType.CANCEL
+    private static final SharedOrderEvent[] CONSUMER_EVENTS = {
+            SharedOrderEvent.ORDER_CREATED,
+            SharedOrderEvent.RETRY_VALIDATION,
+            SharedOrderEvent.CANCEL
     };
 
     // Map topics to OrderEventType for quick lookup
-    private final Map<String, OrderEventType> topicToEventTypeMap = Arrays.stream(CONSUMER_EVENTS)
-            .collect(Collectors.toMap(OrderEventType::getTopic, Function.identity()));
+    private final Map<String, SharedOrderEvent> topicToEventTypeMap = Arrays.stream(CONSUMER_EVENTS)
+            .collect(Collectors.toMap(SharedOrderEvent::getTopic, Function.identity()));
 
     @Configuration
     static class KafkaListenerConfig {
         @Bean
         public String[] consumerTopics() {
             return Arrays.stream(CONSUMER_EVENTS)
-                    .map(OrderEventType::getTopic)
+                    .map(SharedOrderEvent::getTopic)
                     .toArray(String[]::new);
         }
     }
@@ -62,7 +62,7 @@ public class ProductEventListener {
     @KafkaListener(topics = "#{consumerTopics}", containerFactory = "kafkaListenerContainerFactory")
     public void handleEvent(@Payload CloudEvent cloudEvent,
                             @Header(value = KafkaHeaders.RECEIVED_TOPIC, required = false) String topic) {
-        OrderEventType eventType = topicToEventTypeMap.get(topic);
+        SharedOrderEvent eventType = topicToEventTypeMap.get(topic);
         if (eventType == null) {
             log.warn("Received event on unknown topic: {}", topic);
             return;

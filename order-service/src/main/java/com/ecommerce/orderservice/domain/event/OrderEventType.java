@@ -1,5 +1,6 @@
 package com.ecommerce.orderservice.domain.event;
 
+import com.ecommerce.shared.domain.event.SharedOrderEvent;
 import lombok.Getter;
 
 /**
@@ -9,28 +10,39 @@ import lombok.Getter;
  */
 @Getter
 public enum OrderEventType {
-    ORDER_CREATED("order_created", "OrderCreatedEvent", "order.created"),
+
+    // === Shared events ===
+    ORDER_CREATED(SharedOrderEvent.ORDER_CREATED),
+    VALIDATION_SUCCEEDED(SharedOrderEvent.VALIDATION_SUCCEEDED),
+    VALIDATION_FAILED(SharedOrderEvent.VALIDATION_FAILED),
+    RETRY_VALIDATION(SharedOrderEvent.RETRY_VALIDATION),
+    PAYMENT_START(SharedOrderEvent.PAYMENT_START),
+    PAYMENT_SUCCEEDED(SharedOrderEvent.PAYMENT_SUCCEEDED),
+    PAYMENT_FAILED(SharedOrderEvent.PAYMENT_FAILED),
+    RETRY_PAYMENT(SharedOrderEvent.RETRY_PAYMENT),
+    SHIPMENT_START(SharedOrderEvent.SHIPMENT_START),
+    SHIPMENT_SUCCEEDED(SharedOrderEvent.SHIPMENT_SUCCEEDED),
+    SHIPMENT_FAILED(SharedOrderEvent.SHIPMENT_FAILED),
+    RETRY_SHIPMENT(SharedOrderEvent.RETRY_SHIPMENT),
+    DELIVERED(SharedOrderEvent.DELIVERED),
+    CANCEL(SharedOrderEvent.CANCEL),
+    AUTO_CANCEL(SharedOrderEvent.AUTO_CANCEL),
+
+    // === Local events (only order-service) ===
     ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
     AUTO_VALIDATE("auto_validate", "AutoValidateEvent", "order.auto_validate"),
-    CONFIRM_ORDER("confirm_order", "ConfirmOrderEvent", "order.confirm_order"),
-    VALIDATION_SUCCEEDED("validation_succeeded", "ValidationSucceededEvent", "validation.succeeded"),
-    VALIDATION_FAILED("validation_failed", "ValidationFailedEvent", "validation.failed"),
-    RETRY_VALIDATION("retry_validation", "RetryValidationEvent", "retry.validation"),
-    PAYMENT_START("payment_start", "PaymentStartEvent", "payment.start"),
-    PAYMENT_SUCCEEDED("payment_succeeded", "PaymentSucceededEvent", "payment.succeeded"),
-    PAYMENT_FAILED("payment_failed", "PaymentFailedEvent", "payment.failed"),
-    RETRY_PAYMENT("retry_payment", "RetryPaymentEvent", "retry.payment"),
-    SHIPMENT_START("shipment_start", "ShipmentStartEvent", "shipment.start"),
-    SHIPMENT_SUCCEEDED("shipment_succeeded", "ShipmentSucceededEvent", "shipment.succeeded"),
-    SHIPMENT_FAILED("shipment_failed", "ShipmentFailedEvent", "shipment.failed"),
-    RETRY_SHIPMENT("retry_shipment", "RetryShipmentEvent", "retry.shipment"),
-    DELIVERED("delivered", "DeliveredEvent", "order.delivered"),
-    CANCEL("cancel", "CancelEvent", "order.cancel"),
-    AUTO_CANCEL("auto_cancel", "AutoCancelEvent", "order.auto_cancel");
+    ORDER_CONFIRMED("confirm_order", "ConfirmOrderEvent", "order.confirm_order");
 
     private final String topic;
     private final String eventType;
     private final String subject;
+
+    // Builder for the shared
+    OrderEventType(SharedOrderEvent shared) {
+        this.topic = shared.getTopic();
+        this.eventType = shared.getEventType();
+        this.subject = shared.getSubject();
+    }
 
     OrderEventType(String topic, String eventType, String subject) {
         this.topic = topic;

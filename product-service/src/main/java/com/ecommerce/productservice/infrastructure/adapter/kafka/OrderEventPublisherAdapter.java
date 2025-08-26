@@ -2,7 +2,7 @@ package com.ecommerce.productservice.infrastructure.adapter.kafka;
 
 import com.ecommerce.productservice.domain.port.out.OrderEventPublisherPort;
 import com.ecommerce.shared.domain.event.OrderEventPayload;
-import com.ecommerce.shared.domain.event.OrderEventType;
+import com.ecommerce.shared.domain.event.SharedOrderEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
@@ -25,15 +25,15 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
 
     @Override
     public void publishValidationSucceeded(OrderEventPayload order) {
-        publishEvent(order, OrderEventType.VALIDATION_SUCCEEDED);
+        publishEvent(order, SharedOrderEvent.VALIDATION_SUCCEEDED);
     }
 
     @Override
     public void publishValidationFailed(OrderEventPayload order) {
-        publishEvent(order, OrderEventType.VALIDATION_FAILED);
+        publishEvent(order, SharedOrderEvent.VALIDATION_FAILED);
     }
 
-    private void publishEvent(OrderEventPayload order, OrderEventType eventType) {
+    private void publishEvent(OrderEventPayload order, SharedOrderEvent eventType) {
         if (order == null) {
             log.warn("Attempted to publish event {} with null order", eventType.getEventType());
             return;

@@ -26,8 +26,8 @@ import java.util.Optional;
 
 @Slf4j
 @Configuration
-@EnableStateMachineFactory
 @RequiredArgsConstructor
+@EnableStateMachineFactory
 public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<OrderStatus, OrderEventType> {
 
     private final OrderEventPublisherPort eventPublisher;
@@ -58,7 +58,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 // Confirmación manual: el usuario puede saltar la espera
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
-                .event(OrderEventType.CONFIRM_ORDER)
+                .event(OrderEventType.ORDER_CONFIRMED)
                 .action(publishEvent(OrderEventType.ORDER_CREATED))
 
                 // Actualización de la orden (se queda en CREATED y resetea el timer)
