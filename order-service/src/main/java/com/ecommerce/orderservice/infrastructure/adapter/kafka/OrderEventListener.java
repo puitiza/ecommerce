@@ -63,7 +63,7 @@ public class OrderEventListener {
      * @param cloudEvent The incoming CloudEvent payload.
      * @param topic      The Kafka topic the event was received from.
      */
-    @KafkaListener(topics = "#{consumerTopics}")
+    @KafkaListener(topics = "#{consumerTopics}", containerFactory = "kafkaListenerContainerFactory")
     public void handleEvent(@Payload CloudEvent cloudEvent,
                             @Header(value = KafkaHeaders.RECEIVED_TOPIC, required = false) String topic) {
         OrderEventType eventType = topicToEventTypeMap.get(topic);

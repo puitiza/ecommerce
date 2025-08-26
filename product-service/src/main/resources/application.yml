@@ -29,8 +29,9 @@ spring:
         max.request.size: 1000000
         metadata.max.idle.ms: 180000
         request.timeout.ms: 30000
-        retry.backoff.ms: 10000
         retries: 10
+        retry.backoff.ms: 10000
+        retry.backoff.max.ms: 10000
     consumer:
       group-id: product-service-group
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer

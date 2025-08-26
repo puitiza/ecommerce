@@ -1,6 +1,5 @@
-package com.ecommerce.productservice.infrastructure.configuration;
+package com.ecommerce.orderservice.infrastructure.configuration;
 
-import com.ecommerce.productservice.domain.event.ProductEventType;
 import io.cloudevents.CloudEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +18,12 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
- * Kafka configuration for the product service with centralized DLT.
+ * Kafka configuration for the order service with centralized DLT.
  */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-public class ProductKafkaConfig {
+public class OrderKafkaConfig {
 
     private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
     private final ConsumerFactory<String, CloudEvent> consumerFactory;
@@ -36,14 +35,14 @@ public class ProductKafkaConfig {
         factory.setConsumerFactory(consumerFactory);
         factory.setConcurrency(1);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        factory.setCommonErrorHandler(productKafkaErrorHandler());
+        factory.setCommonErrorHandler(orderKafkaErrorHandler());
         return factory;
     }
 
     @Bean
-    public CommonErrorHandler productKafkaErrorHandler() {
+    public CommonErrorHandler orderKafkaErrorHandler() {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
-                kafkaTemplate, (record, ex) -> new TopicPartition("product-dead-letter-topic", 0)
+                kafkaTemplate, (record, ex) -> new TopicPartition("order-dead-letter-topic", 0)
         );
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
         errorHandler.setRetryListeners((record, ex, attempt) ->
@@ -53,11 +52,9 @@ public class ProductKafkaConfig {
     }
 
     @Bean
-    public NewTopic[] productTopics() {
+    public NewTopic[] orderTopics() {
         return new NewTopic[]{
-                TopicBuilder.name(ProductEventType.PRODUCT_INVENTORY_UPDATED.getTopic()).partitions(1).replicas(1).build(),
-                // Unique centralized dlt for product-service
-                TopicBuilder.name("product-dead-letter-topic").partitions(1).replicas(1).build()
+                TopicBuilder.name("order-dead-letter-topic").partitions(1).replicas(1).build()
         };
     }
 }
