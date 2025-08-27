@@ -24,6 +24,9 @@ import reactor.core.publisher.Mono;
 import java.util.EnumSet;
 import java.util.Optional;
 
+/**
+ * Configures the state machine for order processing, defining states, transitions, actions, and guards.
+ */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -33,6 +36,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
     private final OrderEventPublisherPort eventPublisher;
     private final OrderStateMachinePersister delegatePersister;
 
+    /**
+     * Configures the states of the order state machine, including initial, intermediate, and end states.
+     *
+     * @param states the state configurer
+     * @throws Exception if configuration fails
+     */
     @Override
     public void configure(StateMachineStateConfigurer<OrderStatus, OrderEventType> states) throws Exception {
         states
@@ -43,26 +52,43 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .end(OrderStatus.CANCELLED);
     }
 
+    /**
+     * Configures transitions between states, including events, actions, guards, and timers.
+     *
+     * @param transitions the transition configurer
+     * @throws Exception if configuration fails
+     */
     @Override
     public void configure(StateMachineTransitionConfigurer<OrderStatus, OrderEventType> transitions) throws Exception {
         transitions
                 // ---- CREATED STATE ----
-
-                // Timer: después de 5 min dispara AUTO_VALIDATE y arranca validación
+                /*
+                // CREATED -> VALIDATION_PENDING
                 .withExternal()
+                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
+                .event(OrderEventType.ORDER_CREATED)
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
+                .timerOnce(30000)
+
+                // CREATED -> CREATED (Update)
+                .and().withExternal()
+                .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
+                .event(OrderEventType.ORDER_UPDATED)
+                .action(publishEvent(OrderEventType.ORDER_UPDATED))
+                */
+
+                .withExternal() //(Automatic after 5 minutes)
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.AUTO_VALIDATE)
                 .action(publishEvent(OrderEventType.ORDER_CREATED))
                 .timerOnce(300000)
 
-                // Confirmación manual: el usuario puede saltar la espera
-                .and().withExternal()
+                .and().withExternal() //(Manual confirmation)
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.ORDER_CONFIRMED)
                 .action(publishEvent(OrderEventType.ORDER_CREATED))
 
-                // Actualización de la orden (se queda en CREATED y resetea el timer)
-                .and().withExternal()
+                .and().withExternal() //(Update with timer reset)
                 .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
                 .event(OrderEventType.ORDER_UPDATED)
                 .action(publishEvent(OrderEventType.ORDER_UPDATED))
@@ -175,6 +201,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .action(publishEvent(OrderEventType.CANCEL));
     }
 
+    /**
+     * Creates an action to publish events to the event publisher based on the event type.
+     *
+     * @param eventType the type of event to publish
+     * @return the action to execute
+     */
     private Action<OrderStatus, OrderEventType> publishEvent(OrderEventType eventType) {
         return context -> getOrderFromContext(context).ifPresentOrElse(
                 order -> {
@@ -197,6 +229,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
         );
     }
 
+    /**
+     * Extracts the order from the state context message headers.
+     *
+     * @param context the state machine context
+     * @return an optional containing the order, or empty if not found or invalid
+     */
     private Optional<Order> getOrderFromContext(StateContext<OrderStatus, OrderEventType> context) {
         return Optional.ofNullable(context.getMessageHeader("order"))
                 .filter(Order.class::isInstance)

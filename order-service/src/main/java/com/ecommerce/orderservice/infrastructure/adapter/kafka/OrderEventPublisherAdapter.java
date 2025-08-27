@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.util.UUID;
 
+/**
+ * Publishes order events to Kafka topics as CloudEvents.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -99,6 +102,13 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
         publishEvent(order, OrderEventType.CANCEL);
     }
 
+    /**
+     * Publishes an event to Kafka as a CloudEvent, handling serialization and error cases.
+     *
+     * @param order     the order event payload
+     * @param eventType the type of event to publish
+     * @throws EventPublishingException if publishing fails
+     */
     private void publishEvent(OrderEventPayload order, OrderEventType eventType) {
         if (order == null) {
             log.warn("Attempted to publish event {} with null order", eventType.getEventType());

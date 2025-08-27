@@ -23,6 +23,9 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Listens for Kafka events related to order processing and delegates to the event processor.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -56,12 +59,10 @@ public class OrderEventListener {
     }
 
     /**
-     * Kafka listener for processing order-related events.
-     * It deserializes the incoming CloudEvent and delegates its processing
-     * to the OrderEventProcessor to handle the state machine logic in a transactional context.
+     * Processes incoming CloudEvents from Kafka topics, extracting the payload and delegating to the event processor.
      *
-     * @param cloudEvent The incoming CloudEvent payload.
-     * @param topic      The Kafka topic the event was received from.
+     * @param cloudEvent the incoming CloudEvent
+     * @param topic      the Kafka topic the event was received from
      */
     @KafkaListener(topics = "#{consumerTopics}", containerFactory = "kafkaListenerContainerFactory")
     public void handleEvent(@Payload CloudEvent cloudEvent,
@@ -77,6 +78,12 @@ public class OrderEventListener {
         );
     }
 
+    /**
+     * Deserializes the CloudEvent data into an OrderEventPayload.
+     *
+     * @param event the CloudEvent to process
+     * @return an optional containing the deserialized payload, or empty if deserialization fails
+     */
     private Optional<OrderEventPayload> extractOrderPayloadFromEvent(CloudEvent event) {
         if (event == null || event.getData() == null) {
             log.warn("Invalid CloudEvent or data is null");

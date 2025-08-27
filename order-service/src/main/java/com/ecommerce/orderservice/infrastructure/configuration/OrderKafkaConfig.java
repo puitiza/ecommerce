@@ -18,7 +18,7 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
- * Kafka configuration for the order service with centralized DLT.
+ * Configures Kafka for the order service, including listener factory, error handling, and topics.
  */
 @Slf4j
 @Configuration
@@ -28,17 +28,30 @@ public class OrderKafkaConfig {
     private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
     private final ConsumerFactory<String, CloudEvent> consumerFactory;
 
+    /**
+     * Configures the Kafka listener container factory for processing CloudEvent messages.
+     * Sets manual immediate acknowledgment and a single-threaded concurrency model.
+     *
+     * @return the configured listener container factory
+     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, CloudEvent> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, CloudEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
-        factory.setConcurrency(1);
+        factory.setConcurrency(1); // single-threaded consumption
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setCommonErrorHandler(orderKafkaErrorHandler());
         return factory;
     }
 
+    /**
+     * Configures error handling with a DeadLetterPublishingRecoverer for failed messages.
+     * Uses a fixed backoff policy with 3 retries and a -1 second interval.
+     * Logs retry attempts for monitoring.
+     *
+     * @return the configured error handler
+     */
     @Bean
     public CommonErrorHandler orderKafkaErrorHandler() {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
@@ -51,6 +64,11 @@ public class OrderKafkaConfig {
         return errorHandler;
     }
 
+    /**
+     * Defines Kafka topics for the order service, including the dead-letter topic.
+     *
+     * @return an array of configured topics
+     */
     @Bean
     public NewTopic[] orderTopics() {
         return new NewTopic[]{

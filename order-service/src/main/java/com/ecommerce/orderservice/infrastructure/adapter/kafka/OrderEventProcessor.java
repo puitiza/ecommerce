@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
+/**
+ * Processes order events by applying them to the state machine and persisting the resulting state.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,13 @@ public class OrderEventProcessor {
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
     private final StateMachinePersister<OrderStatus, OrderEventType, String> persister;
 
+    /**
+     * Processes an order event by restoring the state machine, applying the event, and persisting the new state.
+     * Executes within a transaction to ensure consistency.
+     *
+     * @param eventPayload the event payload containing order details
+     * @param eventType    the type of event to process
+     */
     @Transactional
     public void processEvent(OrderEventPayload eventPayload, OrderEventType eventType) {
         Order orderFound = repositoryPort.findById(eventPayload.id());
