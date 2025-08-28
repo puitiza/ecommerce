@@ -134,8 +134,183 @@ while the `order-service` manages the overall flow.
    order automatically transitions to `CANCELLED` via an `AutoCancel` event.
 3. **Compensating Actions**:
     - `VALIDATION_PENDING` cancellation triggers a restock in `product-service`.
-    - `PAYMENT_PENDING` cancellation triggers a restock and a refund in `payment-service`.
-    - `SHIPPING_PENDING` cancellation triggers a restock, refund, and shipment reversal.
+    - `PAYMENT_PENDING` cancellation triggers a restocking and a refund in `payment-service`.
+    - `SHIPPING_PENDING` cancellation triggers a restocking, refund, and shipment reversal.
 4. **Timeouts**: Each `_PENDING` state has a timeout to prevent orders from being stuck indefinitely.
 5. **Endpoint for Confirmation**: An endpoint in `order-service` to explicitly start the validation process (optional,
    as the timeout handles automatic transitions).
+
+-----
+
+## Order Process Flow Diagrams
+
+Below are the sequence diagrams for the key flows in an order's lifecycle.
+
+1. **Create Order (Flow with 5-Minute Delay)**
+   This is the happy path for when a customer creates an order and the system waits 5 minutes before sending it for
+   validation.
+
+    ```mermaid
+    sequenceDiagram
+        participant Client
+        participant Order Service
+        participant Kafka
+        participant Product Service
+        Client ->> Order Service: POST /api/orders (create order)
+        activate Order Service
+        Order Service ->> Order Service: Save Order (Status: CREATED)
+        Order Service ->> Kafka: Publish 'AUTO_VALIDATE' event
+        deactivate Order Service
+        Note over Kafka: Event held in a retry topic<br/>for 5 minutes.
+        Kafka -->> Order Service: Consume 'AUTO_VALIDATE' event
+        activate Order Service
+        Order Service ->> Order Service: Update Status to VALIDATION_PENDING
+        Order Service ->> Kafka: Publish 'ORDER_CREATED' event
+        deactivate Order Service
+        Kafka -->> Product Service: Consume 'ORDER_CREATED' event
+        activate Product Service
+        Product Service ->> Product Service: Validate stock and products
+        Product Service ->> Kafka: Publish 'VALIDATION_SUCCEEDED' event
+        deactivate Product Service
+        Kafka -->> Order Service: Consume 'VALIDATION_SUCCEEDED' event
+        activate Order Service
+        Order Service ->> Order Service: Update Status to VALIDATION_SUCCEEDED
+        deactivate Order Service
+    ``` 
+
+2. **Update Order (Reset Timer)**
+   This flow shows how updating an order's items resets the 5-minute timer.
+
+    ```mermaid
+    sequenceDiagram
+        participant Client
+        participant Order Service
+        participant Kafka
+        Note right of Client: The order already exists in CREATED state<br/>and an 'AUTO_VALIDATE' event is pending.
+        Client ->> Order Service: PUT /api/orders/{id} (update items)
+        activate Order Service
+        Order Service ->> Order Service: Update order items and price
+        Note over Order Service, Kafka: A new 'AUTO_VALIDATE' event is published.<br/>Kafka will handle the latest event,<br/>effectively resetting the timer.
+        Order Service ->> Kafka: Publish new 'AUTO_VALIDATE' event
+        deactivate Order Service
+    ```
+
+3. **Confirm Order (Immediate Submission)**
+   This is the happy path for when a customer decides not to wait 5 minutes and confirms the order for immediate
+   validation.
+
+    ```mermaid
+    sequenceDiagram
+        participant Client
+        participant Order Service
+        participant Kafka
+        participant Product Service
+        Note right of Client: The order already exists in CREATED state.
+        Client ->> Order Service: POST /api/orders/{id}/confirm
+        activate Order Service
+        Order Service ->> Order Service: Update Status to VALIDATION_PENDING
+        Note over Order Service, Kafka: The 5-minute delay is skipped.
+        Order Service ->> Kafka: Publish 'ORDER_CREATED' event (immediately)
+        deactivate Order Service
+        Kafka -->> Product Service: Consume 'ORDER_CREATED' event
+        activate Product Service
+        Product Service ->> Product Service: Validate stock and products
+        Product Service ->> Kafka: Publish 'VALIDATION_SUCCEEDED' event
+        deactivate Product Service
+        Kafka -->> Order Service: Consume 'VALIDATION_SUCCEEDED' event
+        activate Order Service
+        Order Service ->> Order Service: Update Status to VALIDATION_SUCCEEDED
+        deactivate Order Service
+    ```
+
+4. **Validation Failure with Retries and Cancellation (Unhappy Path)**
+   This diagram shows the flow when product validation fails, the system retries 3 times, and, upon final failure,
+   automatically cancels the order.
+
+    ```mermaid
+    sequenceDiagram
+        participant Product Service
+        participant Kafka
+        participant Order Service
+        participant DLT Listener
+        Product Service ->> Kafka: Publish 'VALIDATION_FAILED'
+        Kafka -->> Order Service: Consume 'VALIDATION_FAILED'
+        activate Order Service
+        Order Service ->> Order Service: Update Status to VALIDATION_FAILED
+        Order Service ->> Kafka: Publish 'RETRY_VALIDATION'
+        deactivate Order Service
+    
+        loop 3 Retries
+            Note over Kafka: Event held in a retry topic<br/>for 30 seconds.
+            Kafka -->> Order Service: Consume 'RETRY_VALIDATION'
+            activate Order Service
+            Order Service ->> Order Service: Update Status to VALIDATION_PENDING
+            Order Service ->> Kafka: Publish 'ORDER_CREATED' (to retry)
+            deactivate Order Service
+            Kafka -->> Product Service: Consume 'ORDER_CREATED'
+            Product Service ->> Kafka: Publish 'VALIDATION_FAILED'
+        end
+    
+        Note over Kafka: After 3 failures, the message<br/>is sent to the Dead Letter Topic (DLT).
+        Kafka -->> DLT Listener: Consume failed event from DLT
+        activate DLT Listener
+        DLT Listener ->> Order Service: Initiate order cancellation
+        activate Order Service
+        Order Service ->> Order Service: Update Status to CANCELLED
+        Order Service ->> Kafka: Publish 'ORDER_CANCELLED' event
+        deactivate Order Service
+        deactivate DLT Listener
+    ```
+
+5. **Automatic Cancellation for Non-Payment (Timeout)**
+   This flow describes how an order is automatically cancelled if the user does not complete payment within a specified
+   time (e.g., 30 minutes).
+
+    ```mermaid
+    sequenceDiagram
+        participant Order Service
+        participant Kafka
+        Note right of Order Service: Order is in PAYMENT_PENDING state.
+        Order Service ->> Kafka: Publish 'CHECK_PAYMENT_TIMEOUT' event
+        Note over Kafka: Event held in a retry topic<br/>for 30 minutes.
+        Kafka -->> Order Service: Consume 'CHECK_PAYMENT_TIMEOUT' event
+        activate Order Service
+        Order Service ->> Order Service: Check the order's current state
+    
+        alt If status is still PAYMENT_PENDING
+            Order Service ->> Order Service: Update Status to CANCELLED
+            Order Service ->> Kafka: Publish 'ORDER_CANCELLED' event (reason: timeout)
+        else Payment was already processed
+            Order Service ->> Order Service: Do nothing
+        end
+        deactivate Order Service
+    ```
+
+6. **Complete Order Lifecycle (End-to-End Happy Path)**
+   This diagram shows the full journey of a successful order, from creation to final delivery.
+
+    ```mermaid
+    sequenceDiagram
+        participant Client
+        participant Order Service
+        participant Kafka
+        participant Product Service
+        participant Payment Service
+        participant Shipping Service
+        Client ->> Order Service: 1. Create Order
+        Order Service ->> Kafka: 2. Publish 'AUTO_VALIDATE' (with 5 min delay)
+        Kafka -->> Order Service: 3. Consume 'AUTO_VALIDATE'
+        Order Service ->> Kafka: 4. Publish 'ORDER_CREATED'
+        Kafka -->> Product Service: 5. Validate Products
+        Product Service ->> Kafka: 6. Publish 'VALIDATION_SUCCEEDED'
+        Kafka -->> Order Service: 7. Consume 'VALIDATION_SUCCEEDED'
+        Order Service ->> Kafka: 8. Publish 'PAYMENT_START'
+        Kafka -->> Payment Service: 9. Process Payment
+        Payment Service ->> Kafka: 10. Publish 'PAYMENT_SUCCEEDED'
+        Kafka -->> Order Service: 11. Consume 'PAYMENT_SUCCEEDED'
+        Order Service ->> Kafka: 12. Publish 'SHIPMENT_START'
+        Kafka -->> Shipping Service: 13. Prepare Shipment
+        Shipping Service ->> Kafka: 14. Publish 'SHIPMENT_SUCCEEDED'
+        Kafka -->> Order Service: 15. Consume 'SHIPMENT_SUCCEEDED'
+        Order Service ->> Order Service: 16. Update Status to FULFILLED
+    ```
