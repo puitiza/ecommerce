@@ -56,8 +56,9 @@ public class OrderDomainServiceImpl implements OrderDomainService {
         sendEvent(order, OrderEventType.CANCEL);
     }
 
+    @Override
     @Transactional
-    protected void sendEvent(Order order, OrderEventType eventType) {
+    public void sendEvent(Order order, OrderEventType eventType) {
         try {
             StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
             persister.restore(sm, order.id().toString());

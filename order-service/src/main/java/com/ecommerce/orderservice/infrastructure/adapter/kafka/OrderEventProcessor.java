@@ -16,9 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
-/**
- * Processes order events by applying them to the state machine and persisting the resulting state.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,47 +26,68 @@ public class OrderEventProcessor {
     private final StateMachinePersister<OrderStatus, OrderEventType, String> persister;
 
     /**
-     * Processes an order event by restoring the state machine, applying the event, and persisting the new state.
-     * Executes within a transaction to ensure consistency.
+     * Processes any incoming order event by finding the order and applying the event to the state machine.
      *
-     * @param eventPayload the event payload containing order details
-     * @param eventType    the type of event to process
+     * @param eventPayload The event payload.
+     * @param eventType    The type of event to apply.
      */
     @Transactional
     public void processEvent(OrderEventPayload eventPayload, OrderEventType eventType) {
         Order orderFound = repositoryPort.findById(eventPayload.id());
-        if (orderFound == null) {
-            log.error("Order not found for ID: {}", eventPayload.id());
-            return;
-        }
+        applyEventToStateMachine(orderFound, eventType, eventPayload);
+    }
 
+    /**
+     * Handles the auto-validate event, checking the order's status before
+     * proceeding with the validation flow.
+     *
+     * @param eventPayload The event payload containing the order ID.
+     */
+    @Transactional
+    public void processAutoValidateEvent(OrderEventPayload eventPayload) {
+        Order orderFound = repositoryPort.findById(eventPayload.id());
+
+
+        log.info("Order ID {} is in CREATED state. Proceeding with validation.", orderFound.id());
+        applyEventToStateMachine(orderFound, OrderEventType.ORDER_CREATED, eventPayload);
+
+    }
+
+    /**
+     * Reusable method to restore the state machine, apply an event, and persist the new state.
+     *
+     * @param order        The order entity.
+     * @param eventType    The event to send to the state machine.
+     * @param eventPayload The event payload.
+     */
+    private void applyEventToStateMachine(Order order, OrderEventType eventType, OrderEventPayload eventPayload) {
         try {
-            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(orderFound.id().toString());
-            persister.restore(sm, orderFound.id().toString());
+            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+            persister.restore(sm, order.id().toString());
             sm.startReactively().subscribe();
 
             sm.getExtendedState().getVariables().put("order", eventPayload);
 
             Message<OrderEventType> message = MessageBuilder
                     .withPayload(eventType)
-                    .setHeader("order", orderFound)
+                    .setHeader("order", order)
                     .build();
 
             sm.sendEvent(Mono.just(message))
                     .doOnNext(result -> {
                         try {
-                            persister.persist(sm, orderFound.id().toString());
+                            persister.persist(sm, order.id().toString());
                             log.info("Processed event {} -> state {} for order ID: {}",
-                                    eventType, sm.getState().getId(), orderFound.id());
+                                    eventType, sm.getState().getId(), order.id());
                         } catch (Exception e) {
-                            log.error("Failed to persist state for order ID: {}", orderFound.id(), e);
+                            log.error("Failed to persist state for order ID: {}", order.id(), e);
                         }
                     })
                     .doOnError(error -> log.error("Failed to send event {} to state machine for order {}: {}",
-                            eventType, orderFound.id(), error.getMessage()))
+                            eventType, order.id(), error.getMessage()))
                     .subscribe();
         } catch (Exception e) {
-            log.error("Error processing event {} for order {}", eventType, orderFound.id(), e);
+            log.error("Error applying event {} to state machine for order {}", eventType, order.id(), e);
         }
     }
 }

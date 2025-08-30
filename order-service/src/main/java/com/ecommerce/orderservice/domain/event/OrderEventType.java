@@ -30,7 +30,7 @@ public enum OrderEventType {
 
     // === Local events (only order-service) ===
     ORDER_UPDATED("order_updated", "OrderUpdatedEvent", "order.updated"),
-    AUTO_VALIDATE("auto_validate", "AutoValidateEvent", "order.auto_validate"),
+    AUTO_VALIDATE("auto_validate", "AutoValidateEvent", "order.auto.validate"),
     ORDER_CONFIRMED("confirm_order", "ConfirmOrderEvent", "order.confirm_order");
 
     private final String topic;

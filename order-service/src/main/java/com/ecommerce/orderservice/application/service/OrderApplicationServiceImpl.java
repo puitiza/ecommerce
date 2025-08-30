@@ -1,6 +1,7 @@
 package com.ecommerce.orderservice.application.service;
 
 import com.ecommerce.orderservice.application.dto.*;
+import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.exception.OrderCancellationException;
 import com.ecommerce.orderservice.domain.exception.OrderUpdateException;
 import com.ecommerce.orderservice.domain.exception.OrderValidationException;
@@ -81,7 +82,9 @@ public class OrderApplicationServiceImpl implements OrderApplicationService {
         log.debug("Saved Order with ID: {}", savedOrder.id());
 
         //Trigger the state machine to start the validation saga after a delay (handled by state machine timer)
-        domainService.sendCreateEvent(savedOrder);
+        //domainService.sendCreateEvent(savedOrder);
+        domainService.sendEvent(savedOrder, OrderEventType.AUTO_VALIDATE);
+
 
         return mapper.toResponse(savedOrder, itemResponses);
     }

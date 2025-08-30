@@ -76,22 +76,20 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .event(OrderEventType.ORDER_UPDATED)
                 .action(publishEvent(OrderEventType.ORDER_UPDATED))
                 */
+                .withExternal() //(Manual confirmation)
+                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
+                .event(OrderEventType.ORDER_CREATED)
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
 
-                .withExternal() //(Automatic after 5 minutes)
+                .and().withExternal() //(Automatic after 5 minutes)
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.AUTO_VALIDATE)
-                .action(publishEvent(OrderEventType.ORDER_CREATED))
-                .timerOnce(300000)
+                .action(publishEvent(OrderEventType.AUTO_VALIDATE))
 
-                .and().withExternal() //(Manual confirmation)
-                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
-                .event(OrderEventType.ORDER_CONFIRMED)
-                .action(publishEvent(OrderEventType.ORDER_CREATED))
-
-                .and().withExternal() //(Update with timer reset)
-                .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
-                .event(OrderEventType.ORDER_UPDATED)
-                .action(publishEvent(OrderEventType.ORDER_UPDATED))
+                //.and().withExternal() //(Update with timer reset)
+                //.source(OrderStatus.CREATED).target(OrderStatus.CREATED)
+                //.event(OrderEventType.ORDER_UPDATED)
+                //.action(publishEvent(OrderEventType.ORDER_UPDATED))
 
                 // ---- VALIDATION ----
                 .and().withExternal()
@@ -214,6 +212,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                     switch (eventType) {
                         case ORDER_CREATED -> eventPublisher.publishOrderCreatedEvent(eventPayload);
                         case ORDER_UPDATED -> eventPublisher.publishOrderUpdatedEvent(eventPayload);
+                        case AUTO_VALIDATE -> eventPublisher.publishAutoValidateEvent(eventPayload);
                         case PAYMENT_START -> eventPublisher.publishPaymentStartEvent(eventPayload);
                         case SHIPMENT_START -> eventPublisher.publishShipmentStartEvent(eventPayload);
                         case DELIVERED -> eventPublisher.publishDeliveredEvent(eventPayload);

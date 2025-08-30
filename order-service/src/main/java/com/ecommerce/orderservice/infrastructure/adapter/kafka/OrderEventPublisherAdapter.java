@@ -38,6 +38,11 @@ public class OrderEventPublisherAdapter implements OrderEventPublisherPort {
     }
 
     @Override
+    public void publishAutoValidateEvent(OrderEventPayload order) {
+        publishEvent(order, OrderEventType.AUTO_VALIDATE);
+    }
+
+    @Override
     public void publishValidationSucceededEvent(OrderEventPayload order) {
         publishEvent(order, OrderEventType.VALIDATION_SUCCEEDED);
     }

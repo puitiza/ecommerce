@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.TopicPartition;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -35,6 +36,7 @@ public class OrderKafkaConfig {
      * @return the configured listener container factory
      */
     @Bean
+    @ConditionalOnMissingBean(name = "kafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, CloudEvent> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, CloudEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
@@ -72,6 +74,10 @@ public class OrderKafkaConfig {
     @Bean
     public NewTopic[] orderTopics() {
         return new NewTopic[]{
+                TopicBuilder.name("auto-validate-delayed").partitions(1).replicas(1)
+                        .config("retention.ms", "300000")
+                        .config("cleanup.policy", "compact")
+                        .build(),
                 TopicBuilder.name("order-dead-letter-topic").partitions(1).replicas(1).build()
         };
     }

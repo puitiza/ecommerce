@@ -1,5 +1,6 @@
 package com.ecommerce.orderservice.domain.service;
 
+import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 
 /**
@@ -33,6 +34,8 @@ public interface OrderDomainService {
     void sendUpdateEvent(Order order);
 
     void sendConfirmEvent(Order order);
+
+    void sendEvent(Order order, OrderEventType orderEventType);
 
     /**
      * Triggers the order cancellation event.

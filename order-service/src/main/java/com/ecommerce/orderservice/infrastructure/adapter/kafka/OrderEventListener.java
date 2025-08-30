@@ -78,6 +78,14 @@ public class OrderEventListener {
         );
     }
 
+    @KafkaListener(topics = "auto_validate", containerFactory = "kafkaListenerContainerFactory")
+    public void handleAutoValidateEvent(@Payload CloudEvent cloudEvent) {
+        extractOrderPayloadFromEvent(cloudEvent)
+                .ifPresentOrElse(eventProcessor::processAutoValidateEvent,
+                        () -> log.warn("Could not extract order payload from CloudEvent for delayed validation")
+                );
+    }
+
     /**
      * Deserializes the CloudEvent data into an OrderEventPayload.
      *
