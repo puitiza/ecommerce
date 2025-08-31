@@ -22,8 +22,8 @@ public interface ListableCrudOpenApi<P> {
     @ApiResponse(responseCode = "200", description = "Resources retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Object.class)))
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    P getAll(@Parameter(description = "Page number for pagination", example = "0")
-             @RequestParam(defaultValue = "0") int page,
-             @Parameter(description = "Number of items per page", example = "10")
-             @RequestParam(defaultValue = "10") int size);
+    P findAllPaginated(@Parameter(description = "Page number for pagination", example = "0")
+                       @RequestParam(defaultValue = "0") int page,
+                       @Parameter(description = "Number of items per page", example = "10")
+                       @RequestParam(defaultValue = "10") int size);
 }

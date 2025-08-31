@@ -30,6 +30,10 @@ public interface OrderDomainService {
      */
     void sendCreateEvent(Order order);
 
+    void sendUpdateEvent(Order order);
+
+    void sendConfirmEvent(Order order);
+
     /**
      * Triggers the order cancellation event.
      *

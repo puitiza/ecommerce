@@ -14,6 +14,7 @@ spring:
     url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true
     username: order_user
     password: order_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
     hibernate:
@@ -28,13 +29,16 @@ spring:
         max.request.size: 1000000 # Max size of a single request (1MB)
         metadata.max.idle.ms: 180000 # Time to wait for metadata (3min)
         request.timeout.ms: 30000 # Timeout for a request to the server
-        retry.backoff.ms: 10000 # Time to wait before retrying.
-        retries: 10         # Number of retries on failed requests.
+        retries: 10               # Number of retries on failed requests.
+        retry.backoff.ms: 10000   # Time to wait before retrying.
+        retry.backoff.max.ms: 10000
     consumer:
       group-id: order-service-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: io.cloudevents.kafka.CloudEventDeserializer
         metadata.max.age.ms: 180000
         connections.max.idle.ms: 180000
       auto-offset-reset: latest # Where to start consuming if no offset is committed.

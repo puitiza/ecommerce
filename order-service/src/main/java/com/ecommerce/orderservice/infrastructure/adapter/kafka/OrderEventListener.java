@@ -1,7 +1,7 @@
 package com.ecommerce.orderservice.infrastructure.adapter.kafka;
 
 import com.ecommerce.orderservice.domain.event.OrderEventType;
-import com.ecommerce.orderservice.domain.model.Order;
+import com.ecommerce.shared.domain.event.OrderEventPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.CloudEventUtils;
@@ -23,6 +23,9 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Listens for Kafka events related to order processing and delegates to the event processor.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -56,14 +59,12 @@ public class OrderEventListener {
     }
 
     /**
-     * Kafka listener for processing order-related events.
-     * It deserializes the incoming CloudEvent and delegates its processing
-     * to the OrderEventProcessor to handle the state machine logic in a transactional context.
+     * Processes incoming CloudEvents from Kafka topics, extracting the payload and delegating to the event processor.
      *
-     * @param cloudEvent The incoming CloudEvent payload.
-     * @param topic      The Kafka topic the event was received from.
+     * @param cloudEvent the incoming CloudEvent
+     * @param topic      the Kafka topic the event was received from
      */
-    @KafkaListener(topics = "#{consumerTopics}")
+    @KafkaListener(topics = "#{consumerTopics}", containerFactory = "kafkaListenerContainerFactory")
     public void handleEvent(@Payload CloudEvent cloudEvent,
                             @Header(value = KafkaHeaders.RECEIVED_TOPIC, required = false) String topic) {
         OrderEventType eventType = topicToEventTypeMap.get(topic);
@@ -71,21 +72,29 @@ public class OrderEventListener {
             log.warn("Received event on unknown topic: {}", topic);
             return;
         }
-        extractOrderFromEvent(cloudEvent)
-                .ifPresentOrElse(order -> eventProcessor.processEvent(order, eventType),
-                        () -> log.warn("Could not extract order from CloudEvent with type: {}", cloudEvent.getType()));
+        extractOrderPayloadFromEvent(cloudEvent).ifPresentOrElse(
+                payload -> eventProcessor.processEvent(payload, eventType),
+                () -> log.warn("Could not extract order payload from CloudEvent with type: {}", cloudEvent.getType())
+        );
     }
 
-    private Optional<Order> extractOrderFromEvent(CloudEvent event) {
+    /**
+     * Deserializes the CloudEvent data into an OrderEventPayload.
+     *
+     * @param event the CloudEvent to process
+     * @return an optional containing the deserialized payload, or empty if deserialization fails
+     */
+    private Optional<OrderEventPayload> extractOrderPayloadFromEvent(CloudEvent event) {
         if (event == null || event.getData() == null) {
             log.warn("Invalid CloudEvent or data is null");
             return Optional.empty();
         }
         try {
-            PojoCloudEventData<Order> deserializedData = CloudEventUtils.mapData(event, PojoCloudEventDataMapper.from(objectMapper, Order.class));
+            PojoCloudEventData<OrderEventPayload> deserializedData = CloudEventUtils.mapData(
+                    event, PojoCloudEventDataMapper.from(objectMapper, OrderEventPayload.class));
             return Optional.ofNullable(deserializedData).map(PojoCloudEventData::getValue);
         } catch (Exception e) {
-            log.error("Error deserializing Order from CloudEvent", e);
+            log.error("Error deserializing OrderEventPayload from CloudEvent", e);
             return Optional.empty();
         }
     }

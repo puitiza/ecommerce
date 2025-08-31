@@ -1,7 +1,7 @@
 package com.ecommerce.paymentservice;
 
-import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
 import com.ecommerce.shared.infrastructure.configuration.OpenApiConfigBase;
+import com.ecommerce.shared.infrastructure.configuration.SharedLibraryConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;

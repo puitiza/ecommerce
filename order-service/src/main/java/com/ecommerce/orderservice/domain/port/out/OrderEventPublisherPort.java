@@ -1,36 +1,35 @@
 package com.ecommerce.orderservice.domain.port.out;
 
-import com.ecommerce.orderservice.domain.model.Order;
+import com.ecommerce.shared.domain.event.OrderEventPayload;
 
 public interface OrderEventPublisherPort {
-    void publishOrderCreatedEvent(Order order);
+    void publishOrderCreatedEvent(OrderEventPayload order);
 
-    void publishOrderUpdatedEvent(Order order);
+    void publishOrderUpdatedEvent(OrderEventPayload order);
 
-    void publishValidationSucceededEvent(Order order);
+    void publishValidationSucceededEvent(OrderEventPayload order);
 
-    void publishValidationFailedEvent(Order order);
+    void publishValidationFailedEvent(OrderEventPayload order);
 
-    void publishRetryValidationEvent(Order order);
+    void publishRetryValidationEvent(OrderEventPayload order);
 
-    void publishPaymentStartEvent(Order order);
+    void publishPaymentStartEvent(OrderEventPayload order);
 
-    void publishPaymentSucceededEvent(Order order);
+    void publishPaymentSucceededEvent(OrderEventPayload order);
 
-    void publishPaymentFailedEvent(Order order);
+    void publishPaymentFailedEvent(OrderEventPayload order);
 
-    void publishRetryPaymentEvent(Order order);
+    void publishRetryPaymentEvent(OrderEventPayload order);
 
-    void publishShipmentStartEvent(Order order);
+    void publishShipmentStartEvent(OrderEventPayload order);
 
-    void publishShipmentSucceededEvent(Order order);
+    void publishShipmentSucceededEvent(OrderEventPayload order);
 
-    void publishShipmentFailedEvent(Order order);
+    void publishShipmentFailedEvent(OrderEventPayload order);
 
-    void publishRetryShipmentEvent(Order order);
+    void publishRetryShipmentEvent(OrderEventPayload order);
 
-    void publishDeliveredEvent(Order order);
+    void publishDeliveredEvent(OrderEventPayload order);
 
-    void publishCancelEvent(Order order);
-
+    void publishCancelEvent(OrderEventPayload order);
 }

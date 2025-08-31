@@ -37,18 +37,18 @@ public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, U
     @ApiResponse(responseCode = "200", description = "Orders retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = OrderPageResponse.class)))
-    OrderPageResponse getAll(@Parameter(description = "Page number for pagination", example = "0")
-                             @RequestParam(defaultValue = "0") int page,
-                             @Parameter(description = "Number of items per page", example = "10")
-                             @RequestParam(defaultValue = "10") int size);
+    OrderPageResponse findAllPaginated(@Parameter(description = "Page number for pagination", example = "0")
+                                       @RequestParam(defaultValue = "0") int page,
+                                       @Parameter(description = "Number of items per page", example = "10")
+                                       @RequestParam(defaultValue = "10") int size);
 
     @Override
     @Operation(summary = "Retrieve Order by ID", description = "Retrieves the details of an order by its ID", security = @SecurityRequirement(name = "security_auth"))
     @ApiResponse(responseCode = "200", description = "Order retrieved successfully",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = OrderResponse.class)))
-    OrderResponse getById(@Parameter(description = "ID of the order to retrieve", required = true)
-                          @PathVariable("id") UUID id);
+    OrderResponse findById(@Parameter(description = "ID of the order to retrieve", required = true)
+                           @PathVariable("id") UUID id);
 
     @Override
     @Operation(summary = "Update Order", description = "Updates an existing order by its ID", security = @SecurityRequirement(name = "security_auth"))
@@ -72,4 +72,12 @@ public interface OrderOpenApi extends CrudOpenApi<OrderResponse, OrderRequest, U
     @DeleteMapping(value = "/{id}/cancel")
     void cancelOrder(@Parameter(description = "ID of the order to cancel", required = true)
                      @PathVariable("id") UUID id);
+
+    @ApiResourceNotFound
+    @Operation(summary = "confirm Order", description = "Confirm an order by its ID", security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponse(responseCode = "200", description = "Order updated successfully",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = OrderResponse.class)))
+    @PutMapping(value = "/{id}/confirm", produces = MediaType.APPLICATION_JSON_VALUE)
+    OrderResponse confirmOrder(@Parameter(description = "ID of the order to confirm", required = true)
+                               @PathVariable UUID id);
 }

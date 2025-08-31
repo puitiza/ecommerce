@@ -47,8 +47,8 @@ public interface CrudOpenApi<T, V, ID> {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = Object.class)))
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.OK)
-    T getById(@Parameter(description = "ID of the resource to retrieve", required = true)
-              @PathVariable ID id);
+    T findById(@Parameter(description = "ID of the resource to retrieve", required = true)
+               @PathVariable ID id);
 
     @ApiValidationErrors
     @ApiResourceNotFound

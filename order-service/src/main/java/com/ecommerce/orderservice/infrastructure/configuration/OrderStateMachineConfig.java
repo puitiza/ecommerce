@@ -17,19 +17,31 @@ import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 import org.springframework.statemachine.guard.Guard;
+import org.springframework.statemachine.persist.DefaultStateMachinePersister;
+import org.springframework.statemachine.persist.StateMachinePersister;
 import reactor.core.publisher.Mono;
 
 import java.util.EnumSet;
 import java.util.Optional;
 
+/**
+ * Configures the state machine for order processing, defining states, transitions, actions, and guards.
+ */
 @Slf4j
 @Configuration
-@EnableStateMachineFactory
 @RequiredArgsConstructor
+@EnableStateMachineFactory
 public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<OrderStatus, OrderEventType> {
 
     private final OrderEventPublisherPort eventPublisher;
+    private final OrderStateMachinePersister delegatePersister;
 
+    /**
+     * Configures the states of the order state machine, including initial, intermediate, and end states.
+     *
+     * @param states the state configurer
+     * @throws Exception if configuration fails
+     */
     @Override
     public void configure(StateMachineStateConfigurer<OrderStatus, OrderEventType> states) throws Exception {
         states
@@ -40,100 +52,134 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .end(OrderStatus.CANCELLED);
     }
 
+    /**
+     * Configures transitions between states, including events, actions, guards, and timers.
+     *
+     * @param transitions the transition configurer
+     * @throws Exception if configuration fails
+     */
     @Override
     public void configure(StateMachineTransitionConfigurer<OrderStatus, OrderEventType> transitions) throws Exception {
         transitions
-                // CREATED -> VALIDATION_PENDING (Initial transition)
+                // ---- CREATED STATE ----
+                /*
+                // CREATED -> VALIDATION_PENDING
                 .withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.ORDER_CREATED)
                 .action(publishEvent(OrderEventType.ORDER_CREATED))
                 .timerOnce(30000)
 
-                // CREATED -> CREATED (For Order Updated)
+                // CREATED -> CREATED (Update)
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
                 .event(OrderEventType.ORDER_UPDATED)
                 .action(publishEvent(OrderEventType.ORDER_UPDATED))
+                */
 
-                // VALIDATION_PENDING -> VALIDATION_SUCCEEDED
+                .withExternal() //(Automatic after 5 minutes)
+                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
+                .event(OrderEventType.AUTO_VALIDATE)
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
+                .timerOnce(300000)
+
+                .and().withExternal() //(Manual confirmation)
+                .source(OrderStatus.CREATED).target(OrderStatus.VALIDATION_PENDING)
+                .event(OrderEventType.ORDER_CONFIRMED)
+                .action(publishEvent(OrderEventType.ORDER_CREATED))
+
+                .and().withExternal() //(Update with timer reset)
+                .source(OrderStatus.CREATED).target(OrderStatus.CREATED)
+                .event(OrderEventType.ORDER_UPDATED)
+                .action(publishEvent(OrderEventType.ORDER_UPDATED))
+
+                // ---- VALIDATION ----
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_SUCCEEDED)
                 .event(OrderEventType.VALIDATION_SUCCEEDED)
                 .action(publishEvent(OrderEventType.PAYMENT_START))
 
-                // VALIDATION_PENDING -> VALIDATION_FAILED
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_PENDING).target(OrderStatus.VALIDATION_FAILED)
                 .event(OrderEventType.VALIDATION_FAILED)
                 .action(validationFailedAction())
 
-                // VALIDATION_FAILED -> VALIDATION_PENDING (Retry)
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_FAILED).target(OrderStatus.VALIDATION_PENDING)
                 .event(OrderEventType.RETRY_VALIDATION)
                 .guard(validationRetryGuard())
+                .action(publishEvent(OrderEventType.RETRY_VALIDATION))
                 .timerOnce(30000)
 
-                // VALIDATION_SUCCEEDED -> PAYMENT_PENDING
+                .and().withExternal()
+                .source(OrderStatus.VALIDATION_FAILED).target(OrderStatus.CANCELLED)
+                .event(OrderEventType.AUTO_CANCEL)
+                .action(publishEvent(OrderEventType.CANCEL))
+
+                // ---- PAYMENT ----
                 .and().withExternal()
                 .source(OrderStatus.VALIDATION_SUCCEEDED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.PAYMENT_START)
                 .action(publishEvent(OrderEventType.PAYMENT_START))
                 .timerOnce(60000)
 
-                // PAYMENT_PENDING -> PAYMENT_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_SUCCEEDED)
                 .event(OrderEventType.PAYMENT_SUCCEEDED)
                 .action(publishEvent(OrderEventType.SHIPMENT_START))
 
-                // PAYMENT_PENDING -> PAYMENT_FAILED
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.PAYMENT_FAILED)
                 .event(OrderEventType.PAYMENT_FAILED)
                 .action(paymentFailedAction())
 
-                // PAYMENT_FAILED -> PAYMENT_PENDING (retry)
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_FAILED).target(OrderStatus.PAYMENT_PENDING)
                 .event(OrderEventType.RETRY_PAYMENT)
                 .guard(paymentRetryGuard())
+                .action(publishEvent(OrderEventType.RETRY_PAYMENT))
                 .timerOnce(60000)
 
-                // PAYMENT_SUCCEEDED -> SHIPPING_PENDING
+                .and().withExternal()
+                .source(OrderStatus.PAYMENT_FAILED).target(OrderStatus.CANCELLED)
+                .event(OrderEventType.AUTO_CANCEL)
+                .action(publishEvent(OrderEventType.CANCEL))
+
+                // ---- SHIPPING ----
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_SUCCEEDED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.SHIPMENT_START)
                 .action(publishEvent(OrderEventType.SHIPMENT_START))
                 .timerOnce(120000)
 
-                // SHIPPING_PENDING -> SHIPPING_SUCCEEDED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_SUCCEEDED)
                 .event(OrderEventType.SHIPMENT_SUCCEEDED)
                 .action(publishEvent(OrderEventType.DELIVERED))
 
-                // SHIPPING_PENDING -> SHIPPING_FAILED
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.SHIPPING_FAILED)
                 .event(OrderEventType.SHIPMENT_FAILED)
                 .action(shipmentFailedAction())
 
-                // SHIPPING_FAILED -> SHIPPING_PENDING (retry)
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_FAILED).target(OrderStatus.SHIPPING_PENDING)
                 .event(OrderEventType.RETRY_SHIPMENT)
                 .guard(shipmentRetryGuard())
+                .action(publishEvent(OrderEventType.RETRY_SHIPMENT))
                 .timerOnce(120000)
 
-                // SHIPPING_SUCCEEDED -> FULFILLED
+                .and().withExternal()
+                .source(OrderStatus.SHIPPING_FAILED).target(OrderStatus.CANCELLED)
+                .event(OrderEventType.AUTO_CANCEL)
+                .action(publishEvent(OrderEventType.CANCEL))
+
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_SUCCEEDED).target(OrderStatus.FULFILLED)
                 .event(OrderEventType.DELIVERED)
-                .action(fulfilledAction()) // Optional: notify completion
+                .action(fulfilledAction())
 
-                // Cancel transitions from various sources
+                // ---- CANCEL TRANSITIONS ----
                 .and().withExternal()
                 .source(OrderStatus.CREATED).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
@@ -147,25 +193,34 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .and().withExternal()
                 .source(OrderStatus.PAYMENT_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishEvent(OrderEventType.CANCEL)) // Includes refund
+                .action(publishEvent(OrderEventType.CANCEL))
 
                 .and().withExternal()
                 .source(OrderStatus.SHIPPING_PENDING).target(OrderStatus.CANCELLED)
                 .event(OrderEventType.CANCEL)
-                .action(publishEvent(OrderEventType.CANCEL)); // Includes refund + reverse shipment
+                .action(publishEvent(OrderEventType.CANCEL));
     }
 
-    // Event publication actions, using the Helper Get Order From Context
+    /**
+     * Creates an action to publish events to the event publisher based on the event type.
+     *
+     * @param eventType the type of event to publish
+     * @return the action to execute
+     */
     private Action<OrderStatus, OrderEventType> publishEvent(OrderEventType eventType) {
         return context -> getOrderFromContext(context).ifPresentOrElse(
                 order -> {
+                    var eventPayload = order.toEventPayload();
                     switch (eventType) {
-                        case ORDER_CREATED -> eventPublisher.publishOrderCreatedEvent(order);
-                        case ORDER_UPDATED -> eventPublisher.publishOrderUpdatedEvent(order);
-                        case PAYMENT_START -> eventPublisher.publishPaymentStartEvent(order);
-                        case SHIPMENT_START -> eventPublisher.publishShipmentStartEvent(order);
-                        case DELIVERED -> eventPublisher.publishDeliveredEvent(order);
-                        case CANCEL -> eventPublisher.publishCancelEvent(order);
+                        case ORDER_CREATED -> eventPublisher.publishOrderCreatedEvent(eventPayload);
+                        case ORDER_UPDATED -> eventPublisher.publishOrderUpdatedEvent(eventPayload);
+                        case PAYMENT_START -> eventPublisher.publishPaymentStartEvent(eventPayload);
+                        case SHIPMENT_START -> eventPublisher.publishShipmentStartEvent(eventPayload);
+                        case DELIVERED -> eventPublisher.publishDeliveredEvent(eventPayload);
+                        case CANCEL -> eventPublisher.publishCancelEvent(eventPayload);
+                        case RETRY_VALIDATION -> eventPublisher.publishRetryValidationEvent(eventPayload);
+                        case RETRY_PAYMENT -> eventPublisher.publishRetryPaymentEvent(eventPayload);
+                        case RETRY_SHIPMENT -> eventPublisher.publishRetryShipmentEvent(eventPayload);
                         default -> log.warn("No publisher for event: {}", eventType);
                     }
                     log.info("Published {} for order ID: {}", eventType.getEventType(), order.id());
@@ -174,6 +229,12 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
         );
     }
 
+    /**
+     * Extracts the order from the state context message headers.
+     *
+     * @param context the state machine context
+     * @return an optional containing the order, or empty if not found or invalid
+     */
     private Optional<Order> getOrderFromContext(StateContext<OrderStatus, OrderEventType> context) {
         return Optional.ofNullable(context.getMessageHeader("order"))
                 .filter(Order.class::isInstance)
@@ -187,7 +248,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 context.getExtendedState().getVariables().put(retryCountKey, retryCount + 1);
                 return true;
             }
-            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.CANCEL)
+            Message<OrderEventType> cancelMessage = MessageBuilder.withPayload(OrderEventType.AUTO_CANCEL)
                     .setHeader("order", context.getMessageHeader("order"))
                     .build();
             context.getStateMachine().sendEvent(Mono.just(cancelMessage)).subscribe();
@@ -195,7 +256,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
         };
     }
 
-    // Error Log actions and completed
     @Bean
     public Action<OrderStatus, OrderEventType> validationFailedAction() {
         return context -> getOrderFromContext(context)
@@ -220,7 +280,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                 .ifPresent(order -> log.info("Order fulfilled: {}", order.id()));
     }
 
-    // Guards retry
     @Bean
     public Guard<OrderStatus, OrderEventType> validationRetryGuard() {
         return createRetryGuard("validationRetryCount");
@@ -233,6 +292,11 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
 
     @Bean
     public Guard<OrderStatus, OrderEventType> shipmentRetryGuard() {
-        return createRetryGuard("shippingRetryCount");
+        return createRetryGuard("shipmentRetryCount");
+    }
+
+    @Bean
+    public StateMachinePersister<OrderStatus, OrderEventType, String> persister() {
+        return new DefaultStateMachinePersister<>(delegatePersister);
     }
 }

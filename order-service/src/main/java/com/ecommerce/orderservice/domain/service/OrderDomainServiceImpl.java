@@ -4,21 +4,23 @@ import com.ecommerce.orderservice.domain.event.OrderEventType;
 import com.ecommerce.orderservice.domain.model.Order;
 import com.ecommerce.orderservice.domain.model.OrderStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
+import org.springframework.statemachine.persist.StateMachinePersister;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
-/**
- * Implementation of the OrderDomainService, handling state machine interactions for order processing.
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderDomainServiceImpl implements OrderDomainService {
 
     private final StateMachineFactory<OrderStatus, OrderEventType> stateMachineFactory;
+    private final StateMachinePersister<OrderStatus, OrderEventType, String> persister;
 
     @Override
     public boolean canCancel(Order order) {
@@ -31,41 +33,73 @@ public class OrderDomainServiceImpl implements OrderDomainService {
     }
 
     @Override
+    @Transactional
     public void sendCreateEvent(Order order) {
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-        sm.startReactively().subscribe();
-
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.ORDER_CREATED)
-                .setHeader("order", order)
-                .build();
-
-        sm.sendEvent(Mono.just(message)).subscribe();
+        sendEvent(order, OrderEventType.ORDER_CREATED);
     }
 
     @Override
-    public void sendCancelEvent(Order order) {
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-        Message<OrderEventType> message = MessageBuilder
-                .withPayload(OrderEventType.CANCEL)
-                .setHeader("order", order)
-                .build();
-        sm.sendEvent(Mono.just(message)).subscribe();
+    @Transactional
+    public void sendUpdateEvent(Order order) {
+        sendEvent(order, OrderEventType.ORDER_UPDATED);
     }
 
-    // Here you can add a method for the update event if you need it in the future,
-    // But for now, the "update" flow is a "create" again.
+    @Override
+    @Transactional
+    public void sendConfirmEvent(Order order) {
+        sendEvent(order, OrderEventType.ORDER_CREATED);
+    }
+
+    @Override
+    @Transactional
+    public void sendCancelEvent(Order order) {
+        sendEvent(order, OrderEventType.CANCEL);
+    }
+
+    @Transactional
+    protected void sendEvent(Order order, OrderEventType eventType) {
+        try {
+            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+            persister.restore(sm, order.id().toString());
+            sm.startReactively().subscribe();
+
+            Message<OrderEventType> message = MessageBuilder
+                    .withPayload(eventType)
+                    .setHeader("order", order)
+                    .build();
+
+            sm.sendEvent(Mono.just(message))
+                    .doOnNext(result -> {
+                        try {
+                            persister.persist(sm, order.id().toString());
+                            log.info("Sent event {} for order ID: {}, new state: {}",
+                                    eventType, order.id(), sm.getState().getId());
+                        } catch (Exception e) {
+                            log.error("Failed to persist state for order {}", order.id(), e);
+                        }
+                    })
+                    .subscribe();
+        } catch (Exception e) {
+            log.error("Error handling event {} for order {}", eventType, order.id(), e);
+            throw new RuntimeException(e);
+        }
+    }
 
     private boolean isEventAllowed(Order order, OrderEventType eventType) {
-        StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
-        sm.startReactively().subscribe(); // ensures that the machine is in its initial state
+        try {
+            StateMachine<OrderStatus, OrderEventType> sm = stateMachineFactory.getStateMachine(order.id().toString());
+            persister.restore(sm, order.id().toString());
+            sm.startReactively().subscribe();
 
-        // Verify if there is a transition with the state of origin of the order and the event
-        return sm.getTransitions()
-                .stream()
-                .anyMatch(transition ->
-                        transition.getSource().getId().equals(order.status()) &&
-                                transition.getTrigger() != null &&
-                                transition.getTrigger().getEvent().equals(eventType));
+            return sm.getTransitions()
+                    .stream()
+                    .anyMatch(transition ->
+                            transition.getSource().getId().equals(order.status()) &&
+                                    transition.getTrigger() != null &&
+                                    transition.getTrigger().getEvent().equals(eventType));
+        } catch (Exception e) {
+            log.error("Error checking if event {} is allowed for order {}", eventType, order.id(), e);
+            return false;
+        }
     }
 }

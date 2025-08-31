@@ -63,7 +63,4 @@ ext {
     applyOpenApiDependencies = { dependencyHandler ->
         dependencyHandler.implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springDocVersion}"
     }
-    applyModelMapperDependencies = { dependencyHandler ->
-        dependencyHandler.implementation "org.modelmapper:modelmapper:${modelMapperVersion}"
-    }
 }

@@ -30,39 +30,45 @@ public class OrderController implements OrderOpenApi {
 
     @Override
     public OrderResponse create(@Valid @RequestBody OrderRequest request) {
-        log.info("Creating order: {}", request);
+        log.info("Receiving new order creation: {}", request);
         return orderUseCase.createOrder(request);
     }
 
     @Override
-    public OrderPageResponse getAll(@RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "10") int size) {
+    public OrderPageResponse findAllPaginated(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size) {
         log.info("Retrieving orders for page {} with size {}", page, size);
         return new OrderPageResponse(orderUseCase.getAllOrders(page, size));
     }
 
     @Override
-    public OrderResponse getById(@PathVariable("id") UUID id) {
+    public OrderResponse findById(@PathVariable UUID id) {
         log.info("Retrieving order with ID: {}", id);
         return orderUseCase.getOrderById(id);
     }
 
     @Override
-    public OrderResponse update(@PathVariable("id") UUID id, @Valid @RequestBody OrderRequest request) {
+    public OrderResponse update(@PathVariable UUID id, @Valid @RequestBody OrderRequest request) {
         log.info("Updating order with ID: {} with request: {}", id, request);
         return orderUseCase.updateOrder(id, request);
     }
 
     @Override
-    public void delete(@PathVariable("id") UUID id) {
+    public void delete(@PathVariable UUID id) {
         log.info("Deleting order with ID: {}", id);
         orderUseCase.deleteOrder(id);
     }
 
     @Override
-    public void cancelOrder(@PathVariable("id") UUID id) {
+    public void cancelOrder(@PathVariable UUID id) {
         log.info("Cancelling order with ID: {}", id);
         orderUseCase.cancelOrder(id);
+    }
+
+    @Override
+    public OrderResponse confirmOrder(@PathVariable UUID id) {
+        log.info("Confirming order with ID: {}", id);
+        return orderUseCase.confirmOrder(id);
     }
 
     @GetMapping("/orders/search")

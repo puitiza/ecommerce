@@ -1,6 +1,5 @@
 spring: #This is only to show Database info:
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver # Specifies MySQL JDBC driver
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
@@ -9,7 +8,7 @@ spring: #This is only to show Database info:
       max-lifetime: 1800000 # Maximum lifetime (ms) of a connection
   jpa:
     properties:
-      hibernate:  # Tell Hibernate to copy the same
+      hibernate: # Tell Hibernate to copy the same
         connection:
           url: ${spring.datasource.url}
           username: ${spring.datasource.username}
